@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能座舱 AI 猜谜 Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="cabin-region" aria-label="虚拟座舱">
+        <div class="environment-backdrop" id="environmentBackdrop"></div>
+        <div class="cabin-overlay">
+          <div class="scene-badges">
+            <span id="environmentLabel">高速路晴天白天</span>
+            <span id="speedLabel">50 km/h</span>
+            <span id="destinationLabel">目的地：公司</span>
+          </div>
+          <div class="cabin-alert" id="cabinAlert">游戏进行中</div>
+          <div class="car-cabin">
+            <button class="seat seat-rear-left" data-seat="rearLeft" type="button">
+              <span class="speech-bubble" data-bubble="rearLeft"></span>
+              <span class="avatar" data-avatar="rearLeft"></span>
+              <strong>后排左</strong>
+              <small data-seat-status="rearLeft">普通</small>
+            </button>
+            <button class="seat seat-rear-right" data-seat="rearRight" type="button">
+              <span class="speech-bubble" data-bubble="rearRight"></span>
+              <span class="avatar" data-avatar="rearRight"></span>
+              <strong>后排右</strong>
+              <small data-seat-status="rearRight">普通</small>
+            </button>
+            <button class="seat seat-front" data-seat="front" type="button">
+              <span class="speech-bubble" data-bubble="front"></span>
+              <span class="avatar" data-avatar="front"></span>
+              <strong>副驾</strong>
+              <small data-seat-status="front">普通</small>
+            </button>
+            <button class="seat seat-driver" data-seat="driver" type="button">
+              <span class="speech-bubble" data-bubble="driver"></span>
+              <span class="avatar" data-avatar="driver"></span>
+              <strong>主驾</strong>
+              <small data-seat-status="driver">普通</small>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="right-stack">
+        <section class="game-region" aria-label="游戏界面">
+          <div class="game-topbar">
+            <div>
+              <span class="muted">进度</span>
+              <strong id="roundProgress">1/10</strong>
+            </div>
+            <div>
+              <span class="muted">提问</span>
+              <strong id="questionProgress">0/15</strong>
+            </div>
+            <div class="status-pill" id="gameStatus">待开局</div>
+          </div>
+
+          <div class="game-stage">
+            <div class="riddle-copy">
+              <span class="stage-label" id="stageLabel">AI 开场</span>
+              <h1 id="riddleTitle">谜底隐藏中</h1>
+              <p id="riddleHint">点击“AI 开场”开始第一轮。</p>
+              <div class="answer-reveal" id="answerReveal">谜底：雨伞</div>
+            </div>
+
+            <div class="host-area">
+              <div class="host-bubble" id="hostBubble">
+                我已经准备好第一道题了，等你发令。
+              </div>
+              <div class="host-avatar" id="hostAvatar">
+                <div class="host-face"></div>
+                <span>AI 主持人</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="control-region" aria-label="上帝视角控制区">
+          <div class="control-header">
+            <div class="workflow-line">
+              <label for="workflowUrl">Workflow 接口</label>
+              <input id="workflowUrl" type="url" placeholder="https://.../api/workflow" />
+              <button class="ghost-button" id="saveWorkflow" type="button">保存</button>
+            </div>
+            <button class="reset-button" id="resetScenario" type="button">重置模拟</button>
+          </div>
+
+          <div class="control-grid">
+            <div class="control-row">
+              <span class="control-label">车速</span>
+              <div class="chip-group" id="speedChips">
+                <button class="chip active" data-speed="50" type="button">50</button>
+                <button class="chip" data-speed="80" type="button">80</button>
+                <button class="chip" data-speed="100" type="button">100</button>
+                <button class="chip" data-speed="120" type="button">120</button>
+              </div>
+              <input class="compact-input" id="speedInput" type="number" min="0" value="50" />
+            </div>
+
+            <div class="control-row">
+              <span class="control-label">目的地</span>
+              <div class="chip-group" id="destinationChips">
+                <button class="chip" data-destination="家" type="button">家</button>
+                <button class="chip" data-destination="学校" type="button">学校</button>
+                <button class="chip" data-destination="迪士尼" type="button">迪士尼</button>
+                <button class="chip" data-destination="火锅店" type="button">火锅店</button>
+                <button class="chip active" data-destination="公司" type="button">公司</button>
+                <button class="chip" data-destination="草原" type="button">草原</button>
+              </div>
+              <input class="compact-input destination-input" id="destinationInput" value="公司" />
+            </div>
+
+            <div class="control-row">
+              <span class="control-label">乘客关系</span>
+              <div class="chip-group" id="relationshipChips">
+                <button class="chip" data-relationship="年轻朋友" type="button">年轻朋友</button>
+                <button class="chip active" data-relationship="父母+小孩" type="button">父母+小孩</button>
+                <button class="chip" data-relationship="中老年+儿女" type="button">中老年+儿女</button>
+              </div>
+            </div>
+
+            <div class="control-row environment-row">
+              <span class="control-label">车外环境</span>
+              <div class="chip-group" id="environmentChips">
+                <button class="chip active" data-environment="高速路晴天白天" type="button">高速路晴天白天</button>
+                <button class="chip" data-environment="高速路晴天深夜" type="button">高速路晴天深夜</button>
+                <button class="chip" data-environment="高速路雨天白天" type="button">高速路雨天白天</button>
+                <button class="chip" data-environment="城区晴天白天" type="button">城区晴天白天</button>
+                <button class="chip" data-environment="城区雨天白天" type="button">城区雨天白天</button>
+                <button class="chip" data-environment="风景区晴天白天" type="button">风景区晴天白天</button>
+                <button class="chip" data-environment="风景区雪景白天" type="button">风景区雪景白天</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <span class="control-label">事件</span>
+              <div class="chip-group">
+                <button class="event-button danger" data-event="hard_brake" type="button">急刹打断</button>
+                <button class="event-button" data-event="driver_tired" type="button">主驾疲惫</button>
+                <button class="event-button" data-event="passenger_sleep" type="button">有人睡着</button>
+                <button class="event-button" data-event="near_destination" type="button">快到目的地</button>
+                <button class="event-button" data-event="resume_game" type="button">恢复游戏</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ask-bar">
+            <select id="seatSelect" aria-label="当前乘客">
+              <option value="driver">主驾</option>
+              <option value="front" selected>副驾</option>
+              <option value="rearLeft">左后</option>
+              <option value="rearRight">右后</option>
+            </select>
+            <select id="emotionSelect" aria-label="乘客情绪">
+              <option value="普通">普通</option>
+              <option value="大笑">大笑</option>
+              <option value="沉默">沉默</option>
+              <option value="睡着">睡着</option>
+            </select>
+            <input id="playerInput" placeholder="请输入 TA 的提问或答案" />
+            <button id="startGame" type="button">AI 开场</button>
+            <button id="sendQuestion" type="button">发送提问</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
