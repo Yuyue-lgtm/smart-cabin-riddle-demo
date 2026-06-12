@@ -1,12 +1,16 @@
 # 智能座舱 AI 猜谜 Demo
 
-第一版是一个可部署的静态网页骨架，用于演示：
+当前仓库的 `V1.0` 是一个可部署的静态网页骨架，用于演示：
 
 - 上帝视角输入座舱状态
 - 玩家模拟提问
 - 事件打断游戏流程
 - 调用 Coze/Dify Workflow 做融合决策
 - 根据结构化 JSON 返回更新网页表现
+
+V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴模拟多模态事件，并由 Workflow 驱动 AI 主持人与半自主模拟乘客参与游戏。
+
+最新需求、路线图和接口契约以 [docs/README.md](./docs/README.md) 为准。
 
 ## 本地运行
 
@@ -41,6 +45,8 @@ http://localhost:4173
 - `app.js`
 
 ## Workflow 接口
+
+下面是 V1.0 的接口示例。新版 Workflow 契约已扩展 `timeline`、`interaction` 和 `passenger_action`，请以 [docs/WORKFLOW_CONTRACT.md](./docs/WORKFLOW_CONTRACT.md) 为准。
 
 页面右下角可以填写 Workflow 接口地址。点击“保存”后会写入浏览器本地存储。
 
@@ -142,4 +148,4 @@ http://localhost:4173
 6. 输入当前谜底，例如“答案是安全带”
 7. 页面展示猜对和谜底揭晓
 
-如果未配置 Workflow 接口，网页会自动使用本地兜底决策，保证现场演示不断链。
+V1.1 之后正式体验以 Workflow 为主路径，Mock 仅作为开发期或异常保护。
