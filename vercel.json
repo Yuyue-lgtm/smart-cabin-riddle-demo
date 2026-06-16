@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/workflow.js": {
+      "maxDuration": 60
+    }
+  }
+}

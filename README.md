@@ -14,12 +14,19 @@ V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴
 
 ## 本地运行
 
-直接打开 `index.html` 即可。
+如果只看页面，不接 Workflow，直接打开 `index.html` 即可。
 
-如果需要用本地服务预览，可以在当前目录启动静态服务：
+如果需要本地联调 Coze Workflow，请先创建 `.env.local`：
+
+```text
+COZE_WORKFLOW_URL=https://your-workflow-domain.coze.site/run
+COZE_API_TOKEN=replace_with_your_new_coze_api_token
+```
+
+然后启动本地代理服务：
 
 ```bash
-python3 -m http.server 4173
+node server.js
 ```
 
 然后访问：
@@ -28,29 +35,44 @@ python3 -m http.server 4173
 http://localhost:4173
 ```
 
+本地页面默认请求：
+
+```text
+/api/workflow
+```
+
+真实 Token 只会被 `server.js` 读取，不会进入前端代码。
+
 ## 部署方式
 
-当前版本不依赖构建工具，可以直接部署到任意静态站点服务：
+当前推荐使用 Vercel，因为项目已经包含 `/api/workflow` 代理。
 
-- Vercel
-- Netlify
-- GitHub Pages
-- 阿里云 OSS 静态网站
-- 公司内部静态资源服务器
+部署时需要在 Vercel 环境变量里配置：
 
-部署时上传这三个文件即可：
+```text
+COZE_WORKFLOW_URL=https://your-workflow-domain.coze.site/run
+COZE_API_TOKEN=replace_with_your_new_coze_api_token
+```
 
-- `index.html`
-- `styles.css`
-- `app.js`
+前端页面会请求同域的：
+
+```text
+/api/workflow
+```
+
+由服务端代理携带 Token 请求 Coze。不要把 Token 写入 `app.js`、`index.html` 或任何会提交到 Git 的文件。
 
 ## Workflow 接口
 
 下面是 V1.0 的接口示例。新版 Workflow 契约已扩展 `timeline`、`interaction` 和 `passenger_action`，请以 [docs/WORKFLOW_CONTRACT.md](./docs/WORKFLOW_CONTRACT.md) 为准。
 
-页面右下角可以填写 Workflow 接口地址。点击“保存”后会写入浏览器本地存储。
+页面右下角可以填写 Workflow 代理地址。默认是：
 
-网页会以 `POST JSON` 的方式请求接口。
+```text
+/api/workflow
+```
+
+一般不需要修改。只有本地调试或换代理服务时才需要改。
 
 ### 输入示例
 

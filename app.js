@@ -5,6 +5,8 @@ const SEATS = {
   rearRight: "右后",
 };
 
+const DEFAULT_WORKFLOW_ENDPOINT = "/api/workflow";
+
 const ENVIRONMENT_CLASS = {
   高速路晴天白天: "env-highway-day",
   高速路晴天深夜: "env-highway-night",
@@ -287,13 +289,32 @@ function bindEvents() {
 }
 
 function loadWorkflowUrl() {
-  els.workflowUrl.value = localStorage.getItem("riddle-demo-workflow-url") || "";
+  const savedEndpoint = localStorage.getItem("riddle-demo-workflow-url") || DEFAULT_WORKFLOW_ENDPOINT;
+  const endpoint = normalizeWorkflowEndpoint(savedEndpoint);
+  els.workflowUrl.value = endpoint;
+  localStorage.setItem("riddle-demo-workflow-url", endpoint);
 }
 
 function saveWorkflowUrl() {
-  localStorage.setItem("riddle-demo-workflow-url", els.workflowUrl.value.trim());
-  state.ui.alert = "Workflow 接口已保存";
+  const rawEndpoint = els.workflowUrl.value.trim() || DEFAULT_WORKFLOW_ENDPOINT;
+  const endpoint = normalizeWorkflowEndpoint(rawEndpoint);
+  els.workflowUrl.value = endpoint;
+  localStorage.setItem("riddle-demo-workflow-url", endpoint);
+  state.ui.alert =
+    endpoint === rawEndpoint ? "Workflow 代理已保存" : "已切换为安全代理地址";
   render();
+}
+
+function normalizeWorkflowEndpoint(endpoint) {
+  if (!endpoint || isDirectCozeEndpoint(endpoint)) {
+    return DEFAULT_WORKFLOW_ENDPOINT;
+  }
+
+  return endpoint;
+}
+
+function isDirectCozeEndpoint(endpoint) {
+  return /(^https?:\/\/.*\.coze\.site\/run)|(^https?:\/\/api\.coze\.)/i.test(endpoint);
 }
 
 function nextScenario() {
@@ -457,17 +478,17 @@ function buildWorkflowInput(triggerType, event, playerInput) {
 }
 
 async function requestWorkflow(input) {
-  const endpoint = els.workflowUrl.value.trim();
-  if (!endpoint) {
-    throw new Error("Workflow endpoint is empty");
-  }
+  const endpoint = normalizeWorkflowEndpoint(els.workflowUrl.value.trim());
+  els.workflowUrl.value = endpoint;
 
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      input_payload: JSON.stringify(input),
+    }),
   });
 
   if (!response.ok) {
@@ -480,6 +501,8 @@ async function requestWorkflow(input) {
 
 function normalizeWorkflowPayload(payload) {
   const candidates = [
+    payload?.workflow_output,
+    payload?.data?.workflow_output,
     payload,
     payload.data,
     payload.output,
@@ -740,6 +763,7 @@ function makeLocalAnswer(playerInput, riddle) {
 
 function applyWorkflowOutput(output, input) {
   const uiChange = output.ui_change || {};
+  applyPassengerAction(output.passenger_action);
   state.host.text = output.ai_reply_text || state.host.text;
   state.game.status = output.game_status || state.game.status;
   state.ui.cabinMode = uiChange.cabin_mode || state.ui.cabinMode || "normal";
@@ -765,6 +789,23 @@ function applyWorkflowOutput(output, input) {
     input,
     output,
   });
+}
+
+function applyPassengerAction(passengerAction) {
+  if (!passengerAction || !passengerAction.seat || !passengerAction.text) {
+    return;
+  }
+
+  const seat = normalizeTargetSeat(passengerAction.seat) || passengerAction.seat;
+  if (!state.passengers.seats[seat]) {
+    return;
+  }
+
+  state.passengers.seats[seat].bubble = passengerAction.text;
+  if (passengerAction.mood && ["普通", "大笑", "沉默", "睡着"].includes(passengerAction.mood)) {
+    state.passengers.seats[seat].mood = passengerAction.mood;
+  }
+  state.host.targetSeat = seat;
 }
 
 function normalizeTargetSeat(seat) {

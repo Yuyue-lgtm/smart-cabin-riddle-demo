@@ -9,8 +9,9 @@
 3. [WORKFLOW_CONTRACT.md](./WORKFLOW_CONTRACT.md)
 4. [FUSION_DECISION_KNOWHOW.md](./FUSION_DECISION_KNOWHOW.md)
 5. [COZE_WORKFLOW_DESIGN.md](./COZE_WORKFLOW_DESIGN.md)
-6. [ROADMAP.md](./ROADMAP.md)
-7. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
+6. [COZE_BUILD_PACKAGE.md](./COZE_BUILD_PACKAGE.md)
+7. [ROADMAP.md](./ROADMAP.md)
+8. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
 
 ## 文档用途
 
@@ -33,6 +34,10 @@
 ### COZE_WORKFLOW_DESIGN.md
 
 定义 Coze Workflow 的节点结构、每个节点的输入输出、前端动作映射、时间轴接入方式和 V1.1 搭建顺序。
+
+### COZE_BUILD_PACKAGE.md
+
+提供可直接复制到扣子 Workflow 的节点配置、代码逻辑、模型 Prompt、测试 Payload 和搭建顺序。
 
 ### ROADMAP.md
 
