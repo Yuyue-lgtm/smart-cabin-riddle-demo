@@ -7,8 +7,10 @@
 1. [PRODUCT_BRIEF.md](./PRODUCT_BRIEF.md)
 2. [MVP_SPEC.md](./MVP_SPEC.md)
 3. [WORKFLOW_CONTRACT.md](./WORKFLOW_CONTRACT.md)
-4. [ROADMAP.md](./ROADMAP.md)
-5. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
+4. [FUSION_DECISION_KNOWHOW.md](./FUSION_DECISION_KNOWHOW.md)
+5. [COZE_WORKFLOW_DESIGN.md](./COZE_WORKFLOW_DESIGN.md)
+6. [ROADMAP.md](./ROADMAP.md)
+7. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
 
 ## 文档用途
 
@@ -23,6 +25,14 @@
 ### WORKFLOW_CONTRACT.md
 
 定义网页和 Coze/Dify Workflow 的输入输出 JSON，包括 `passenger_action`、时间轴事件和 UI 指令。后续前端和工作流都应以这份契约为准。
+
+### FUSION_DECISION_KNOWHOW.md
+
+定义融合决策策略表，包括安全打断、环境入题、乘客状态、游戏状态、模拟乘客控制和情绪价值话术，是后续搭建 Coze/Dify Workflow 的主要依据。
+
+### COZE_WORKFLOW_DESIGN.md
+
+定义 Coze Workflow 的节点结构、每个节点的输入输出、前端动作映射、时间轴接入方式和 V1.1 搭建顺序。
 
 ### ROADMAP.md
 
