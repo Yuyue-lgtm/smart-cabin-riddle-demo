@@ -10,8 +10,9 @@
 4. [FUSION_DECISION_KNOWHOW.md](./FUSION_DECISION_KNOWHOW.md)
 5. [COZE_WORKFLOW_DESIGN.md](./COZE_WORKFLOW_DESIGN.md)
 6. [COZE_BUILD_PACKAGE.md](./COZE_BUILD_PACKAGE.md)
-7. [ROADMAP.md](./ROADMAP.md)
-8. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
+7. [PUBLIC_ACCEPTANCE_REPORT.md](./PUBLIC_ACCEPTANCE_REPORT.md)
+8. [ROADMAP.md](./ROADMAP.md)
+9. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
 
 ## 文档用途
 
@@ -38,6 +39,10 @@
 ### COZE_BUILD_PACKAGE.md
 
 提供可直接复制到扣子 Workflow 的节点配置、代码逻辑、模型 Prompt、测试 Payload 和搭建顺序。
+
+### PUBLIC_ACCEPTANCE_REPORT.md
+
+记录公网端到端验收结果、问题优先级、演示准入标准和每轮分享前的主链路测试结论。
 
 ### ROADMAP.md
 

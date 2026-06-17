@@ -149,6 +149,15 @@ const DEFAULT_STATE = {
     showAnswer: false,
     alert: "",
   },
+  workflow: {
+    inFlight: false,
+    activeRequestId: 0,
+    activeLabel: "",
+    activeController: null,
+    lastResumeAt: 0,
+    lastPassengerActionKey: "",
+    bubbleTimer: null,
+  },
 };
 
 const state = structuredClone(DEFAULT_STATE);
@@ -266,13 +275,35 @@ function bindEvents() {
   els.eventButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const type = button.dataset.event;
+      if (type !== "hard_brake" && state.workflow.inFlight) {
+        state.ui.alert = "AI 正在处理上一条信息，请稍等";
+        render();
+        return;
+      }
       if (type === "hard_brake") {
         applyImmediateSafetyPause();
       }
+      if (type === "passenger_sleep") {
+        applyImmediatePassengerSleep(state.passengers.selectedSeat);
+      }
+      if (type === "driver_tired") {
+        applyImmediateDriverTired();
+      }
+      if (type === "near_destination") {
+        applyImmediateNearDestination();
+      }
       if (type === "resume_game") {
+        if (!canResumeGame()) {
+          render();
+          return;
+        }
         state.game.status = "playing";
         state.ui.cabinMode = "normal";
-        state.ui.alert = "游戏已恢复";
+        state.ui.alert = "正在确认安全状态";
+        state.host.text = "收到，正在确认座舱状态，马上继续游戏。";
+        clearPassengerBubbles();
+        state.workflow.lastResumeAt = Date.now();
+        render();
       }
       dispatchWorkflow("event", { type, seat: state.passengers.selectedSeat });
     });
@@ -338,6 +369,7 @@ function applyScenario(index, announce) {
   state.host.text = announce
     ? `模拟数据已切换：${scenario.environment}，目的地${scenario.destination}。`
     : DEFAULT_STATE.host.text;
+  state.workflow.lastPassengerActionKey = "";
   Object.values(state.passengers.seats).forEach((seat) => {
     seat.mood = "普通";
     seat.bubble = "";
@@ -350,6 +382,13 @@ function getCurrentRiddle() {
 }
 
 async function startGame() {
+  if (!canStartWorkflowAction("AI 正在开场，请稍等")) return;
+  if (!["idle", "victory", "failed"].includes(state.game.status)) {
+    state.ui.alert = "本局已经开始，不需要重复开场";
+    render();
+    return;
+  }
+  clearPassengerBubbles();
   state.game.status = "opening";
   state.ui.showAnswer = false;
   state.host.text = "各位侦探请就位，我要开始出题了。";
@@ -358,6 +397,12 @@ async function startGame() {
 }
 
 async function sendQuestion() {
+  if (state.workflow.inFlight) {
+    state.ui.alert = "AI 正在处理上一条信息，请稍等";
+    render();
+    return;
+  }
+
   const text = els.playerInput.value.trim();
   if (!text) {
     state.ui.alert = "请输入提问或答案";
@@ -372,7 +417,9 @@ async function sendQuestion() {
   }
 
   const seat = state.passengers.selectedSeat;
+  clearPassengerBubbles(seat);
   state.passengers.seats[seat].bubble = text;
+  scheduleBubbleClear();
   state.host.targetSeat = seat;
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   state.game.questionCount += 1;
@@ -419,29 +466,142 @@ function findRiddleForEnvironment(environment) {
 }
 
 function applyImmediateSafetyPause() {
+  abortActiveWorkflow();
   state.game.status = "paused";
   state.ui.cabinMode = "safety_pause";
   state.ui.alert = "急刹车：游戏已暂停";
   state.host.text = "大家坐稳，游戏先暂停。";
+  clearPassengerBubbles();
+  render();
+}
+
+function applyImmediatePassengerSleep(seat) {
+  state.passengers.seats[seat].mood = "睡着";
+  state.ui.cabinMode = "soft";
+  state.ui.alert = `${SEATS[seat]}已睡着，降低打扰`;
+  state.host.targetSeat = seat;
+  state.host.text = `${SEATS[seat]}好像睡着了，我们先不 cue TA，声音也放轻一点。`;
+  clearPassengerBubbles();
+  render();
+}
+
+function applyImmediateDriverTired() {
+  state.ui.cabinMode = "driver_focus";
+  state.ui.alert = "主驾疲惫：降低驾驶员互动";
+  state.host.targetSeat = "front";
+  state.host.text = "主驾先专心看路，接下来的问题交给副驾和后排。";
+  clearPassengerBubbles();
+  render();
+}
+
+function applyImmediateNearDestination() {
+  state.ui.cabinMode = "final_round";
+  state.ui.alert = "快到目的地：准备收尾";
+  state.host.targetSeat = null;
+  state.host.text = "前方快到目的地，我们准备进入收尾局。";
+  clearPassengerBubbles();
   render();
 }
 
 async function dispatchWorkflow(triggerType, event, playerInput = "") {
+  const eventType = event?.type;
+  const isSafetyInterrupt = eventType === "hard_brake";
+  if (state.workflow.inFlight && !isSafetyInterrupt) {
+    state.ui.alert = "AI 正在处理上一条信息，请稍等";
+    render();
+    return;
+  }
+
+  if (isSafetyInterrupt) {
+    abortActiveWorkflow();
+  }
+
   const input = buildWorkflowInput(triggerType, event, playerInput);
+  const requestId = beginWorkflowRequest(input);
   let output;
 
   try {
-    output = await requestWorkflow(input);
+    output = await requestWorkflow(input, state.workflow.activeController.signal);
   } catch (error) {
+    if (error?.name === "AbortError" || requestId !== state.workflow.activeRequestId) {
+      return;
+    }
     output = localDecision(input, error);
   }
 
+  if (requestId !== state.workflow.activeRequestId) {
+    return;
+  }
+
   applyWorkflowOutput(output, input);
+  endWorkflowRequest(requestId);
   render();
+}
+
+function beginWorkflowRequest(input) {
+  const requestId = state.workflow.activeRequestId + 1;
+  state.workflow.inFlight = true;
+  state.workflow.activeRequestId = requestId;
+  state.workflow.activeController = new AbortController();
+  state.workflow.activeLabel = getWorkflowPendingLabel(input);
+  state.ui.alert = state.workflow.activeLabel;
+  render();
+  return requestId;
+}
+
+function endWorkflowRequest(requestId) {
+  if (requestId !== state.workflow.activeRequestId) return;
+  state.workflow.inFlight = false;
+  state.workflow.activeLabel = "";
+  state.workflow.activeController = null;
+}
+
+function abortActiveWorkflow() {
+  if (state.workflow.activeController) {
+    state.workflow.activeController.abort();
+  }
+  state.workflow.inFlight = false;
+  state.workflow.activeLabel = "";
+  state.workflow.activeController = null;
+  state.workflow.activeRequestId += 1;
+}
+
+function getWorkflowPendingLabel(input) {
+  if (input.event?.type === "hard_brake") return "安全事件处理中";
+  if (input.event?.type === "resume_game") return "正在恢复游戏";
+  if (input.event?.type === "start_game") return "AI 正在开场";
+  if (input.trigger_type === "chat") return "AI 正在判断";
+  return "AI 正在同步座舱状态";
+}
+
+function canStartWorkflowAction(message) {
+  if (!state.workflow.inFlight) return true;
+  state.ui.alert = message;
+  render();
+  return false;
+}
+
+function canResumeGame() {
+  if (state.game.status !== "paused") {
+    state.ui.alert = "游戏已经在进行中";
+    return false;
+  }
+  if (Date.now() - state.workflow.lastResumeAt < 1500) {
+    state.ui.alert = "恢复指令已发送，请稍等";
+    return false;
+  }
+  return true;
 }
 
 function buildWorkflowInput(triggerType, event, playerInput) {
   const selectedSeat = state.passengers.selectedSeat;
+  const normalizedEvent = event
+    ? {
+        ...event,
+        seat_label: event.seat ? SEATS[event.seat] : undefined,
+      }
+    : null;
+
   return {
     trigger_type: triggerType,
     plugin_id: state.plugin,
@@ -471,13 +631,55 @@ function buildWorkflowInput(triggerType, event, playerInput) {
       current_theme: getCurrentRiddle().theme,
       hint: getCurrentRiddle().hint,
     },
+    interaction: {
+      current_speaker: selectedSeat,
+      current_speaker_label: SEATS[selectedSeat],
+      recent_messages: getRecentMessages(),
+      last_passenger_action_key: state.workflow.lastPassengerActionKey,
+      suppress_passenger_action: shouldSuppressPassengerAction(triggerType, event),
+    },
     player_seat: SEATS[selectedSeat],
     player_input: playerInput,
-    event,
+    event: normalizedEvent,
   };
 }
 
-async function requestWorkflow(input) {
+function getRecentMessages() {
+  return state.game.history.slice(-6).flatMap((item) => {
+    const messages = [];
+    if (item.input?.player_input) {
+      messages.push({
+        role: "player",
+        seat: item.input.passengers?.selected_seat,
+        seat_label: item.input.passengers?.selected_seat_label,
+        text: item.input.player_input,
+      });
+    }
+    if (item.output?.passenger_action?.text) {
+      messages.push({
+        role: "simulated_passenger",
+        seat: normalizeTargetSeat(item.output.passenger_action.seat) || item.output.passenger_action.seat,
+        text: item.output.passenger_action.text,
+      });
+    }
+    if (item.output?.ai_reply_text) {
+      messages.push({
+        role: "ai_host",
+        text: item.output.ai_reply_text,
+      });
+    }
+    return messages;
+  });
+}
+
+function shouldSuppressPassengerAction(triggerType, event) {
+  if (triggerType !== "event") return false;
+  return ["hard_brake", "resume_game", "passenger_sleep", "driver_tired", "near_destination"].includes(
+    event?.type,
+  );
+}
+
+async function requestWorkflow(input, signal) {
   const endpoint = normalizeWorkflowEndpoint(els.workflowUrl.value.trim());
   els.workflowUrl.value = endpoint;
 
@@ -489,6 +691,7 @@ async function requestWorkflow(input) {
     body: JSON.stringify({
       input_payload: JSON.stringify(input),
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -763,8 +966,13 @@ function makeLocalAnswer(playerInput, riddle) {
 
 function applyWorkflowOutput(output, input) {
   const uiChange = output.ui_change || {};
-  applyPassengerAction(output.passenger_action);
+  const passengerActionApplied = shouldSuppressPassengerAction(input.trigger_type, input.event)
+    ? suppressPassengerActionForEvent()
+    : applyPassengerAction(output.passenger_action);
   state.host.text = output.ai_reply_text || state.host.text;
+  if (passengerActionApplied && !output.ai_reply_text) {
+    state.host.text = "这个问题收到，我来接住这一轮。";
+  }
   state.game.status = output.game_status || state.game.status;
   state.ui.cabinMode = uiChange.cabin_mode || state.ui.cabinMode || "normal";
   state.ui.animation = uiChange.animation || "speak";
@@ -793,19 +1001,61 @@ function applyWorkflowOutput(output, input) {
 
 function applyPassengerAction(passengerAction) {
   if (!passengerAction || !passengerAction.seat || !passengerAction.text) {
-    return;
+    return false;
   }
 
   const seat = normalizeTargetSeat(passengerAction.seat) || passengerAction.seat;
   if (!state.passengers.seats[seat]) {
-    return;
+    return false;
   }
 
+  if (state.passengers.seats[seat].mood === "睡着") {
+    clearPassengerBubbles();
+    return false;
+  }
+
+  const actionKey = `${seat}:${passengerAction.text}`;
+  if (actionKey === state.workflow.lastPassengerActionKey) {
+    clearPassengerBubbles();
+    return false;
+  }
+
+  clearPassengerBubbles(seat);
   state.passengers.seats[seat].bubble = passengerAction.text;
   if (passengerAction.mood && ["普通", "大笑", "沉默", "睡着"].includes(passengerAction.mood)) {
     state.passengers.seats[seat].mood = passengerAction.mood;
   }
   state.host.targetSeat = seat;
+  state.workflow.lastPassengerActionKey = actionKey;
+  scheduleBubbleClear();
+  return true;
+}
+
+function suppressPassengerActionForEvent() {
+  clearPassengerBubbles();
+  return false;
+}
+
+function clearPassengerBubbles(keepSeat) {
+  if (state.workflow.bubbleTimer) {
+    clearTimeout(state.workflow.bubbleTimer);
+    state.workflow.bubbleTimer = null;
+  }
+  Object.entries(state.passengers.seats).forEach(([seat, seatState]) => {
+    if (seat !== keepSeat) {
+      seatState.bubble = "";
+    }
+  });
+}
+
+function scheduleBubbleClear() {
+  if (state.workflow.bubbleTimer) {
+    clearTimeout(state.workflow.bubbleTimer);
+  }
+  state.workflow.bubbleTimer = setTimeout(() => {
+    clearPassengerBubbles();
+    render();
+  }, 6500);
 }
 
 function normalizeTargetSeat(seat) {
@@ -831,6 +1081,7 @@ function render() {
   const riddle = getCurrentRiddle();
   document.body.classList.toggle("is-paused", state.game.status === "paused");
   document.body.classList.toggle("is-victory", state.game.status === "victory");
+  document.body.classList.toggle("is-working", state.workflow.inFlight);
 
   els.environmentBackdrop.className = `environment-backdrop ${
     ENVIRONMENT_CLASS[state.car.environment] || "env-highway-day"
@@ -839,8 +1090,12 @@ function render() {
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
-  els.cabinAlert.textContent = state.ui.alert || getCabinModeText();
-  els.cabinAlert.classList.toggle("active", Boolean(state.ui.alert || state.ui.cabinMode !== "normal"));
+  const alertText = state.workflow.activeLabel || state.ui.alert || getCabinModeText();
+  els.cabinAlert.textContent = alertText;
+  els.cabinAlert.classList.toggle(
+    "active",
+    Boolean(state.workflow.inFlight || state.ui.alert || state.ui.cabinMode !== "normal"),
+  );
 
   els.roundProgress.textContent = `${state.game.roundIndex}/${state.game.totalRounds}`;
   els.questionProgress.textContent = `${state.game.questionCount}/${state.game.maxQuestions}`;
@@ -892,6 +1147,30 @@ function renderControls() {
   setActive(els.destinationChips, "destination", state.car.destination);
   setActive(els.relationshipChips, "relationship", state.passengers.relationship);
   setActive(els.environmentChips, "environment", state.car.environment);
+
+  const isBusy = state.workflow.inFlight;
+  els.startGame.disabled = isBusy || !["idle", "victory", "failed"].includes(state.game.status);
+  els.sendQuestion.disabled = isBusy || state.game.status === "paused";
+  els.playerInput.disabled = isBusy || state.game.status === "paused";
+  els.speedInput.disabled = isBusy;
+  els.destinationInput.disabled = isBusy;
+  els.seatSelect.disabled = isBusy;
+  els.emotionSelect.disabled = isBusy;
+
+  els.eventButtons.forEach((button) => {
+    const eventType = button.dataset.event;
+    button.disabled =
+      (isBusy && eventType !== "hard_brake") ||
+      (eventType === "resume_game" && state.game.status !== "paused");
+  });
+
+  [els.speedChips, els.destinationChips, els.relationshipChips, els.environmentChips].forEach(
+    (buttons) => {
+      buttons.forEach((button) => {
+        button.disabled = isBusy;
+      });
+    },
+  );
 }
 
 function setActive(buttons, key, value) {

@@ -13,6 +13,14 @@
 
 V1.x 不测试手机端。
 
+公网验收：
+
+```text
+https://smart-cabin-riddle-demo.vercel.app
+```
+
+公网验收结果记录在 [PUBLIC_ACCEPTANCE_REPORT.md](./PUBLIC_ACCEPTANCE_REPORT.md)。
+
 本地运行：
 
 ```bash

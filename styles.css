@@ -35,6 +35,13 @@ button {
   cursor: pointer;
 }
 
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 44fr 56fr;
@@ -622,6 +629,10 @@ select:focus {
   background: var(--danger);
 }
 
+.event-button.danger:disabled {
+  opacity: 0.78;
+}
+
 .compact-input {
   width: 58px;
   text-align: center;
@@ -678,4 +689,3 @@ select:focus {
     transform: translateY(-2px) rotate(2deg);
   }
 }
-  min-height: 0;
