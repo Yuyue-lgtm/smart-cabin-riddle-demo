@@ -1,7 +1,46 @@
 {
-  "functions": {
-    "api/workflow.js": {
-      "maxDuration": 60
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "styles.css",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/workflow.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 60
+      }
     }
-  }
+  ],
+  "routes": [
+    {
+      "src": "/api/workflow",
+      "dest": "/api/workflow.js"
+    },
+    {
+      "src": "/styles.css",
+      "dest": "/styles.css"
+    },
+    {
+      "src": "/app.js",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
