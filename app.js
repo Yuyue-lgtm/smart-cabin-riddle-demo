@@ -6,6 +6,8 @@ const SEATS = {
 };
 
 const DEFAULT_WORKFLOW_ENDPOINT = "/api/workflow";
+const STAGE_WIDTH = 1920;
+const STAGE_HEIGHT = 1080;
 
 const ENVIRONMENT_CLASS = {
   高速路晴天白天: "env-highway-day",
@@ -111,6 +113,58 @@ const SCENARIOS = [
   },
 ];
 
+const GOLDEN_TIMELINE = {
+  id: "family_highway_disney",
+  name: "高速亲子出行",
+  steps: [
+    {
+      delay: 0,
+      label: "初始化高速亲子出行",
+      run: () => applyGoldenLineDefaults(),
+    },
+    {
+      delay: 1500,
+      label: "AI 开场",
+      run: () => startGame(),
+    },
+    {
+      delay: 9000,
+      label: "后排小朋友尝试提问",
+      run: () => runScriptedQuestion("rearRight", "它是不是像超人一样保护我们？"),
+    },
+    {
+      delay: 15000,
+      label: "副驾追问安全方向",
+      run: () => runScriptedQuestion("front", "它和安全有关吗？"),
+    },
+    {
+      delay: 22000,
+      label: "检测到主驾疲惫",
+      run: () => runScriptedEvent("driver_tired", "主驾疲惫"),
+    },
+    {
+      delay: 30000,
+      label: "突发急刹打断",
+      run: () => runScriptedEvent("hard_brake", "急刹打断"),
+    },
+    {
+      delay: 42000,
+      label: "风险解除，恢复游戏",
+      run: () => runScriptedEvent("resume_game", "恢复游戏"),
+    },
+    {
+      delay: 52000,
+      label: "小朋友继续跳脱提问",
+      run: () => runScriptedQuestion("rearRight", "它是不是每个人坐车都要用？"),
+    },
+    {
+      delay: 65000,
+      label: "副驾猜对答案",
+      run: () => runScriptedQuestion("front", "答案是安全带"),
+    },
+  ],
+};
+
 const DEFAULT_STATE = {
   plugin: "riddle",
   scenarioIndex: 0,
@@ -149,6 +203,22 @@ const DEFAULT_STATE = {
     showAnswer: false,
     alert: "",
   },
+  timeline: {
+    id: GOLDEN_TIMELINE.id,
+    name: GOLDEN_TIMELINE.name,
+    status: "idle",
+    runId: 0,
+    startedAt: 0,
+    elapsedSeconds: 0,
+    currentEvent: "准备好后点击自动演示，系统会按时间轴触发座舱事件。",
+  },
+  decisionTrace: {
+    perception: "等待座舱事件",
+    decision: "等待 Workflow 判断",
+    execution: "等待网页动作",
+    strategyId: "",
+    priority: "",
+  },
   workflow: {
     inFlight: false,
     activeRequestId: 0,
@@ -157,6 +227,7 @@ const DEFAULT_STATE = {
     lastResumeAt: 0,
     lastPassengerActionKey: "",
     bubbleTimer: null,
+    pendingChats: [],
   },
 };
 
@@ -166,6 +237,7 @@ const els = {};
 function boot() {
   cacheElements();
   bindEvents();
+  resizeStage();
   loadWorkflowUrl();
   applyScenario(0, false);
   render();
@@ -174,6 +246,7 @@ function boot() {
 function cacheElements() {
   [
     "environmentBackdrop",
+    "appShell",
     "environmentLabel",
     "speedLabel",
     "destinationLabel",
@@ -187,11 +260,18 @@ function cacheElements() {
     "answerReveal",
     "hostBubble",
     "hostAvatar",
+    "onboardingHint",
+    "timelineName",
+    "timelineEvent",
+    "startTimeline",
+    "pauseTimeline",
+    "decisionPerception",
+    "decisionDecision",
+    "decisionExecution",
     "workflowUrl",
     "saveWorkflow",
     "resetScenario",
     "speedInput",
-    "destinationInput",
     "seatSelect",
     "emotionSelect",
     "playerInput",
@@ -202,16 +282,17 @@ function cacheElements() {
   });
 
   els.speedChips = document.querySelectorAll("[data-speed]");
-  els.destinationChips = document.querySelectorAll("[data-destination]");
-  els.relationshipChips = document.querySelectorAll("[data-relationship]");
   els.environmentChips = document.querySelectorAll("[data-environment]");
   els.eventButtons = document.querySelectorAll("[data-event]");
   els.seats = document.querySelectorAll("[data-seat]");
 }
 
 function bindEvents() {
+  window.addEventListener("resize", resizeStage);
   els.saveWorkflow.addEventListener("click", saveWorkflowUrl);
   els.resetScenario.addEventListener("click", nextScenario);
+  els.startTimeline.addEventListener("click", startGoldenTimeline);
+  els.pauseTimeline.addEventListener("click", toggleTimelinePause);
   els.startGame.addEventListener("click", startGame);
   els.sendQuestion.addEventListener("click", sendQuestion);
   els.playerInput.addEventListener("keydown", (event) => {
@@ -222,10 +303,6 @@ function bindEvents() {
 
   els.speedInput.addEventListener("change", () => {
     setSpeed(Number(els.speedInput.value) || 0);
-  });
-
-  els.destinationInput.addEventListener("change", () => {
-    setDestination(els.destinationInput.value.trim() || "未设置");
   });
 
   els.seatSelect.addEventListener("change", () => {
@@ -246,20 +323,6 @@ function bindEvents() {
 
   els.speedChips.forEach((button) => {
     button.addEventListener("click", () => setSpeed(Number(button.dataset.speed)));
-  });
-
-  els.destinationChips.forEach((button) => {
-    button.addEventListener("click", () => setDestination(button.dataset.destination));
-  });
-
-  els.relationshipChips.forEach((button) => {
-    button.addEventListener("click", () => {
-      state.passengers.relationship = button.dataset.relationship;
-      dispatchWorkflow("event", {
-        type: "relationship_change",
-        value: button.dataset.relationship,
-      });
-    });
   });
 
   els.environmentChips.forEach((button) => {
@@ -319,6 +382,15 @@ function bindEvents() {
   });
 }
 
+function resizeStage() {
+  const scale = window.innerWidth / STAGE_WIDTH;
+  if (els.appShell) {
+    const top = Math.round((window.innerHeight - STAGE_HEIGHT * scale) / 2);
+    els.appShell.style.transform = `scale(${scale})`;
+    els.appShell.style.top = `${top}px`;
+  }
+}
+
 function loadWorkflowUrl() {
   const savedEndpoint = localStorage.getItem("riddle-demo-workflow-url") || DEFAULT_WORKFLOW_ENDPOINT;
   const endpoint = normalizeWorkflowEndpoint(savedEndpoint);
@@ -349,6 +421,7 @@ function isDirectCozeEndpoint(endpoint) {
 }
 
 function nextScenario() {
+  stopTimeline("已切换下一条模拟数据");
   const nextIndex = (state.scenarioIndex + 1) % SCENARIOS.length;
   applyScenario(nextIndex, true);
 }
@@ -363,6 +436,7 @@ function applyScenario(index, announce) {
   state.game.currentRiddleIndex = scenario.riddleIndex;
   state.game.status = "idle";
   state.game.questionCount = 0;
+  state.game.history = [];
   state.ui.showAnswer = false;
   state.ui.cabinMode = "normal";
   state.ui.alert = announce ? "已切换下一条模拟数据" : "";
@@ -370,11 +444,197 @@ function applyScenario(index, announce) {
     ? `模拟数据已切换：${scenario.environment}，目的地${scenario.destination}。`
     : DEFAULT_STATE.host.text;
   state.workflow.lastPassengerActionKey = "";
+  resetDecisionTrace();
   Object.values(state.passengers.seats).forEach((seat) => {
     seat.mood = "普通";
     seat.bubble = "";
   });
   render();
+}
+
+async function startGoldenTimeline() {
+  if (state.timeline.status === "running") {
+    state.ui.alert = "自动演示正在进行中";
+    render();
+    return;
+  }
+
+  const runId = state.timeline.runId + 1;
+  state.timeline.runId = runId;
+  state.timeline.id = GOLDEN_TIMELINE.id;
+  state.timeline.name = GOLDEN_TIMELINE.name;
+  state.timeline.status = "running";
+  state.timeline.startedAt = Date.now();
+  state.timeline.elapsedSeconds = 0;
+  state.timeline.currentEvent = "高速亲子出行启动中";
+  applyGoldenLineDefaults();
+  render();
+
+  let previousDelay = 0;
+  for (const step of GOLDEN_TIMELINE.steps) {
+    if (state.timeline.runId !== runId) return;
+    await sleep(Math.max(0, step.delay - previousDelay));
+    previousDelay = step.delay;
+    await waitWhileTimelinePaused(runId);
+    if (state.timeline.runId !== runId) return;
+    await waitForWorkflowIdle(runId);
+    if (state.timeline.runId !== runId) return;
+    state.timeline.elapsedSeconds = Math.round((Date.now() - state.timeline.startedAt) / 1000);
+    state.timeline.currentEvent = step.label;
+    render();
+    await step.run();
+  }
+
+  if (state.timeline.runId === runId) {
+    state.timeline.status = "finished";
+    state.timeline.currentEvent = "高速亲子出行已完成";
+    state.ui.alert = "自动演示完成";
+    render();
+  }
+}
+
+function toggleTimelinePause() {
+  if (state.timeline.status === "running") {
+    state.timeline.status = "paused";
+    state.timeline.currentEvent = "自动演示已暂停";
+    state.ui.alert = "自动演示已暂停";
+  } else if (state.timeline.status === "paused") {
+    state.timeline.status = "running";
+    state.timeline.currentEvent = "自动演示继续";
+    state.ui.alert = "自动演示继续";
+  } else {
+    state.ui.alert = "请先点击自动演示";
+  }
+  render();
+}
+
+function stopTimeline(message) {
+  if (state.timeline.status === "running" || state.timeline.status === "paused") {
+    state.timeline.runId += 1;
+  }
+  state.timeline.status = "idle";
+  state.timeline.elapsedSeconds = 0;
+  state.timeline.currentEvent =
+    message || "准备好后点击自动演示，系统会按时间轴触发座舱事件。";
+}
+
+function applyGoldenLineDefaults() {
+  state.scenarioIndex = 1;
+  state.car.speed = 80;
+  state.car.destination = "迪士尼";
+  state.car.environment = "高速路晴天白天";
+  state.passengers.relationship = "父母+小孩";
+  state.passengers.selectedSeat = "front";
+  state.game.currentRiddleIndex = 1;
+  state.game.status = "idle";
+  state.game.questionCount = 0;
+  state.game.history = [];
+  state.ui.showAnswer = false;
+  state.ui.cabinMode = "normal";
+  state.ui.alert = "高速亲子出行：目的地迪士尼，谜底安全带";
+  state.host.text = "高速亲子出行准备就绪，副驾可以发起 AI 开场。";
+  state.host.targetSeat = "front";
+  state.workflow.lastPassengerActionKey = "";
+  clearPassengerBubbles();
+  Object.values(state.passengers.seats).forEach((seat) => {
+    seat.mood = "普通";
+  });
+  updateDecisionTrace({
+    perception: "载入高速亲子出行场景",
+    decision: "默认副驾为真实用户，后排小朋友可自动加入",
+    execution: "设置高速晴天、目的地迪士尼、谜底安全带",
+    strategyId: "V1.2-A",
+    priority: "P3",
+  });
+}
+
+async function runScriptedQuestion(seat, text) {
+  if (state.game.status === "paused") return;
+  state.passengers.selectedSeat = seat;
+  els.seatSelect.value = seat;
+  clearPassengerBubbles(seat);
+  state.passengers.seats[seat].bubble = text;
+  scheduleBubbleClear();
+  state.host.targetSeat = seat;
+  state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
+  state.game.questionCount += 1;
+  state.host.text = `${SEATS[seat]}发起了一问，我来判断。`;
+  state.ui.alert = `${SEATS[seat]}：${text}`;
+  updateDecisionTrace({
+    perception: `${SEATS[seat]}参与提问`,
+    decision: seat === "rearRight" ? "允许后排小朋友短句参与" : "由副驾推进关键问题",
+    execution: "显示乘客气泡，并交给 AI 主持人回答",
+    strategyId: seat === "rearRight" ? "S12" : "S00",
+    priority: "P3",
+  });
+  render();
+  await dispatchWorkflow("chat", null, text);
+  ensureScriptedVictory(seat, text);
+}
+
+function ensureScriptedVictory(seat, text) {
+  const riddle = getCurrentRiddle();
+  if (!text.includes(riddle.answer) || state.game.status === "victory") return;
+
+  state.game.status = "victory";
+  state.ui.cabinMode = "victory";
+  state.ui.showAnswer = true;
+  state.host.targetSeat = seat;
+  state.host.emotion = "excited";
+  state.host.text = `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`;
+  updateDecisionTrace({
+    perception: `${SEATS[seat]}猜中谜底`,
+    decision: "进入胜利收尾，给足情绪价值",
+    execution: "揭晓谜底并切换胜利氛围",
+    strategyId: "S14",
+    priority: "P3",
+  });
+  render();
+}
+
+async function runScriptedEvent(type, label) {
+  const seat = state.passengers.selectedSeat;
+  if (type === "hard_brake") {
+    applyImmediateSafetyPause();
+  }
+  if (type === "driver_tired") {
+    applyImmediateDriverTired();
+  }
+  if (type === "resume_game") {
+    if (!canResumeGame()) return;
+    state.game.status = "playing";
+    state.ui.cabinMode = "normal";
+    state.ui.alert = "正在确认安全状态";
+    state.host.text = "收到，正在确认座舱状态，马上继续游戏。";
+    clearPassengerBubbles();
+    state.workflow.lastResumeAt = Date.now();
+    updateDecisionTrace({
+      perception: "安全风险解除",
+      decision: "恢复猜谜，但保持轻节奏",
+      execution: "游戏状态切回进行中",
+      strategyId: "S01",
+      priority: "P1",
+    });
+    render();
+  }
+  state.timeline.currentEvent = label;
+  await dispatchWorkflow("event", { type, seat });
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitWhileTimelinePaused(runId) {
+  while (state.timeline.runId === runId && state.timeline.status === "paused") {
+    await sleep(300);
+  }
+}
+
+async function waitForWorkflowIdle(runId) {
+  while (state.timeline.runId === runId && state.workflow.inFlight) {
+    await sleep(300);
+  }
 }
 
 function getCurrentRiddle() {
@@ -397,12 +657,6 @@ async function startGame() {
 }
 
 async function sendQuestion() {
-  if (state.workflow.inFlight) {
-    state.ui.alert = "AI 正在处理上一条信息，请稍等";
-    render();
-    return;
-  }
-
   const text = els.playerInput.value.trim();
   if (!text) {
     state.ui.alert = "请输入提问或答案";
@@ -425,6 +679,13 @@ async function sendQuestion() {
   state.game.questionCount += 1;
   els.playerInput.value = "";
   state.host.text = "收到，我来判断一下这个问题。";
+  if (state.workflow.inFlight) {
+    state.workflow.pendingChats.push({ seat, text });
+    state.host.text = "这条问题我先记下，等上一轮回答结束马上接上。";
+    state.ui.alert = "玩家提问已加入队列";
+    render();
+    return;
+  }
   render();
 
   await dispatchWorkflow("chat", null, text);
@@ -471,6 +732,13 @@ function applyImmediateSafetyPause() {
   state.ui.cabinMode = "safety_pause";
   state.ui.alert = "急刹车：游戏已暂停";
   state.host.text = "大家坐稳，游戏先暂停。";
+  updateDecisionTrace({
+    perception: "检测到急刹打断",
+    decision: "安全优先，立即暂停游戏",
+    execution: "切换安全暂停，停止乘客发言",
+    strategyId: "S01",
+    priority: "P0",
+  });
   clearPassengerBubbles();
   render();
 }
@@ -481,6 +749,13 @@ function applyImmediatePassengerSleep(seat) {
   state.ui.alert = `${SEATS[seat]}已睡着，降低打扰`;
   state.host.targetSeat = seat;
   state.host.text = `${SEATS[seat]}好像睡着了，我们先不 cue TA，声音也放轻一点。`;
+  updateDecisionTrace({
+    perception: `检测到${SEATS[seat]}睡着`,
+    decision: "轻声继续，并避免 cue 睡着乘客",
+    execution: "切换轻声互动模式，排除该座位发言",
+    strategyId: "S04",
+    priority: "P2",
+  });
   clearPassengerBubbles();
   render();
 }
@@ -490,6 +765,13 @@ function applyImmediateDriverTired() {
   state.ui.alert = "主驾疲惫：降低驾驶员互动";
   state.host.targetSeat = "front";
   state.host.text = "主驾先专心看路，接下来的问题交给副驾和后排。";
+  updateDecisionTrace({
+    perception: "检测到主驾疲惫",
+    decision: "降低主驾互动，副驾和后排接管",
+    execution: "切换主驾专注模式",
+    strategyId: "S03",
+    priority: "P1",
+  });
   clearPassengerBubbles();
   render();
 }
@@ -499,6 +781,13 @@ function applyImmediateNearDestination() {
   state.ui.alert = "快到目的地：准备收尾";
   state.host.targetSeat = null;
   state.host.text = "前方快到目的地，我们准备进入收尾局。";
+  updateDecisionTrace({
+    perception: "检测到快到目的地",
+    decision: "收束游戏节奏，进入绝杀局",
+    execution: "切换 final_round 状态",
+    strategyId: "S09",
+    priority: "P2",
+  });
   clearPassengerBubbles();
   render();
 }
@@ -554,6 +843,7 @@ function endWorkflowRequest(requestId) {
   state.workflow.inFlight = false;
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
+  window.setTimeout(processNextPendingChat, 0);
 }
 
 function abortActiveWorkflow() {
@@ -564,6 +854,23 @@ function abortActiveWorkflow() {
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
   state.workflow.activeRequestId += 1;
+}
+
+async function processNextPendingChat() {
+  if (state.workflow.inFlight || state.workflow.pendingChats.length === 0) return;
+  if (state.game.status === "paused") return;
+
+  const nextChat = state.workflow.pendingChats.shift();
+  state.passengers.selectedSeat = nextChat.seat;
+  els.seatSelect.value = nextChat.seat;
+  clearPassengerBubbles(nextChat.seat);
+  state.passengers.seats[nextChat.seat].bubble = nextChat.text;
+  scheduleBubbleClear();
+  state.host.targetSeat = nextChat.seat;
+  state.host.text = "刚才那条问题接上了，我来判断。";
+  state.ui.alert = `处理已排队问题：${SEATS[nextChat.seat]}`;
+  render();
+  await dispatchWorkflow("chat", null, nextChat.text);
 }
 
 function getWorkflowPendingLabel(input) {
@@ -621,6 +928,19 @@ function buildWorkflowInput(triggerType, event, playerInput) {
         rear_right: state.passengers.seats.rearRight.mood,
       },
     },
+    timeline: {
+      id: state.timeline.id,
+      name: state.timeline.name,
+      status: state.timeline.status,
+      elapsed_seconds: state.timeline.elapsedSeconds,
+      current_event: event
+        ? {
+            type: event.type,
+            description: state.timeline.currentEvent,
+            priority: getEventPriority(event.type),
+          }
+        : null,
+    },
     game: {
       status: state.game.status,
       round_index: state.game.roundIndex,
@@ -677,6 +997,20 @@ function shouldSuppressPassengerAction(triggerType, event) {
   return ["hard_brake", "resume_game", "passenger_sleep", "driver_tired", "near_destination"].includes(
     event?.type,
   );
+}
+
+function getEventPriority(type) {
+  const priorities = {
+    hard_brake: "P0",
+    resume_game: "P1",
+    driver_tired: "P1",
+    passenger_sleep: "P2",
+    near_destination: "P2",
+    environment_change: "P2",
+    speed_change: "P2",
+    start_game: "P3",
+  };
+  return priorities[type] || "P3";
 }
 
 async function requestWorkflow(input, signal) {
@@ -992,10 +1326,98 @@ function applyWorkflowOutput(output, input) {
     state.ui.showAnswer = true;
   }
 
+  updateDecisionTrace(output.decision_trace || createDecisionTraceFromOutput(output, input));
+
   state.game.history.push({
     at: new Date().toISOString(),
     input,
     output,
+  });
+}
+
+function createDecisionTraceFromOutput(output, input) {
+  const eventType = input.event?.type;
+  if (eventType === "hard_brake") {
+    return {
+      perception: "检测到急刹打断",
+      decision: "安全优先，立即暂停游戏",
+      execution: "切换安全暂停，停止乘客发言",
+      strategyId: "S01",
+      priority: "P0",
+    };
+  }
+  if (eventType === "driver_tired") {
+    return {
+      perception: "检测到主驾疲惫",
+      decision: "降低主驾互动，副驾和后排接管",
+      execution: "切换主驾专注模式",
+      strategyId: "S03",
+      priority: "P1",
+    };
+  }
+  if (eventType === "resume_game") {
+    return {
+      perception: "安全风险解除",
+      decision: "恢复猜谜并保留上下文",
+      execution: "游戏状态恢复进行中",
+      strategyId: "S01",
+      priority: "P1",
+    };
+  }
+  if (eventType === "start_game") {
+    return {
+      perception: "副驾发起 AI 开场",
+      decision: "进入高速亲子猜谜局",
+      execution: "AI 主持人开场并隐藏谜底",
+      strategyId: "S00",
+      priority: "P3",
+    };
+  }
+  if (input.trigger_type === "chat" && output.is_correct) {
+    return {
+      perception: `${input.passengers.selected_seat_label}猜中谜底`,
+      decision: "进入胜利收尾，给足情绪价值",
+      execution: "揭晓谜底并切换胜利氛围",
+      strategyId: "S14",
+      priority: "P3",
+    };
+  }
+  if (input.trigger_type === "chat") {
+    return {
+      perception: `${input.passengers.selected_seat_label}提出问题`,
+      decision: "判断问题方向并继续推进游戏",
+      execution: "AI 主持人回答并 cue 对应座位",
+      strategyId: input.passengers.selected_seat === "rearRight" ? "S12" : "S00",
+      priority: "P3",
+    };
+  }
+  return {
+    perception: "座舱状态已更新",
+    decision: "同步游戏节奏",
+    execution: "更新 AI 话术和座舱状态",
+    strategyId: output.debug?.strategy_id || "S00",
+    priority: output.debug?.priority || "P3",
+  };
+}
+
+function updateDecisionTrace(trace = {}) {
+  state.decisionTrace.perception =
+    trace.perception || trace.sensing || state.decisionTrace.perception || "等待座舱事件";
+  state.decisionTrace.decision =
+    trace.decision || trace.decision_goal || state.decisionTrace.decision || "等待 Workflow 判断";
+  state.decisionTrace.execution =
+    trace.execution || trace.action || state.decisionTrace.execution || "等待网页动作";
+  state.decisionTrace.strategyId = trace.strategy_id || trace.strategyId || "";
+  state.decisionTrace.priority = trace.priority || "";
+}
+
+function resetDecisionTrace() {
+  updateDecisionTrace({
+    perception: "等待座舱事件",
+    decision: "等待 Workflow 判断",
+    execution: "等待网页动作",
+    strategyId: "",
+    priority: "",
   });
 }
 
@@ -1106,9 +1528,29 @@ function render() {
   els.answerReveal.textContent = `谜底：${riddle.answer}`;
   els.answerReveal.classList.toggle("visible", state.ui.showAnswer);
   els.hostBubble.textContent = state.host.text;
+  els.onboardingHint.classList.toggle("hidden", state.game.status !== "idle");
+  els.timelineName.textContent = state.timeline.name;
+  els.timelineEvent.textContent =
+    state.timeline.status === "running"
+      ? `${state.timeline.currentEvent} · ${state.timeline.elapsedSeconds}s`
+      : state.timeline.currentEvent;
+  els.decisionPerception.textContent = formatDecisionText(
+    state.decisionTrace.perception,
+    state.decisionTrace.strategyId,
+  );
+  els.decisionDecision.textContent = formatDecisionText(
+    state.decisionTrace.decision,
+    state.decisionTrace.priority,
+  );
+  els.decisionExecution.textContent = state.decisionTrace.execution;
 
   renderSeats();
   renderControls();
+}
+
+function formatDecisionText(text, suffix) {
+  if (!suffix) return text;
+  return `${text}（${suffix}）`;
 }
 
 function renderSeats() {
@@ -1139,23 +1581,22 @@ function renderSeats() {
 
 function renderControls() {
   els.speedInput.value = state.car.speed;
-  els.destinationInput.value = state.car.destination;
   els.seatSelect.value = state.passengers.selectedSeat;
   els.emotionSelect.value = state.passengers.seats[state.passengers.selectedSeat].mood;
 
   setActive(els.speedChips, "speed", String(state.car.speed));
-  setActive(els.destinationChips, "destination", state.car.destination);
-  setActive(els.relationshipChips, "relationship", state.passengers.relationship);
   setActive(els.environmentChips, "environment", state.car.environment);
 
   const isBusy = state.workflow.inFlight;
   els.startGame.disabled = isBusy || !["idle", "victory", "failed"].includes(state.game.status);
-  els.sendQuestion.disabled = isBusy || state.game.status === "paused";
-  els.playerInput.disabled = isBusy || state.game.status === "paused";
+  els.sendQuestion.disabled = false;
+  els.playerInput.disabled = false;
   els.speedInput.disabled = isBusy;
-  els.destinationInput.disabled = isBusy;
-  els.seatSelect.disabled = isBusy;
-  els.emotionSelect.disabled = isBusy;
+  els.seatSelect.disabled = false;
+  els.emotionSelect.disabled = false;
+  els.startTimeline.disabled = isBusy || state.timeline.status === "running";
+  els.pauseTimeline.disabled = state.timeline.status === "idle" || state.timeline.status === "finished";
+  els.pauseTimeline.textContent = state.timeline.status === "paused" ? "继续" : "暂停";
 
   els.eventButtons.forEach((button) => {
     const eventType = button.dataset.event;
@@ -1164,13 +1605,11 @@ function renderControls() {
       (eventType === "resume_game" && state.game.status !== "paused");
   });
 
-  [els.speedChips, els.destinationChips, els.relationshipChips, els.environmentChips].forEach(
-    (buttons) => {
-      buttons.forEach((button) => {
-        button.disabled = isBusy;
-      });
-    },
-  );
+  [els.speedChips, els.environmentChips].forEach((buttons) => {
+    buttons.forEach((button) => {
+      button.disabled = isBusy;
+    });
+  });
 }
 
 function setActive(buttons, key, value) {
