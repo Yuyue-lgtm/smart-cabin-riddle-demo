@@ -10,6 +10,7 @@
 - 是否需要改变游戏状态
 - 是否需要生成模拟乘客动作
 - 网页需要执行什么 UI 变化
+- 是否需要展示融合决策过程
 - 话术应该是什么风格
 
 核心目标：
@@ -118,7 +119,7 @@ V1.1 建议优先实现以下 8 条策略：
 | 话术风格 | 轻柔、体贴 |
 | 游戏状态 | 保持 `playing` |
 | passenger_action | 不选择睡着座位 |
-| UI 动作 | `cabin_mode = soft`，`target_seat = sleeping_seat` |
+| UI 动作 | `cabin_mode = soft`，`target_seat = sleeping_seat`，融合决策面板展示“感知到乘客睡着 -> 轻声继续 -> 不 cue TA” |
 | 示例话术 | 后排已经进入省电模式了，我们轻一点继续，接下来先不打扰 TA。 |
 
 ### S05 有人接电话
@@ -237,7 +238,7 @@ V1.1 建议优先实现以下 8 条策略：
 | 主持策略 | 多 cue 小朋友，问题解释更简单，夸奖更具体 |
 | 话术风格 | 温暖、鼓励、轻松 |
 | 游戏状态 | 保持 |
-| passenger_action | 小朋友可更高频发言，但避免复杂推理 |
+| passenger_action | 小朋友可更高频发言，更跳脱、更好奇，但避免复杂推理和过早猜中 |
 | UI 动作 | `target_seat = rearRight/rearLeft` |
 | 示例话术 | 后排小侦探这个问题问得很关键，已经把范围缩小了一大圈。 |
 
@@ -268,7 +269,7 @@ V1.1 建议优先实现以下 8 条策略：
 | 话术风格 | 兴奋、鼓励、有仪式感 |
 | 游戏状态 | `victory` |
 | passenger_action | `null` |
-| UI 动作 | `cabin_mode = victory`，答对座位氛围灯亮起，播放答对音效 |
+| UI 动作 | `cabin_mode = victory`，答对座位氛围灯亮起，播放答对音效，展示 AI 高情绪价值总结 |
 | 示例话术 | 今日最强小侦探诞生！这个答案抓得又快又准。 |
 
 ### S15 长辈答对
@@ -283,7 +284,7 @@ V1.1 建议优先实现以下 8 条策略：
 | 话术风格 | 尊重、亲切、轻松 |
 | 游戏状态 | `victory` |
 | passenger_action | `null` |
-| UI 动作 | `cabin_mode = victory`，答对座位氛围灯亮起，播放答对音效 |
+| UI 动作 | `cabin_mode = victory`，答对座位氛围灯亮起，播放答对音效，展示 AI 高情绪价值总结 |
 | 示例话术 | 姜还是老的辣，这一锤定音太稳了。 |
 
 ### S16 年轻朋友答对
@@ -298,7 +299,7 @@ V1.1 建议优先实现以下 8 条策略：
 | 话术风格 | 活泼、夸张、带梗 |
 | 游戏状态 | `victory` |
 | passenger_action | `null` |
-| UI 动作 | `cabin_mode = victory`，答对座位氛围灯亮起，播放答对音效 |
+| UI 动作 | `cabin_mode = victory`，答对座位氛围灯亮起，播放答对音效，展示 AI 高情绪价值总结 |
 | 示例话术 | 这一波直接封神，后排不打算联手终结 TA 的统治吗？ |
 
 ### S17 玩家接近答案
@@ -535,6 +536,22 @@ Prompt 应明确：
 
 输出必须符合 `WORKFLOW_CONTRACT.md`。
 
+建议输出 `decision_trace`，用于前端轻量展示融合决策过程：
+
+```json
+{
+  "decision_trace": {
+    "perception": "检测到后排右睡着",
+    "decision": "轻声继续并避免 cue 睡着乘客",
+    "execution": "切换轻声模式，目标座位标记为后排右",
+    "strategy_id": "S04",
+    "priority": "P2"
+  }
+}
+```
+
+`decision_trace` 面向演示可视化，不应包含冗长推理链或敏感内部 know-how。
+
 #### JSON Validator
 
 校验：
@@ -543,6 +560,7 @@ Prompt 应明确：
 - 是否包含 `ai_reply_text`
 - 是否包含 `game_status`
 - 是否包含 `ui_change`
+- 如有 `decision_trace`，字段应简短、可展示、不可包含冗长推理链
 - P0 时 `passenger_action` 必须为 `null`
 - `show_answer` 与 `is_correct` 是否一致
 

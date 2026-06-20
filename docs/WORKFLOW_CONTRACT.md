@@ -331,6 +331,13 @@ Workflow 必须返回结构化 JSON。
   "game_status": "playing",
   "is_correct": false,
   "answer": "安全带",
+  "decision_trace": {
+    "perception": "识别到后排右提出了安全相关问题",
+    "decision": "继续围绕出行安全方向推进",
+    "execution": "回应后排右并保持游戏进行",
+    "strategy_id": "S00",
+    "priority": "P3"
+  },
   "ui_change": {
     "cabin_mode": "normal",
     "target_seat": "rearRight",
@@ -352,6 +359,7 @@ Workflow 必须返回结构化 JSON。
 | `next_answer` | string | 否 | 下一题谜底，环境变化时可返回 |
 | `passenger_action` | object/null | 否 | 模拟乘客动作 |
 | `ui_change` | object | 是 | 网页执行动作 |
+| `decision_trace` | object | 否 | 融合决策可视化摘要 |
 
 ## passenger_action
 
@@ -421,6 +429,34 @@ Workflow 生成模拟乘客动作时必须遵守：
 | `host_emotion` | string | 否 | AI 主持人情绪 |
 | `animation` | string | 否 | 页面动画类型 |
 | `show_answer` | boolean | 是 | 是否展示谜底 |
+
+## decision_trace
+
+融合决策可视化信息，用于让网页轻量展示“感知 -> 决策 -> 执行”的结果。
+
+```json
+{
+  "perception": "检测到后排右睡着",
+  "decision": "轻声继续，并避免 cue 睡着乘客",
+  "execution": "切换轻声模式，高亮后排右",
+  "strategy_id": "S04",
+  "priority": "P2"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `perception` | string | 否 | Workflow 识别到的关键感知信息 |
+| `decision` | string | 否 | 本轮融合决策结论 |
+| `execution` | string | 否 | 建议网页或主持人执行的动作 |
+| `strategy_id` | string | 否 | 命中的 know-how 策略 ID |
+| `priority` | string | 否 | 事件优先级 |
+
+注意：
+
+- `decision_trace` 是演示可视化摘要，不是模型完整推理链。
+- 不应输出冗长内部分析或敏感 know-how。
+- 前端可以将其展示在多模态感知面板中。
 
 ### cabin_mode
 
