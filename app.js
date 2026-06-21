@@ -304,6 +304,7 @@ const DEFAULT_STATE = {
 
 const state = structuredClone(DEFAULT_STATE);
 const els = {};
+let audioContext = null;
 
 function boot() {
   cacheElements();
@@ -353,6 +354,7 @@ function cacheElements() {
 
 function bindEvents() {
   window.addEventListener("resize", resizeStage);
+  document.addEventListener("pointerdown", prepareAudioContext, { once: true });
   els.switchScenario.addEventListener("click", nextGoldenLine);
   els.resetScenario.addEventListener("click", resetCurrentGoldenLine);
   els.startTimeline.addEventListener("click", startGoldenTimeline);
@@ -621,6 +623,7 @@ function ensureScriptedVictory(seat, text) {
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
   state.host.text = `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`;
+  playVictorySound();
   updateDecisionTrace({
     perception: `${SEATS[seat]}猜中谜底`,
     decision: "进入胜利收尾，给足情绪价值",
@@ -676,6 +679,37 @@ async function runScriptedEnvironment(environment) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function prepareAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+  }
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+}
+
+function playVictorySound() {
+  if (!audioContext || audioContext.state !== "running") return;
+
+  const now = audioContext.currentTime;
+  [523.25, 659.25, 783.99].forEach((frequency, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const startAt = now + index * 0.1;
+    oscillator.type = "sine";
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.22);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + 0.24);
+  });
 }
 
 async function waitWhileTimelinePaused(runId) {
@@ -1385,7 +1419,8 @@ function makeLocalAnswer(playerInput, riddle) {
 
 function applyWorkflowOutput(output, input) {
   const uiChange = output.ui_change || {};
-  const passengerActionApplied = shouldSuppressPassengerAction(input.trigger_type, input.event)
+  const isVictoryOutput = Boolean(output.is_correct || output.game_status === "victory");
+  const passengerActionApplied = isVictoryOutput || shouldSuppressPassengerAction(input.trigger_type, input.event)
     ? suppressPassengerActionForEvent()
     : applyPassengerAction(output.passenger_action);
   state.host.text = output.ai_reply_text || state.host.text;
@@ -1406,10 +1441,13 @@ function applyWorkflowOutput(output, input) {
     }
   }
 
-  if (output.is_correct) {
+  if (isVictoryOutput) {
+    const correctSeat = input.passengers?.selected_seat || state.passengers.selectedSeat;
     state.ui.cabinMode = "victory";
     state.ui.showAnswer = true;
-    state.ui.correctSeat = input.passengers?.selected_seat || state.passengers.selectedSeat;
+    state.ui.correctSeat = correctSeat;
+    state.host.targetSeat = correctSeat;
+    playVictorySound();
   }
 
   updateDecisionTrace(output.decision_trace || createDecisionTraceFromOutput(output, input));
