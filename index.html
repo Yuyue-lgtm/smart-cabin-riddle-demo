@@ -10,6 +10,7 @@
     <div class="stage-viewport">
       <main class="app-shell" id="appShell">
         <section class="cabin-region" aria-label="虚拟座舱">
+        <div class="region-title">座舱&环境模拟</div>
         <div class="environment-backdrop" id="environmentBackdrop"></div>
         <div class="cabin-overlay">
           <div class="scene-badges">
@@ -17,7 +18,6 @@
             <span id="speedLabel">50 km/h</span>
             <span id="destinationLabel">目的地：公司</span>
           </div>
-          <div class="cabin-alert" id="cabinAlert">游戏进行中</div>
           <div class="decision-card cabin-decision-card">
             <span class="panel-kicker">融合决策</span>
             <dl>
@@ -61,28 +61,12 @@
               <small data-seat-status="driver">普通</small>
             </button>
           </div>
-          <div class="ask-bar cabin-ask-bar">
-            <select id="seatSelect" aria-label="当前乘客">
-              <option value="driver">主驾</option>
-              <option value="front" selected>副驾</option>
-              <option value="rearLeft">左后</option>
-              <option value="rearRight">右后</option>
-            </select>
-            <select id="emotionSelect" aria-label="乘客情绪">
-              <option value="普通">普通</option>
-              <option value="大笑">大笑</option>
-              <option value="沉默">沉默</option>
-              <option value="睡着">睡着</option>
-            </select>
-            <input id="playerInput" placeholder="请输入 TA 的提问或答案" />
-            <button id="startGame" type="button">AI 开场</button>
-            <button id="sendQuestion" type="button">发送提问</button>
-          </div>
         </div>
         </section>
 
         <section class="right-stack">
           <section class="game-region" aria-label="游戏界面">
+          <div class="region-title">中控屏</div>
           <div class="game-topbar">
             <div>
               <span class="muted">进度</span>
@@ -92,17 +76,13 @@
               <span class="muted">提问</span>
               <strong id="questionProgress">0/15</strong>
             </div>
-            <div class="status-pill" id="gameStatus">待开局</div>
           </div>
 
           <div class="game-stage">
             <div class="riddle-copy">
-              <span class="stage-label" id="stageLabel">AI 开场</span>
-              <h1 id="riddleTitle">谜底隐藏中</h1>
-              <p id="riddleHint">点击“AI 开场”开始第一轮。</p>
-              <div class="onboarding-hint" id="onboardingHint">
-                点击 AI 开场，作为副驾参与一局 15 问猜谜。其他乘客会自动加入。
-              </div>
+              <span class="stage-label" id="stageLabel"></span>
+              <h1 id="riddleTitle">游戏待开始</h1>
+              <p id="riddleHint"></p>
               <div class="answer-reveal" id="answerReveal">谜底：雨伞</div>
             </div>
 
@@ -119,26 +99,21 @@
           </section>
 
           <section class="control-region" aria-label="上帝视角控制区">
+          <div class="region-title">手动控制区</div>
+          <input id="workflowUrl" type="hidden" value="/api/workflow" />
           <div class="control-header">
-            <div class="workflow-line">
-              <label for="workflowUrl">Workflow 代理</label>
-              <input id="workflowUrl" placeholder="/api/workflow" />
-              <button class="ghost-button" id="saveWorkflow" type="button">保存</button>
+            <div class="scenario-line">
+              <span class="control-label">场景：</span>
+              <strong id="timelineName">高速亲子出行</strong>
             </div>
+            <button class="ghost-button" id="switchScenario" type="button">场景切换</button>
+            <button class="ghost-button" id="pauseTimeline" type="button">暂停模拟</button>
             <button class="reset-button" id="resetScenario" type="button">重置模拟</button>
           </div>
 
-          <div class="experience-panel">
-            <div class="timeline-card">
-              <div>
-                <strong id="timelineName">高速亲子出行</strong>
-              </div>
-              <div class="timeline-actions">
-                <button class="ghost-button" id="startTimeline" type="button">自动演示</button>
-                <button class="ghost-button" id="pauseTimeline" type="button">暂停</button>
-              </div>
-              <p id="timelineEvent">准备好后点击自动演示，系统会按时间轴触发座舱事件。</p>
-            </div>
+          <div class="prestart-panel" id="prestartPanel">
+            <button class="primary-start" id="startTimeline" type="button">开始模拟</button>
+            <p>点击开始模式，作为副驾参与一局15问猜谜。其他乘客会自动加入。</p>
           </div>
 
           <div class="control-grid">
@@ -150,7 +125,6 @@
                 <button class="chip" data-speed="100" type="button">100</button>
                 <button class="chip" data-speed="120" type="button">120</button>
               </div>
-              <input class="compact-input" id="speedInput" type="number" min="0" value="50" />
             </div>
 
             <div class="control-row environment-row">
@@ -173,9 +147,14 @@
                 <button class="event-button" data-event="driver_tired" type="button">主驾疲惫</button>
                 <button class="event-button" data-event="passenger_sleep" type="button">有人睡着</button>
                 <button class="event-button" data-event="near_destination" type="button">快到目的地</button>
-                <button class="event-button" data-event="resume_game" type="button">恢复游戏</button>
               </div>
             </div>
+          </div>
+
+          <div class="ask-bar control-ask-bar">
+            <div class="fixed-speaker" aria-label="当前乘客">副驾</div>
+            <input id="playerInput" placeholder="请输入 TA 的提问或答案" />
+            <button id="sendQuestion" type="button">发送提问</button>
           </div>
           </section>
         </section>

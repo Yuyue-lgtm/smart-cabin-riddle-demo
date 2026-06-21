@@ -66,13 +66,13 @@ COZE_API_TOKEN=replace_with_your_new_coze_api_token
 
 下面是 V1.0 的接口示例。新版 Workflow 契约已扩展 `timeline`、`interaction` 和 `passenger_action`，请以 [docs/WORKFLOW_CONTRACT.md](./docs/WORKFLOW_CONTRACT.md) 为准。
 
-页面右下角可以填写 Workflow 代理地址。默认是：
+前端固定请求同域 Workflow 代理。默认是：
 
 ```text
 /api/workflow
 ```
 
-一般不需要修改。只有本地调试或换代理服务时才需要改。
+一般不需要在页面里修改。只有本地调试或换代理服务时，才需要调整服务端环境变量。
 
 ### 输入示例
 
@@ -162,12 +162,12 @@ COZE_API_TOKEN=replace_with_your_new_coze_api_token
 
 ## 第一版演示路径
 
-1. 点击“AI 开场”
+1. 点击“开始模拟”
 2. 副驾输入“它是车上的东西吗？”
 3. 点击“发送提问”
 4. 点击“急刹打断”
-5. 点击“恢复游戏”
+5. 等待前端自动恢复游戏
 6. 输入当前谜底，例如“答案是安全带”
-7. 页面展示猜对和谜底揭晓
+7. 页面展示猜对、谜底揭晓和答对座位氛围灯
 
 V1.1 之后正式体验以 Workflow 为主路径，Mock 仅作为开发期或异常保护。

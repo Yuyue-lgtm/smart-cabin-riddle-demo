@@ -88,7 +88,7 @@ V1.1 建议优先实现以下 8 条策略：
 | 主持策略 | 主驾暂时退出答题，cue 副驾和后排接管 |
 | 话术风格 | 清晰、照顾、不制造压力 |
 | 游戏状态 | 保持 `playing` |
-| passenger_action | 可生成副驾或后排发言，不选择主驾 |
+| passenger_action | 不生成副驾模拟发言；可 cue 副驾真实用户，或生成后排模拟乘客发言 |
 | UI 动作 | `cabin_mode = driver_focus`，`target_seat = front/rearLeft/rearRight` |
 | 示例话术 | 车速上来了，主驾先专心看路。接下来的问题交给副驾和后排侦探团。 |
 

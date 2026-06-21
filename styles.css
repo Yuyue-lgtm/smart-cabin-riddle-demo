@@ -57,7 +57,7 @@ select:disabled {
   top: 0;
   left: 0;
   display: grid;
-  grid-template-columns: 44fr 56fr;
+  grid-template-columns: 5fr 4fr;
   width: 1920px;
   height: 1080px;
   min-width: 1920px;
@@ -69,9 +69,22 @@ select:disabled {
 
 .cabin-region {
   position: relative;
+  order: 2;
   overflow: hidden;
   background: var(--cream);
   border: 2px solid rgba(32, 39, 49, 0.28);
+}
+
+.region-title {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  height: 28px;
+  place-items: center;
+  color: #8d1f3d;
+  background: rgba(96, 198, 226, 0.72);
+  font-size: 15px;
+  font-weight: 950;
 }
 
 .environment-backdrop {
@@ -138,8 +151,8 @@ select:disabled {
 .cabin-overlay {
   position: relative;
   display: grid;
-  height: 100%;
-  grid-template-rows: auto auto 1fr auto;
+  height: calc(100% - 28px);
+  grid-template-rows: auto auto 1fr;
   gap: 10px;
   padding: 28px;
   min-height: 0;
@@ -151,8 +164,7 @@ select:disabled {
   gap: 10px;
 }
 
-.scene-badges span,
-.cabin-alert {
+.scene-badges span {
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 999px;
   padding: 8px 13px;
@@ -162,25 +174,8 @@ select:disabled {
   backdrop-filter: blur(10px);
 }
 
-.cabin-alert {
-  position: absolute;
-  top: 78px;
-  left: 28px;
-  font-weight: 800;
-  opacity: 0;
-  transform: translateY(-8px);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-
-.cabin-alert.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .cabin-decision-card {
-  width: 780px;
+  width: min(720px, 100%);
   margin-top: 28px;
   justify-self: start;
   border-color: rgba(255, 255, 255, 0.42);
@@ -192,9 +187,10 @@ select:disabled {
 .car-cabin {
   position: relative;
   align-self: center;
+  justify-self: center;
   width: 420px;
   aspect-ratio: 0.75;
-  margin: 0 0 10px;
+  margin: 0;
   border: 3px solid rgba(32, 39, 49, 0.42);
   border-radius: 76px;
   background:
@@ -220,23 +216,23 @@ select:disabled {
   border: 2px solid rgba(32, 39, 49, 0.28);
   border-radius: 10px;
   color: var(--ink);
+  cursor: default;
   background: rgba(255, 255, 255, 0.8);
   box-shadow: 0 12px 24px rgba(28, 42, 48, 0.12);
   transition:
     transform 180ms ease,
     border-color 180ms ease,
-    background 180ms ease;
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
-.seat:hover,
-.seat.selected {
-  transform: translateY(-3px);
-  border-color: var(--green-dark);
-  background: rgba(240, 250, 229, 0.95);
-}
-
-.seat.cued {
-  outline: 5px solid rgba(127, 178, 60, 0.3);
+.seat.correct {
+  border-color: #6ba52c;
+  background: rgba(244, 255, 232, 0.96);
+  box-shadow:
+    0 0 0 7px rgba(130, 197, 61, 0.34),
+    0 0 26px rgba(130, 197, 61, 0.58),
+    0 12px 24px rgba(28, 42, 48, 0.12);
 }
 
 .seat.sleeping {
@@ -357,14 +353,16 @@ select:disabled {
 }
 
 .right-stack {
+  order: 1;
   display: grid;
-  grid-template-rows: 52fr 48fr;
+  grid-template-rows: calc((1920px * 5 / 9) * 9 / 16 + 28px) 1fr;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
 }
 
 .game-region {
+  position: relative;
   min-height: 0;
   overflow: hidden;
   background:
@@ -376,7 +374,7 @@ select:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 28px 0;
+  padding: 13px 28px 0;
   font-size: 20px;
 }
 
@@ -386,21 +384,11 @@ select:disabled {
   font-weight: 800;
 }
 
-.status-pill {
-  min-width: 110px;
-  border-radius: 999px;
-  padding: 7px 14px;
-  color: white;
-  background: #354657;
-  text-align: center;
-  font-weight: 900;
-}
-
 .game-stage {
   display: grid;
   grid-template-columns: 1fr 330px;
   gap: 22px;
-  height: calc(100% - 56px);
+  height: calc(100% - 84px);
   padding: 14px 32px 20px;
 }
 
@@ -414,7 +402,7 @@ select:disabled {
 }
 
 .stage-label {
-  display: inline-flex;
+  display: none;
   align-items: center;
   min-height: 32px;
   border-radius: 999px;
@@ -438,6 +426,10 @@ select:disabled {
   font-size: 22px;
   font-weight: 800;
   line-height: 1.5;
+}
+
+.riddle-copy p.hidden {
+  display: none;
 }
 
 .answer-reveal {
@@ -542,14 +534,14 @@ select:disabled {
 .control-region {
   position: relative;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto 1fr auto;
   gap: 6px;
   overflow: hidden;
   border-top: 1px solid rgba(32, 39, 49, 0.12);
   background:
     radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.48), transparent 22%),
     #dceacd;
-  padding: 10px 24px 12px;
+  padding: 0 24px 12px;
 }
 
 .control-header {
@@ -557,18 +549,22 @@ select:disabled {
   align-items: center;
   gap: 18px;
   justify-content: space-between;
+  padding-top: 10px;
 }
 
-.workflow-line {
-  display: grid;
-  grid-template-columns: auto minmax(280px, 1fr) auto;
-  max-width: 730px;
+.scenario-line {
+  display: flex;
+  min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
 }
 
-.workflow-line label,
+.scenario-line strong {
+  font-size: 17px;
+  font-weight: 950;
+}
+
 .control-label {
   font-size: 15px;
   font-weight: 950;
@@ -593,7 +589,7 @@ select:focus {
 
 .ghost-button,
 .reset-button,
-#startGame,
+#startTimeline,
 #sendQuestion {
   min-height: 34px;
   border: 0;
@@ -604,24 +600,42 @@ select:focus {
   font-weight: 950;
 }
 
+.primary-start {
+  min-width: 150px;
+  min-height: 88px;
+  border: 2px solid rgba(32, 39, 49, 0.3);
+  border-radius: 8px;
+  color: #981f37;
+  background: rgba(255, 255, 255, 0.94);
+  font-size: 23px;
+  font-weight: 950;
+}
+
 .ghost-button {
   color: #26302a;
   background: rgba(255, 255, 255, 0.8);
   border: 2px solid rgba(32, 39, 49, 0.18);
 }
 
+.prestart-panel {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  align-content: center;
+  gap: 26px;
+}
+
+.prestart-panel p {
+  margin: 0;
+  color: #b02137;
+  font-size: 19px;
+  font-weight: 950;
+}
+
 #sendQuestion {
   background: var(--green-dark);
 }
 
-.experience-panel {
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr);
-  gap: 8px;
-  min-height: 80px;
-}
-
-.timeline-card,
 .decision-card {
   min-width: 0;
   border: 2px solid rgba(32, 39, 49, 0.12);
@@ -630,44 +644,12 @@ select:focus {
   background: rgba(255, 255, 255, 0.5);
 }
 
-.timeline-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px 10px;
-  align-items: start;
-}
-
-.timeline-card p {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: #43505d;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.35;
-}
-
 .panel-kicker {
   display: block;
   margin-bottom: 2px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 950;
-}
-
-.timeline-card strong {
-  font-size: 16px;
-  font-weight: 950;
-}
-
-.timeline-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.timeline-actions .ghost-button {
-  min-height: 28px;
-  padding: 0 10px;
-  font-size: 13px;
 }
 
 .decision-card dl {
@@ -695,16 +677,6 @@ select:focus {
   line-height: 1.3;
 }
 
-.cabin-ask-bar {
-  align-self: end;
-  border: 2px solid rgba(255, 255, 255, 0.48);
-  border-radius: 14px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 16px 32px rgba(20, 34, 44, 0.14);
-  backdrop-filter: blur(10px);
-}
-
 .control-grid {
   display: grid;
   align-content: start;
@@ -715,7 +687,7 @@ select:focus {
 
 .control-row {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr) auto;
+  grid-template-columns: 82px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
 }
@@ -766,25 +738,56 @@ select:focus {
   opacity: 0.78;
 }
 
-.compact-input {
-  width: 58px;
-  text-align: center;
-  font-weight: 900;
-}
-
 .destination-input {
   width: 80px;
 }
 
 .ask-bar {
   display: grid;
-  grid-template-columns: 86px 86px 1fr auto auto;
+  grid-template-columns: 86px 1fr auto;
   gap: 8px;
   min-height: 34px;
 }
 
+.fixed-speaker {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border: 2px solid rgba(32, 39, 49, 0.22);
+  border-radius: 10px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.82);
+  font-weight: 950;
+}
+
 .ask-bar input {
   min-width: 0;
+}
+
+.control-ask-bar {
+  align-self: end;
+  border: 2px solid rgba(255, 255, 255, 0.52);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 16px 32px rgba(20, 34, 44, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+body:not(.has-started) .control-grid,
+body:not(.has-started) .control-ask-bar,
+body:not(.has-started) #pauseTimeline,
+body:not(.has-started) #resetScenario {
+  display: none;
+}
+
+body.has-started #switchScenario,
+body.has-started .prestart-panel {
+  display: none;
 }
 
 .is-paused .host-avatar,

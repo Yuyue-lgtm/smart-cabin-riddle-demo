@@ -548,6 +548,7 @@ P0 急刹时可以跳过 Game Judge。
 
 ```text
 非用户座位
+非副驾真实用户
 非主驾
 未睡着
 上一轮没发言
@@ -558,6 +559,7 @@ P0 急刹时可以跳过 Game Judge。
 
 ```text
 exclude driver
+exclude front for passenger_action
 ```
 
 ### 发言意图

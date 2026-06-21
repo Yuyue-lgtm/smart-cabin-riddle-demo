@@ -82,88 +82,157 @@ const RIDDLES = [
   },
 ];
 
-const SCENARIOS = [
+const GOLDEN_TIMELINES = [
   {
-    speed: 50,
-    destination: "公司",
-    relationship: "父母+小孩",
-    environment: "高速路晴天白天",
-    riddleIndex: 1,
-  },
-  {
-    speed: 100,
+    id: "family_highway_disney",
+    name: "高速亲子出行",
+    speed: 80,
     destination: "迪士尼",
     relationship: "父母+小孩",
     environment: "高速路晴天白天",
-    riddleIndex: 3,
+    riddleIndex: 1,
+    trace: {
+      perception: "载入高速亲子出行场景",
+      decision: "默认副驾为真实用户，后排小朋友可自动加入",
+      execution: "设置高速晴天、目的地迪士尼、谜底安全带",
+      strategyId: "V1.2-A",
+      priority: "P3",
+    },
+    steps: [
+      {
+        delay: 0,
+        label: "初始化高速亲子出行",
+        run: () => applyGoldenLineDefaults(),
+      },
+      {
+        delay: 1500,
+        label: "AI 主持开局",
+        run: () => startGame(),
+      },
+      {
+        delay: 9000,
+        label: "后排小朋友尝试提问",
+        run: () => runScriptedQuestion("rearRight", "它是不是像超人一样保护我们？"),
+      },
+      {
+        delay: 15000,
+        label: "副驾真实用户接手",
+        run: () => cueRealUser("副驾，这一问交给你。可以从安全、车内物品这些方向试试。"),
+      },
+      {
+        delay: 22000,
+        label: "检测到主驾疲惫",
+        run: () => runScriptedEvent("driver_tired", "主驾疲惫"),
+      },
+      {
+        delay: 30000,
+        label: "突发急刹打断",
+        run: () => runScriptedEvent("hard_brake", "急刹打断"),
+      },
+      {
+        delay: 52000,
+        label: "小朋友继续跳脱提问",
+        run: () => runScriptedQuestion("rearRight", "它是不是每个人坐车都要用？"),
+      },
+      {
+        delay: 65000,
+        label: "等待副驾猜答案",
+        run: () => cueRealUser("线索已经很近了，副驾可以直接猜答案。"),
+      },
+    ],
   },
   {
-    speed: 80,
+    id: "rainy_city_hotpot_friends",
+    name: "雨天朋友聚会",
+    speed: 50,
     destination: "火锅店",
     relationship: "年轻朋友",
-    environment: "城区雨天白天",
+    environment: "城区晴天白天",
     riddleIndex: 0,
+    trace: {
+      perception: "载入雨天朋友聚会场景",
+      decision: "朋友局采用轻松玩梗风格，副驾仍为真实用户",
+      execution: "设置城区出行、目的地火锅店、谜底雨伞",
+      strategyId: "V1.2-B",
+      priority: "P3",
+    },
+    steps: [
+      {
+        delay: 0,
+        label: "初始化雨天朋友聚会",
+        run: () => applyGoldenLineDefaults(),
+      },
+      {
+        delay: 1500,
+        label: "AI 主持开局",
+        run: () => startGame(),
+      },
+      {
+        delay: 9000,
+        label: "后排朋友玩梗",
+        run: () => runScriptedQuestion("rearLeft", "它是不是火锅店门口最容易被忘的东西？"),
+      },
+      {
+        delay: 17000,
+        label: "天气切换为雨天",
+        run: () => runScriptedEnvironment("城区雨天白天"),
+      },
+      {
+        delay: 26000,
+        label: "副驾真实用户推进",
+        run: () => cueRealUser("雨已经下起来了，副驾可以顺着天气继续问。"),
+      },
+    ],
   },
   {
+    id: "scenic_snow_family",
+    name: "风景区雪景家庭",
     speed: 50,
     destination: "草原",
     relationship: "中老年+儿女",
     environment: "风景区雪景白天",
     riddleIndex: 5,
+    trace: {
+      perception: "载入风景区雪景家庭场景",
+      decision: "用更稳重的语气主持，并避免打扰睡着乘客",
+      execution: "设置雪景环境、家庭乘客、谜底雪人",
+      strategyId: "V1.2-C",
+      priority: "P3",
+    },
+    steps: [
+      {
+        delay: 0,
+        label: "初始化风景区雪景家庭",
+        run: () => applyGoldenLineDefaults(),
+      },
+      {
+        delay: 1500,
+        label: "AI 主持开局",
+        run: () => startGame(),
+      },
+      {
+        delay: 9000,
+        label: "后排家人稳健提问",
+        run: () => runScriptedQuestion("rearLeft", "它是不是和雪景有关？"),
+      },
+      {
+        delay: 17000,
+        label: "检测到后排右睡着",
+        run: () => runScriptedEvent("passenger_sleep", "有人睡着", "rearRight"),
+      },
+      {
+        delay: 26000,
+        label: "快到目的地",
+        run: () => runScriptedEvent("near_destination", "快到目的地"),
+      },
+      {
+        delay: 34000,
+        label: "副驾真实用户收尾",
+        run: () => cueRealUser("快到目的地了，副驾来决定这一题要不要直接猜。"),
+      },
+    ],
   },
 ];
-
-const GOLDEN_TIMELINE = {
-  id: "family_highway_disney",
-  name: "高速亲子出行",
-  steps: [
-    {
-      delay: 0,
-      label: "初始化高速亲子出行",
-      run: () => applyGoldenLineDefaults(),
-    },
-    {
-      delay: 1500,
-      label: "AI 开场",
-      run: () => startGame(),
-    },
-    {
-      delay: 9000,
-      label: "后排小朋友尝试提问",
-      run: () => runScriptedQuestion("rearRight", "它是不是像超人一样保护我们？"),
-    },
-    {
-      delay: 15000,
-      label: "副驾追问安全方向",
-      run: () => runScriptedQuestion("front", "它和安全有关吗？"),
-    },
-    {
-      delay: 22000,
-      label: "检测到主驾疲惫",
-      run: () => runScriptedEvent("driver_tired", "主驾疲惫"),
-    },
-    {
-      delay: 30000,
-      label: "突发急刹打断",
-      run: () => runScriptedEvent("hard_brake", "急刹打断"),
-    },
-    {
-      delay: 42000,
-      label: "风险解除，恢复游戏",
-      run: () => runScriptedEvent("resume_game", "恢复游戏"),
-    },
-    {
-      delay: 52000,
-      label: "小朋友继续跳脱提问",
-      run: () => runScriptedQuestion("rearRight", "它是不是每个人坐车都要用？"),
-    },
-    {
-      delay: 65000,
-      label: "副驾猜对答案",
-      run: () => runScriptedQuestion("front", "答案是安全带"),
-    },
-  ],
-};
 
 const DEFAULT_STATE = {
   plugin: "riddle",
@@ -201,16 +270,17 @@ const DEFAULT_STATE = {
     cabinMode: "normal",
     animation: "idle",
     showAnswer: false,
+    correctSeat: null,
     alert: "",
   },
   timeline: {
-    id: GOLDEN_TIMELINE.id,
-    name: GOLDEN_TIMELINE.name,
+    id: GOLDEN_TIMELINES[0].id,
+    name: GOLDEN_TIMELINES[0].name,
     status: "idle",
     runId: 0,
     startedAt: 0,
     elapsedSeconds: 0,
-    currentEvent: "准备好后点击自动演示，系统会按时间轴触发座舱事件。",
+    currentEvent: "准备好后点击开始模拟，系统会按时间轴触发座舱事件。",
   },
   decisionTrace: {
     perception: "等待座舱事件",
@@ -227,6 +297,7 @@ const DEFAULT_STATE = {
     lastResumeAt: 0,
     lastPassengerActionKey: "",
     bubbleTimer: null,
+    recoveryTimer: null,
     pendingChats: [],
   },
 };
@@ -239,7 +310,7 @@ function boot() {
   bindEvents();
   resizeStage();
   loadWorkflowUrl();
-  applyScenario(0, false);
+  applyGoldenLineDefaults(getActiveGoldenLine(), false);
   render();
 }
 
@@ -250,32 +321,25 @@ function cacheElements() {
     "environmentLabel",
     "speedLabel",
     "destinationLabel",
-    "cabinAlert",
     "roundProgress",
     "questionProgress",
-    "gameStatus",
     "stageLabel",
     "riddleTitle",
     "riddleHint",
     "answerReveal",
     "hostBubble",
     "hostAvatar",
-    "onboardingHint",
     "timelineName",
-    "timelineEvent",
     "startTimeline",
     "pauseTimeline",
+    "prestartPanel",
     "decisionPerception",
     "decisionDecision",
     "decisionExecution",
     "workflowUrl",
-    "saveWorkflow",
+    "switchScenario",
     "resetScenario",
-    "speedInput",
-    "seatSelect",
-    "emotionSelect",
     "playerInput",
-    "startGame",
     "sendQuestion",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
@@ -289,35 +353,14 @@ function cacheElements() {
 
 function bindEvents() {
   window.addEventListener("resize", resizeStage);
-  els.saveWorkflow.addEventListener("click", saveWorkflowUrl);
-  els.resetScenario.addEventListener("click", nextScenario);
+  els.switchScenario.addEventListener("click", nextGoldenLine);
+  els.resetScenario.addEventListener("click", resetCurrentGoldenLine);
   els.startTimeline.addEventListener("click", startGoldenTimeline);
   els.pauseTimeline.addEventListener("click", toggleTimelinePause);
-  els.startGame.addEventListener("click", startGame);
   els.sendQuestion.addEventListener("click", sendQuestion);
   els.playerInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       sendQuestion();
-    }
-  });
-
-  els.speedInput.addEventListener("change", () => {
-    setSpeed(Number(els.speedInput.value) || 0);
-  });
-
-  els.seatSelect.addEventListener("change", () => {
-    state.passengers.selectedSeat = els.seatSelect.value;
-    els.emotionSelect.value = state.passengers.seats[els.seatSelect.value].mood;
-    render();
-  });
-
-  els.emotionSelect.addEventListener("change", () => {
-    const seat = state.passengers.selectedSeat;
-    state.passengers.seats[seat].mood = els.emotionSelect.value;
-    if (els.emotionSelect.value === "睡着") {
-      dispatchWorkflow("event", { type: "passenger_sleep", seat });
-    } else {
-      render();
     }
   });
 
@@ -336,7 +379,7 @@ function bindEvents() {
   });
 
   els.eventButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const type = button.dataset.event;
       if (type !== "hard_brake" && state.workflow.inFlight) {
         state.ui.alert = "AI 正在处理上一条信息，请稍等";
@@ -346,8 +389,9 @@ function bindEvents() {
       if (type === "hard_brake") {
         applyImmediateSafetyPause();
       }
+      const eventSeat = type === "passenger_sleep" ? "rearRight" : state.passengers.selectedSeat;
       if (type === "passenger_sleep") {
-        applyImmediatePassengerSleep(state.passengers.selectedSeat);
+        applyImmediatePassengerSleep(eventSeat);
       }
       if (type === "driver_tired") {
         applyImmediateDriverTired();
@@ -355,29 +399,9 @@ function bindEvents() {
       if (type === "near_destination") {
         applyImmediateNearDestination();
       }
-      if (type === "resume_game") {
-        if (!canResumeGame()) {
-          render();
-          return;
-        }
-        state.game.status = "playing";
-        state.ui.cabinMode = "normal";
-        state.ui.alert = "正在确认安全状态";
-        state.host.text = "收到，正在确认座舱状态，马上继续游戏。";
-        clearPassengerBubbles();
-        state.workflow.lastResumeAt = Date.now();
-        render();
-      }
-      dispatchWorkflow("event", { type, seat: state.passengers.selectedSeat });
-    });
-  });
-
-  els.seats.forEach((seatButton) => {
-    seatButton.addEventListener("click", () => {
-      state.passengers.selectedSeat = seatButton.dataset.seat;
-      els.seatSelect.value = state.passengers.selectedSeat;
-      els.emotionSelect.value = state.passengers.seats[state.passengers.selectedSeat].mood;
-      render();
+      scheduleEventRecovery(type);
+      await dispatchWorkflow("event", { type, seat: eventSeat });
+      scheduleEventRecovery(type);
     });
   });
 }
@@ -398,16 +422,6 @@ function loadWorkflowUrl() {
   localStorage.setItem("riddle-demo-workflow-url", endpoint);
 }
 
-function saveWorkflowUrl() {
-  const rawEndpoint = els.workflowUrl.value.trim() || DEFAULT_WORKFLOW_ENDPOINT;
-  const endpoint = normalizeWorkflowEndpoint(rawEndpoint);
-  els.workflowUrl.value = endpoint;
-  localStorage.setItem("riddle-demo-workflow-url", endpoint);
-  state.ui.alert =
-    endpoint === rawEndpoint ? "Workflow 代理已保存" : "已切换为安全代理地址";
-  render();
-}
-
 function normalizeWorkflowEndpoint(endpoint) {
   if (!endpoint || isDirectCozeEndpoint(endpoint)) {
     return DEFAULT_WORKFLOW_ENDPOINT;
@@ -420,58 +434,44 @@ function isDirectCozeEndpoint(endpoint) {
   return /(^https?:\/\/.*\.coze\.site\/run)|(^https?:\/\/api\.coze\.)/i.test(endpoint);
 }
 
-function nextScenario() {
-  stopTimeline("已切换下一条模拟数据");
-  const nextIndex = (state.scenarioIndex + 1) % SCENARIOS.length;
-  applyScenario(nextIndex, true);
+function getActiveGoldenLine() {
+  return GOLDEN_TIMELINES[state.scenarioIndex] || GOLDEN_TIMELINES[0];
 }
 
-function applyScenario(index, announce) {
-  const scenario = SCENARIOS[index];
-  state.scenarioIndex = index;
-  state.car.speed = scenario.speed;
-  state.car.destination = scenario.destination;
-  state.car.environment = scenario.environment;
-  state.passengers.relationship = scenario.relationship;
-  state.game.currentRiddleIndex = scenario.riddleIndex;
-  state.game.status = "idle";
-  state.game.questionCount = 0;
-  state.game.history = [];
-  state.ui.showAnswer = false;
-  state.ui.cabinMode = "normal";
-  state.ui.alert = announce ? "已切换下一条模拟数据" : "";
-  state.host.text = announce
-    ? `模拟数据已切换：${scenario.environment}，目的地${scenario.destination}。`
-    : DEFAULT_STATE.host.text;
-  state.workflow.lastPassengerActionKey = "";
-  resetDecisionTrace();
-  Object.values(state.passengers.seats).forEach((seat) => {
-    seat.mood = "普通";
-    seat.bubble = "";
-  });
+function nextGoldenLine() {
+  stopTimeline("已切换黄金体验线");
+  const nextIndex = (state.scenarioIndex + 1) % GOLDEN_TIMELINES.length;
+  applyGoldenLineDefaults(GOLDEN_TIMELINES[nextIndex], true);
+  render();
+}
+
+function resetCurrentGoldenLine() {
+  stopTimeline("已重置当前模拟");
+  applyGoldenLineDefaults(getActiveGoldenLine(), true);
   render();
 }
 
 async function startGoldenTimeline() {
   if (state.timeline.status === "running") {
-    state.ui.alert = "自动演示正在进行中";
+    state.ui.alert = "模拟正在进行中";
     render();
     return;
   }
 
   const runId = state.timeline.runId + 1;
+  const timeline = getActiveGoldenLine();
   state.timeline.runId = runId;
-  state.timeline.id = GOLDEN_TIMELINE.id;
-  state.timeline.name = GOLDEN_TIMELINE.name;
+  state.timeline.id = timeline.id;
+  state.timeline.name = timeline.name;
   state.timeline.status = "running";
   state.timeline.startedAt = Date.now();
   state.timeline.elapsedSeconds = 0;
-  state.timeline.currentEvent = "高速亲子出行启动中";
-  applyGoldenLineDefaults();
+  state.timeline.currentEvent = `${timeline.name}启动中`;
+  applyGoldenLineDefaults(timeline, false);
   render();
 
   let previousDelay = 0;
-  for (const step of GOLDEN_TIMELINE.steps) {
+  for (const step of timeline.steps) {
     if (state.timeline.runId !== runId) return;
     await sleep(Math.max(0, step.delay - previousDelay));
     previousDelay = step.delay;
@@ -487,8 +487,8 @@ async function startGoldenTimeline() {
 
   if (state.timeline.runId === runId) {
     state.timeline.status = "finished";
-    state.timeline.currentEvent = "高速亲子出行已完成";
-    state.ui.alert = "自动演示完成";
+    state.timeline.currentEvent = `${timeline.name}已完成`;
+    state.ui.alert = "模拟完成";
     render();
   }
 }
@@ -496,14 +496,14 @@ async function startGoldenTimeline() {
 function toggleTimelinePause() {
   if (state.timeline.status === "running") {
     state.timeline.status = "paused";
-    state.timeline.currentEvent = "自动演示已暂停";
-    state.ui.alert = "自动演示已暂停";
+    state.timeline.currentEvent = "模拟已暂停";
+    state.ui.alert = "模拟已暂停";
   } else if (state.timeline.status === "paused") {
     state.timeline.status = "running";
-    state.timeline.currentEvent = "自动演示继续";
-    state.ui.alert = "自动演示继续";
+    state.timeline.currentEvent = "模拟继续";
+    state.ui.alert = "模拟继续";
   } else {
-    state.ui.alert = "请先点击自动演示";
+    state.ui.alert = "请先点击开始模拟";
   }
   render();
 }
@@ -515,43 +515,54 @@ function stopTimeline(message) {
   state.timeline.status = "idle";
   state.timeline.elapsedSeconds = 0;
   state.timeline.currentEvent =
-    message || "准备好后点击自动演示，系统会按时间轴触发座舱事件。";
+    message || "准备好后点击开始模拟，系统会按时间轴触发座舱事件。";
 }
 
-function applyGoldenLineDefaults() {
-  state.scenarioIndex = 1;
-  state.car.speed = 80;
-  state.car.destination = "迪士尼";
-  state.car.environment = "高速路晴天白天";
-  state.passengers.relationship = "父母+小孩";
+function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = false) {
+  const index = GOLDEN_TIMELINES.findIndex((item) => item.id === timeline.id);
+  state.scenarioIndex = index >= 0 ? index : 0;
+  state.timeline.id = timeline.id;
+  state.timeline.name = timeline.name;
+  state.car.speed = timeline.speed;
+  state.car.destination = timeline.destination;
+  state.car.environment = timeline.environment;
+  state.passengers.relationship = timeline.relationship;
   state.passengers.selectedSeat = "front";
-  state.game.currentRiddleIndex = 1;
+  state.game.currentRiddleIndex = timeline.riddleIndex;
   state.game.status = "idle";
   state.game.questionCount = 0;
   state.game.history = [];
   state.ui.showAnswer = false;
+  state.ui.correctSeat = null;
   state.ui.cabinMode = "normal";
-  state.ui.alert = "高速亲子出行：目的地迪士尼，谜底安全带";
-  state.host.text = "高速亲子出行准备就绪，副驾可以发起 AI 开场。";
+  state.ui.alert = announce ? `已切换至${timeline.name}` : "";
+  state.host.text = getPrestartHostText(timeline);
   state.host.targetSeat = "front";
   state.workflow.lastPassengerActionKey = "";
   clearPassengerBubbles();
   Object.values(state.passengers.seats).forEach((seat) => {
     seat.mood = "普通";
   });
-  updateDecisionTrace({
-    perception: "载入高速亲子出行场景",
-    decision: "默认副驾为真实用户，后排小朋友可自动加入",
-    execution: "设置高速晴天、目的地迪士尼、谜底安全带",
-    strategyId: "V1.2-A",
-    priority: "P3",
-  });
+  updateDecisionTrace(timeline.trace);
+}
+
+function getPrestartHostText(timeline) {
+  const sceneLead = {
+    family_highway_disney: "各位大小侦探，去迪士尼的路上要不要先玩一局猜谜？",
+    rainy_city_hotpot_friends: "朋友局已就位，去火锅店的路上来一局轻松猜谜吧。",
+    scenic_snow_family: "窗外雪景正好适合开一局猜谜，大家一起动动脑。",
+  };
+  const lead = sceneLead[timeline.id] || "大家好，欢迎来到车内 AI 猜谜。";
+  return `${lead} 规则很简单：我藏一个谜底，大家轮流问“是/否”问题，15 问内猜出来就算赢。我来当主持人，准备好了我们就开始。`;
 }
 
 async function runScriptedQuestion(seat, text) {
+  if (seat === "front") {
+    cueRealUser(text);
+    return;
+  }
   if (state.game.status === "paused") return;
   state.passengers.selectedSeat = seat;
-  els.seatSelect.value = seat;
   clearPassengerBubbles(seat);
   state.passengers.seats[seat].bubble = text;
   scheduleBubbleClear();
@@ -562,7 +573,7 @@ async function runScriptedQuestion(seat, text) {
   state.ui.alert = `${SEATS[seat]}：${text}`;
   updateDecisionTrace({
     perception: `${SEATS[seat]}参与提问`,
-    decision: seat === "rearRight" ? "允许后排小朋友短句参与" : "由副驾推进关键问题",
+    decision: seat === "rearRight" ? "允许后排小朋友短句参与" : "允许模拟乘客补充提问",
     execution: "显示乘客气泡，并交给 AI 主持人回答",
     strategyId: seat === "rearRight" ? "S12" : "S00",
     priority: "P3",
@@ -570,6 +581,29 @@ async function runScriptedQuestion(seat, text) {
   render();
   await dispatchWorkflow("chat", null, text);
   ensureScriptedVictory(seat, text);
+  restoreRealUserSeat();
+}
+
+function cueRealUser(text) {
+  state.passengers.selectedSeat = "front";
+  state.host.targetSeat = "front";
+  state.host.text = text;
+  state.ui.alert = "";
+  updateDecisionTrace({
+    perception: "时间轴轮到副驾真实用户",
+    decision: "不模拟副驾发言，等待真实用户输入",
+    execution: "AI 主持人 cue 副驾，输入框保持可用",
+    strategyId: "S00",
+    priority: "P3",
+  });
+  clearPassengerBubbles();
+  render();
+}
+
+function restoreRealUserSeat() {
+  if (state.game.status === "victory") return;
+  state.passengers.selectedSeat = "front";
+  render();
 }
 
 function ensureScriptedVictory(seat, text) {
@@ -579,6 +613,7 @@ function ensureScriptedVictory(seat, text) {
   state.game.status = "victory";
   state.ui.cabinMode = "victory";
   state.ui.showAnswer = true;
+  state.ui.correctSeat = seat;
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
   state.host.text = `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`;
@@ -592,8 +627,8 @@ function ensureScriptedVictory(seat, text) {
   render();
 }
 
-async function runScriptedEvent(type, label) {
-  const seat = state.passengers.selectedSeat;
+async function runScriptedEvent(type, label, targetSeat = state.passengers.selectedSeat) {
+  const seat = targetSeat;
   if (type === "hard_brake") {
     applyImmediateSafetyPause();
   }
@@ -618,7 +653,21 @@ async function runScriptedEvent(type, label) {
     render();
   }
   state.timeline.currentEvent = label;
+  scheduleEventRecovery(type);
   await dispatchWorkflow("event", { type, seat });
+  scheduleEventRecovery(type);
+}
+
+async function runScriptedEnvironment(environment) {
+  setEnvironment(environment);
+  updateDecisionTrace({
+    perception: `车外环境切换为${environment}`,
+    decision: "将环境变化融入当前谜题和主持话术",
+    execution: "同步环境背景，并通知 Workflow 调整主持策略",
+    strategyId: "S07",
+    priority: "P2",
+  });
+  await dispatchWorkflow("event", { type: "environment_change", value: environment });
 }
 
 function sleep(ms) {
@@ -651,6 +700,7 @@ async function startGame() {
   clearPassengerBubbles();
   state.game.status = "opening";
   state.ui.showAnswer = false;
+  state.ui.correctSeat = null;
   state.host.text = "各位侦探请就位，我要开始出题了。";
   render();
   await dispatchWorkflow("event", { type: "start_game" });
@@ -670,7 +720,8 @@ async function sendQuestion() {
     return;
   }
 
-  const seat = state.passengers.selectedSeat;
+  const seat = "front";
+  state.passengers.selectedSeat = seat;
   clearPassengerBubbles(seat);
   state.passengers.seats[seat].bubble = text;
   scheduleBubbleClear();
@@ -728,6 +779,10 @@ function findRiddleForEnvironment(environment) {
 
 function applyImmediateSafetyPause() {
   abortActiveWorkflow();
+  if (state.workflow.recoveryTimer) {
+    clearTimeout(state.workflow.recoveryTimer);
+    state.workflow.recoveryTimer = null;
+  }
   state.game.status = "paused";
   state.ui.cabinMode = "safety_pause";
   state.ui.alert = "急刹车：游戏已暂停";
@@ -741,6 +796,33 @@ function applyImmediateSafetyPause() {
   });
   clearPassengerBubbles();
   render();
+}
+
+function scheduleEventRecovery(type) {
+  if (type !== "hard_brake") {
+    return;
+  }
+
+  if (state.workflow.recoveryTimer) {
+    return;
+  }
+
+  state.workflow.recoveryTimer = setTimeout(() => {
+    state.workflow.recoveryTimer = null;
+    if (state.game.status !== "paused" || state.ui.cabinMode !== "safety_pause") return;
+    state.game.status = "playing";
+    state.ui.cabinMode = "normal";
+    state.ui.alert = "安全状态恢复，游戏继续";
+    state.host.text = "安全状态恢复，刚才的线索还在，我们继续。";
+    updateDecisionTrace({
+      perception: "急刹风险已解除",
+      decision: "恢复猜谜并保留上下文",
+      execution: "游戏状态自动恢复进行中",
+      strategyId: "S01",
+      priority: "P1",
+    });
+    render();
+  }, 4500);
 }
 
 function applyImmediatePassengerSleep(seat) {
@@ -862,7 +944,6 @@ async function processNextPendingChat() {
 
   const nextChat = state.workflow.pendingChats.shift();
   state.passengers.selectedSeat = nextChat.seat;
-  els.seatSelect.value = nextChat.seat;
   clearPassengerBubbles(nextChat.seat);
   state.passengers.seats[nextChat.seat].bubble = nextChat.text;
   scheduleBubbleClear();
@@ -876,7 +957,7 @@ async function processNextPendingChat() {
 function getWorkflowPendingLabel(input) {
   if (input.event?.type === "hard_brake") return "安全事件处理中";
   if (input.event?.type === "resume_game") return "正在恢复游戏";
-  if (input.event?.type === "start_game") return "AI 正在开场";
+  if (input.event?.type === "start_game") return "AI 正在主持开局";
   if (input.trigger_type === "chat") return "AI 正在判断";
   return "AI 正在同步座舱状态";
 }
@@ -1014,7 +1095,7 @@ function getEventPriority(type) {
 }
 
 async function requestWorkflow(input, signal) {
-  const endpoint = normalizeWorkflowEndpoint(els.workflowUrl.value.trim());
+  const endpoint = normalizeWorkflowEndpoint(els.workflowUrl.value.trim() || DEFAULT_WORKFLOW_ENDPOINT);
   els.workflowUrl.value = endpoint;
 
   const response = await fetch(endpoint, {
@@ -1324,6 +1405,7 @@ function applyWorkflowOutput(output, input) {
   if (output.is_correct) {
     state.ui.cabinMode = "victory";
     state.ui.showAnswer = true;
+    state.ui.correctSeat = input.passengers?.selected_seat || state.passengers.selectedSeat;
   }
 
   updateDecisionTrace(output.decision_trace || createDecisionTraceFromOutput(output, input));
@@ -1366,7 +1448,7 @@ function createDecisionTraceFromOutput(output, input) {
   }
   if (eventType === "start_game") {
     return {
-      perception: "副驾发起 AI 开场",
+      perception: "副驾发起主持开局",
       decision: "进入高速亲子猜谜局",
       execution: "AI 主持人开场并隐藏谜底",
       strategyId: "S00",
@@ -1428,6 +1510,11 @@ function applyPassengerAction(passengerAction) {
 
   const seat = normalizeTargetSeat(passengerAction.seat) || passengerAction.seat;
   if (!state.passengers.seats[seat]) {
+    return false;
+  }
+
+  if (seat === "front") {
+    clearPassengerBubbles();
     return false;
   }
 
@@ -1512,28 +1599,16 @@ function render() {
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
-  const alertText = state.workflow.activeLabel || state.ui.alert || getCabinModeText();
-  els.cabinAlert.textContent = alertText;
-  els.cabinAlert.classList.toggle(
-    "active",
-    Boolean(state.workflow.inFlight || state.ui.alert || state.ui.cabinMode !== "normal"),
-  );
-
   els.roundProgress.textContent = `${state.game.roundIndex}/${state.game.totalRounds}`;
   els.questionProgress.textContent = `${state.game.questionCount}/${state.game.maxQuestions}`;
-  els.gameStatus.textContent = getGameStatusText();
   els.stageLabel.textContent = getStageLabel();
-  els.riddleTitle.textContent = state.ui.showAnswer ? riddle.answer : "谜底隐藏中";
-  els.riddleHint.textContent = riddle.hint;
+  els.riddleTitle.textContent = getRiddleTitle(riddle);
+  els.riddleHint.textContent = state.game.status === "idle" && !state.ui.showAnswer ? "" : riddle.hint;
+  els.riddleHint.classList.toggle("hidden", state.game.status === "idle" && !state.ui.showAnswer);
   els.answerReveal.textContent = `谜底：${riddle.answer}`;
   els.answerReveal.classList.toggle("visible", state.ui.showAnswer);
   els.hostBubble.textContent = state.host.text;
-  els.onboardingHint.classList.toggle("hidden", state.game.status !== "idle");
   els.timelineName.textContent = state.timeline.name;
-  els.timelineEvent.textContent =
-    state.timeline.status === "running"
-      ? `${state.timeline.currentEvent} · ${state.timeline.elapsedSeconds}s`
-      : state.timeline.currentEvent;
   els.decisionPerception.textContent = formatDecisionText(
     state.decisionTrace.perception,
     state.decisionTrace.strategyId,
@@ -1561,8 +1636,7 @@ function renderSeats() {
     const avatar = seatButton.querySelector("[data-avatar]");
     const status = seatButton.querySelector("[data-seat-status]");
 
-    seatButton.classList.toggle("selected", state.passengers.selectedSeat === seat);
-    seatButton.classList.toggle("cued", state.host.targetSeat === seat);
+    seatButton.classList.toggle("correct", state.ui.correctSeat === seat);
     seatButton.classList.toggle("sleeping", seatState.mood === "睡着");
     seatButton.classList.toggle("seat-laughing", seatState.mood === "大笑");
 
@@ -1580,34 +1654,32 @@ function renderSeats() {
 }
 
 function renderControls() {
-  els.speedInput.value = state.car.speed;
-  els.seatSelect.value = state.passengers.selectedSeat;
-  els.emotionSelect.value = state.passengers.seats[state.passengers.selectedSeat].mood;
-
   setActive(els.speedChips, "speed", String(state.car.speed));
   setActive(els.environmentChips, "environment", state.car.environment);
 
   const isBusy = state.workflow.inFlight;
-  els.startGame.disabled = isBusy || !["idle", "victory", "failed"].includes(state.game.status);
-  els.sendQuestion.disabled = false;
-  els.playerInput.disabled = false;
-  els.speedInput.disabled = isBusy;
-  els.seatSelect.disabled = false;
-  els.emotionSelect.disabled = false;
-  els.startTimeline.disabled = isBusy || state.timeline.status === "running";
-  els.pauseTimeline.disabled = state.timeline.status === "idle" || state.timeline.status === "finished";
-  els.pauseTimeline.textContent = state.timeline.status === "paused" ? "继续" : "暂停";
+  const isTimelinePaused = state.timeline.status === "paused";
+  const hasStarted = state.timeline.status !== "idle" || state.game.status !== "idle";
+
+  document.body.classList.toggle("has-started", hasStarted);
+  document.body.classList.toggle("timeline-paused", isTimelinePaused);
+  els.prestartPanel.classList.toggle("hidden", hasStarted);
+  els.startTimeline.disabled = hasStarted || isBusy;
+  els.switchScenario.disabled = hasStarted || isBusy;
+  els.resetScenario.disabled = !hasStarted;
+  els.pauseTimeline.disabled = !hasStarted || state.timeline.status === "finished";
+  els.pauseTimeline.textContent = isTimelinePaused ? "继续模拟" : "暂停模拟";
+  els.sendQuestion.disabled = isTimelinePaused;
+  els.playerInput.disabled = isTimelinePaused;
 
   els.eventButtons.forEach((button) => {
     const eventType = button.dataset.event;
-    button.disabled =
-      (isBusy && eventType !== "hard_brake") ||
-      (eventType === "resume_game" && state.game.status !== "paused");
+    button.disabled = isTimelinePaused || (isBusy && eventType !== "hard_brake");
   });
 
   [els.speedChips, els.environmentChips].forEach((buttons) => {
     buttons.forEach((button) => {
-      button.disabled = isBusy;
+      button.disabled = isTimelinePaused || isBusy;
     });
   });
 }
@@ -1618,24 +1690,14 @@ function setActive(buttons, key, value) {
   });
 }
 
-function getGameStatusText() {
-  const statusText = {
-    idle: "待开局",
-    opening: "开场",
-    playing: "进行中",
-    paused: "已暂停",
-    victory: "猜对",
-    failed: "揭晓",
-  };
-  return statusText[state.game.status] || "进行中";
+function getStageLabel() {
+  return "";
 }
 
-function getStageLabel() {
-  if (state.game.status === "victory") return "谜底揭晓";
-  if (state.game.status === "paused") return "安全暂停";
-  if (state.game.status === "failed") return "本轮结束";
-  if (state.game.questionCount > 0) return "AI 回答";
-  return "AI 开场";
+function getRiddleTitle(riddle) {
+  if (state.ui.showAnswer) return riddle.answer;
+  if (state.game.status === "idle") return "游戏待开始";
+  return "提示";
 }
 
 function getCabinModeText() {
