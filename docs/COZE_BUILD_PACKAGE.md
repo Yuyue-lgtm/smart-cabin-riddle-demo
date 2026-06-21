@@ -1,5 +1,7 @@
 # Coze Workflow 可复制搭建包
 
+> V1.2 低延迟改造请优先使用 [COZE_FAST_PATH_OPTIMIZATION.md](./COZE_FAST_PATH_OPTIMIZATION.md)。本文件保留 V1.1 完整节点版，便于理解原始职责拆分。
+
 ## 使用目标
 
 本文用于在扣子 Coze 中快速搭建智能座舱 AI 猜谜 Demo 的 Workflow。

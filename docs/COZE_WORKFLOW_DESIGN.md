@@ -1,5 +1,7 @@
 # Coze Workflow 节点设计
 
+> 当前推荐：V1.2 使用 [COZE_FAST_PATH_OPTIMIZATION.md](./COZE_FAST_PATH_OPTIMIZATION.md) 的快速路径。下文的多节点拆分适合作为职责说明，但 `Game Judge -> Passenger Action Planner -> Host Reply Generator` 三个大模型节点不应继续串行部署到正式体验版本。
+
 ## 目标
 
 本文定义智能座舱 AI 猜谜 Demo 在 Coze 中的 Workflow 节点设计。该 Workflow 的角色不是普通聊天机器人，而是：
