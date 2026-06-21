@@ -407,11 +407,15 @@ function bindEvents() {
 }
 
 function resizeStage() {
-  const scale = window.innerWidth / STAGE_WIDTH;
+  const widthScale = window.innerWidth / STAGE_WIDTH;
+  const heightScale = window.innerHeight / STAGE_HEIGHT;
+  const scale = Math.min(widthScale, heightScale);
   if (els.appShell) {
     const top = Math.round((window.innerHeight - STAGE_HEIGHT * scale) / 2);
+    const left = Math.round((window.innerWidth - STAGE_WIDTH * scale) / 2);
     els.appShell.style.transform = `scale(${scale})`;
     els.appShell.style.top = `${top}px`;
+    els.appShell.style.left = `${left}px`;
   }
 }
 
