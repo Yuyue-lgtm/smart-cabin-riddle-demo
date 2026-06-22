@@ -34,6 +34,7 @@ Content-Type: application/json
   "plugin_id": "riddle",
   "car": {},
   "passengers": {},
+  "perception": {},
   "timeline": {},
   "game": {},
   "interaction": {},
@@ -155,6 +156,40 @@ V1.x 支持：
 
 模拟乘客人设信息。Workflow 可根据人设决定是否发言、如何发言、是否猜答案。
 
+## perception
+
+V1.2 的收敛后感知状态。这里传递的是时间轴或前端状态中心已经标准化的语义结果，不传摄像头、麦克风等原始数据。
+
+```json
+{
+  "vehicle_state": "normal",
+  "driver_state": "normal",
+  "sleeping_seats": ["rearLeft"],
+  "inactive_seat": "rearRight",
+  "cabin_mood": "normal",
+  "game_progress": "stuck",
+  "environment_hook": "城区雨天白天"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `vehicle_state` | string | 否 | `normal` / `high_speed` / `hard_brake` |
+| `driver_state` | string | 否 | `normal` / `fatigued` |
+| `sleeping_seats` | array | 否 | 当前睡着的座位；这些座位不得被 cue 或生成发言 |
+| `inactive_seat` | string/null | 否 | 当前最需要照顾参与感的一个座位 |
+| `cabin_mood` | string | 否 | `normal` / `laughing`；第一版为可选增强 |
+| `game_progress` | string | 否 | `normal` / `stuck` / `near_answer` / `correct` |
+| `environment_hook` | string | 否 | 可自然融入主持话术的当前环境 |
+
+约束：
+
+- 每次请求发送当前完整感知快照，而不是只发送变化字段。
+- `hard_brake` 仍同时使用 `event.type=hard_brake` 触发 P0 确定性路径。
+- `inactive_seat` 由近期发言轮次推导，第一版一次只标记一个座位。
+- 乘客关系、年龄和目的地由黄金体验线预设，不在 `perception` 中重复表达。
+- 暂不扩展电话、冲突、长期记忆、声纹和精细情绪字段。
+
 ## timeline
 
 时间轴状态。
@@ -197,6 +232,7 @@ V1.x 支持：
   "current_answer": "安全带",
   "current_theme": "高速",
   "hint": "它平时很安静，但关键时刻比主持人还可靠。",
+  "progress": "normal",
   "asked_questions": [
     "它是车上的东西吗？",
     "它能保护我们吗？"
@@ -214,6 +250,7 @@ V1.x 支持：
 | `current_answer` | string | 是 | 当前谜底 |
 | `current_theme` | string | 是 | 当前谜底主题 |
 | `hint` | string | 是 | 给 Workflow 的题目辅助信息 |
+| `progress` | string | 否 | `normal` / `stuck` / `near_answer` / `correct`，与 `perception.game_progress` 保持一致 |
 | `asked_questions` | array | 否 | 已经问过的问题，用于避免重复 |
 
 ### status
@@ -308,12 +345,18 @@ V1.x 支持：
 | `resume_game` | 恢复游戏 | P1 |
 | `driver_tired` | 主驾疲惫 | P1 |
 | `passenger_sleep` | 有人睡着 | P2 |
+| `passenger_inactive` | 某位乘客长期未参与 | P2 |
+| `game_stuck` | 游戏多轮无进展 | P3 |
+| `near_answer` | 玩家接近答案 | P3 |
+| `cabin_laughing` | 舱内持续大笑，可选 | P4 |
 | `near_destination` | 快到目的地 | P2 |
 | `environment_change` | 车外环境变化 | P2 |
 | `speed_change` | 车速变化 | P2 |
 | `destination_change` | 目的地变化 | P3 |
 | `relationship_change` | 乘客关系变化 | P3 |
 | `request_passenger_action` | 请求模拟乘客动作 | P3 |
+
+其中 `near_destination`、`destination_change`、`relationship_change` 保留向后兼容，不属于 V1.2 收敛后的核心感知范围。
 
 ## 输出结构
 

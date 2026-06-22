@@ -382,6 +382,28 @@ Fast Route.route == llm
 Output Guard -> End
 ```
 
+### 融合决策升级路径
+
+当前快速路径部署并稳定后，在不增加第二个大模型节点的前提下扩展为：
+
+```text
+Start -> Input Normalize -> Cabin State Summary -> Safety Gate
+
+Safety Gate 命中确定性事件
+  -> Deterministic Result -> Output Guard
+
+Safety Gate 未命中
+  -> Strategy Selector
+  -> Know-how Resolver
+  -> Fast Director
+  -> Output Guard
+```
+
+- `Cabin State Summary`、`Safety Gate`、`Strategy Selector` 均优先使用代码节点。
+- `Know-how Resolver` 第一阶段使用代码映射，只返回 2-3 条相关经验；案例规模扩大后再接知识库。
+- `Fast Director` 仍是唯一大模型节点，不接收完整 Know-how 文档。
+- 运行时最小感知范围以 [WORKFLOW_CONTRACT.md](./WORKFLOW_CONTRACT.md) 的 `perception` 为准。
+
 ## 六、必须删除的旧行为
 
 - 不要让普通 `chat` 每次都进入 Passenger Action Planner。

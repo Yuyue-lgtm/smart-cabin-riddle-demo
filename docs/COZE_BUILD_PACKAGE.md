@@ -1,6 +1,6 @@
 # Coze Workflow 可复制搭建包
 
-> V1.2 低延迟改造请优先使用 [COZE_FAST_PATH_OPTIMIZATION.md](./COZE_FAST_PATH_OPTIMIZATION.md)。本文件保留 V1.1 完整节点版，便于理解原始职责拆分。
+> V1.2 低延迟改造请优先使用 [COZE_FAST_PATH_OPTIMIZATION.md](./COZE_FAST_PATH_OPTIMIZATION.md)。最新融合决策架构以 [COZE_WORKFLOW_DESIGN.md](./COZE_WORKFLOW_DESIGN.md) 为准。本文件保留 V1.1 完整节点版，便于理解原始职责拆分，不应直接照此部署全部串行节点。
 
 ## 使用目标
 

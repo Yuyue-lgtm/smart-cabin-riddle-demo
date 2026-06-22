@@ -1,6 +1,6 @@
 # Coze Workflow 节点设计
 
-> 当前推荐：V1.2 使用 [COZE_FAST_PATH_OPTIMIZATION.md](./COZE_FAST_PATH_OPTIMIZATION.md) 的快速路径。下文的多节点拆分适合作为职责说明，但 `Game Judge -> Passenger Action Planner -> Host Reply Generator` 三个大模型节点不应继续串行部署到正式体验版本。
+> 当前推荐：以 [COZE_FAST_PATH_OPTIMIZATION.md](./COZE_FAST_PATH_OPTIMIZATION.md) 的低延迟路径为基线，逐步升级为“座舱状态摘要 + 策略选择 + 按需 Know-how + 单次快速导演”。下文旧版十节点拆分仅保留作职责参考，不应照原样串行部署。
 
 ## 目标
 
@@ -32,9 +32,91 @@ SmartCabinRiddleDirector
 智能座舱猜谜导演
 ```
 
-## 总体结构
+## 当前目标结构
 
-推荐节点结构：
+```text
+Start
+→ Input Normalize（输入标准化）
+→ Cabin State Summary（座舱局势摘要，代码）
+→ Safety Gate（安全与强制事件，代码）
+→ Strategy Selector（主持策略选择，代码/轻量判断）
+→ Know-how Resolver（按需取得 2-3 条相关经验）
+→ Fast Director（单次大模型调用）
+→ Output Guard（结构与动作校验，代码）
+→ End
+```
+
+确定性事件继续绕过模型：
+
+```text
+Safety Gate 命中急刹、暂停、明确猜中等确定性事件
+→ Deterministic Result
+→ Output Guard
+```
+
+这套结构不是让模型每次重新学习完整 Know-how。常驻原则保持短小，策略由代码先选定，只有与当前局势相关的少量案例进入 `Fast Director`。
+
+## 最小座舱状态
+
+`Cabin State Summary` 只维护七类高感知状态：
+
+| 状态 | 取值 |
+| --- | --- |
+| `vehicle_state` | `normal` / `high_speed` / `hard_brake` |
+| `driver_state` | `normal` / `fatigued` |
+| `sleeping_seats` | 座位数组 |
+| `inactive_seat` | 一个座位或 `null` |
+| `game_progress` | `normal` / `stuck` / `near_answer` / `correct` |
+| `environment_hook` | 当前黄金体验线的环境枚举 |
+| `cabin_mood` | `normal` / `laughing`，可选 |
+
+年龄、乘客关系、目的地作为黄金体验线的场景配置，不作为实时控制项。第一版不加入电话、冲突、长期记忆、真实声纹和精细情绪识别。
+
+## Know-how 在 Workflow 中的形态
+
+### 常驻主持原则
+
+始终放在 `Fast Director` 的系统提示词中，内容只包括安全优先级、主持人格、动作边界和禁止事项。
+
+### 策略索引
+
+由 `Strategy Selector` 使用，例如安全接管、游戏推进、邀请沉默玩家、环境融合和胜利造神。每次只选择一个主策略，最多附带两个表达修饰因素。
+
+### 完整经验库
+
+保存典型场景、表达技巧和正反例。`Know-how Resolver` 只返回当前局势相关的 2-3 条：
+
+- V1.2 先用代码映射，避免增加知识库调用延迟。
+- 案例规模扩大后，可替换为知识库检索，接口保持不变。
+- 安全规则不进入知识库，召回失败也不能影响安全路径。
+
+### Fast Director 输入
+
+模型只接收压缩后的信息：
+
+```json
+{
+  "cabin_state": {
+    "vehicle_state": "normal",
+    "driver_state": "normal",
+    "sleeping_seats": ["rearLeft"],
+    "inactive_seat": "rearRight",
+    "game_progress": "stuck",
+    "environment_hook": "城区雨天白天",
+    "cabin_mood": "normal"
+  },
+  "primary_strategy": "PROGRESS_ASSIST",
+  "modifiers": ["RAINY_CONTEXT", "CHILD_FRIENDLY"],
+  "relevant_knowhow": [
+    "游戏卡住时先替玩家找台阶，再给一级提示",
+    "雨天只作为自然提示包装，不要机械播报天气"
+  ]
+}
+```
+
+## 旧版职责拆分参考
+
+以下节点结构用于理解职责边界，不是当前部署拓扑：
 
 ```text
 Start

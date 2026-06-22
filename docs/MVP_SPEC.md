@@ -193,18 +193,20 @@ V1.2 起，目的地和乘客关系不再作为手动控制项展示。它们由
 
 ### 时间轴事件类型
 
-时间轴可以触发：
+V1.2 优先只模拟观众能够立即感知的事件：
 
 - 车速变化
-- 目的地变化
 - 车外环境变化
-- 乘客关系变化
 - 乘客情绪变化
 - 主驾疲惫
 - 有人睡着
+- 某位乘客长期未参与
+- 游戏卡住或接近答案
+- 舱内持续大笑（可选）
 - 急刹打断
-- 快到目的地
 - 请求模拟乘客发言
+
+目的地、乘客关系和年龄随黄金体验线预设，不作为实时手动感知。电话、冲突、长期记忆、真实声纹和精细情绪识别暂不进入 V1.2。
 
 ### 时间轴示例
 
@@ -434,6 +436,15 @@ DemoState = {
     currentSpeaker,
     userSeat,
     recentMessages
+  },
+  perception: {
+    vehicleState,
+    driverState,
+    sleepingSeats,
+    inactiveSeat,
+    cabinMood,
+    gameProgress,
+    environmentHook
   },
   ui: {
     cabinMode,

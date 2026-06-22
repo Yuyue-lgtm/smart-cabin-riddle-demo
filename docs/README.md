@@ -32,19 +32,19 @@
 
 ### FUSION_DECISION_KNOWHOW.md
 
-定义融合决策策略表，包括安全打断、环境入题、乘客状态、游戏状态、模拟乘客控制和情绪价值话术，是后续搭建 Coze/Dify Workflow 的主要依据。
+定义融合决策 Know-how 的三层形态（常驻原则、策略索引、完整经验库），以及第一版收敛后的高感知状态和典型主持案例。
 
 ### COZE_WORKFLOW_DESIGN.md
 
-定义 Coze Workflow 的节点结构、每个节点的输入输出、前端动作映射、时间轴接入方式和 V1.1 搭建顺序。
+定义当前“座舱状态摘要、策略选择、按需 Know-how、单次快速导演”的目标架构，并保留旧版节点职责作为参考。
 
 ### COZE_BUILD_PACKAGE.md
 
-提供可直接复制到扣子 Workflow 的节点配置、代码逻辑、模型 Prompt、测试 Payload 和搭建顺序。
+保留 V1.1 完整节点版的可复制配置，主要用于理解职责；当前部署以快速路径和最新 Workflow 设计为准。
 
 ### COZE_FAST_PATH_OPTIMIZATION.md
 
-提供 V1.2 低延迟 Workflow 改造包：确定性事件零模型返回、普通问题单模型导演、胜利输出保护和“副驾”称呼约束。
+提供 V1.2 低延迟 Workflow 改造包，并说明如何在保持单模型调用的前提下升级融合决策能力。
 
 ### GOLDEN_EXPERIENCE_LINES.md
 
