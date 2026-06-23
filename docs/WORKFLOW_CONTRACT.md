@@ -401,6 +401,7 @@ Workflow 必须返回结构化 JSON。
 | `answer` | string | 是 | 当前谜底 |
 | `next_answer` | string | 否 | 下一题谜底，环境变化时可返回 |
 | `passenger_action` | object/null | 否 | 模拟乘客动作 |
+| `passenger_states` | object/array | 否 | 一个或多个座位的可视化状态变化 |
 | `ui_change` | object | 是 | 网页执行动作 |
 | `decision_trace` | object | 否 | 融合决策可视化摘要 |
 
@@ -408,9 +409,12 @@ Workflow 必须返回结构化 JSON。
 
 第一阶段只支持单个模拟乘客动作，避免流程复杂度过高。
 
+V1.2 兼容两种用法：带 `text` 时表示模拟乘客发言；只带 `action` 时表示座位视觉状态，不代表该乘客真的说了一句话。
+
 ```json
 {
   "seat": "rearRight",
+  "action": "思考作答",
   "text": "它是不是车里能保护我们的东西？",
   "mood": "普通",
   "intent": "ask_attribute"
@@ -420,7 +424,8 @@ Workflow 必须返回结构化 JSON。
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `seat` | string | 是 | 发言座位 |
-| `text` | string | 是 | 模拟乘客发言内容 |
+| `action` | string | 否 | 思考、提问、作答、倾听、庆祝等可视化动作 |
+| `text` | string | 否 | 模拟乘客发言内容；无此字段时只更新视觉状态 |
 | `mood` | string | 否 | 发言后的乘客情绪 |
 | `intent` | string | 否 | 发言意图 |
 
@@ -447,12 +452,28 @@ V1.x 建议支持：
 Workflow 生成模拟乘客动作时必须遵守：
 
 - 游戏暂停时不生成主动提问
-- 不生成 `seat = front` / `副驾` 的模拟乘客动作；副驾只代表真实用户
+- 不生成 `seat = front` / `副驾` 的模拟发言；允许用 `action` 表示真实副驾正在思考或庆祝
 - 睡着乘客不主动发言
 - 主驾在高速或复杂路况下降低参与
 - 不重复问已问过的问题
 - 不连续让同一乘客抢话
 - 不在太早阶段直接猜中
+
+## passenger_states
+
+当 Workflow 需要一次更新多个座位时，推荐使用独立字段：
+
+```json
+{
+  "passenger_states": {
+    "front": { "action": "thinking" },
+    "rearLeft": { "mood": "大笑", "action": "celebrating" },
+    "rearRight": { "mood": "睡着" }
+  }
+}
+```
+
+前端暂用座位状态文字、头像表情和轻动画占位。后续人物切图按 `relationship + mood + activity` 组合映射，不改 Workflow 契约。
 
 ## ui_change
 
@@ -501,6 +522,17 @@ Workflow 生成模拟乘客动作时必须遵守：
 - `decision_trace` 是演示可视化摘要，不是模型完整推理链。
 - 不应输出冗长内部分析或敏感 know-how。
 - 前端可以将其展示在多模态感知面板中。
+
+### 策略编号约定
+
+为避免 Coze Workflow 和前端可视化展示错位，以下编号必须保持稳定：
+
+| 策略 ID | 场景 | 前端期望 |
+| --- | --- | --- |
+| `S04` | 有人睡着 | `cabin_mode = soft`，不再 cue 睡着座位 |
+| `S09` | 快到目的地 | `cabin_mode = final_round`，`animation = final`，游戏进入收束节奏但不直接结束 |
+
+2026-06-23 复测：`event.type = near_destination` 已返回 `strategy_id = S09`、`priority = P2`、`game_status = playing`、`cabin_mode = final_round`、`animation = final`。
 
 ### cabin_mode
 

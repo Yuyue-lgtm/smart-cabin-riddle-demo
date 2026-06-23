@@ -244,6 +244,24 @@ select:disabled {
   animation: laugh 650ms ease 2;
 }
 
+.seat.activity-thinking,
+.seat.activity-answering,
+.seat.activity-asking,
+.seat.activity-listening,
+.seat.activity-acting {
+  border-color: rgba(75, 126, 156, 0.72);
+  background: rgba(239, 249, 255, 0.94);
+  box-shadow:
+    0 0 0 5px rgba(111, 174, 207, 0.16),
+    0 12px 24px rgba(28, 42, 48, 0.12);
+}
+
+.seat.activity-celebrating {
+  border-color: rgba(107, 165, 44, 0.82);
+  background: rgba(245, 255, 232, 0.96);
+  animation: passenger-celebrate 520ms ease 2;
+}
+
 .seat-rear-left {
   top: 20%;
   left: 18%;
@@ -327,6 +345,20 @@ select:disabled {
       50% 42% / 34px 3px no-repeat,
     radial-gradient(circle at 68% 20%, rgba(76, 94, 122, 0.85) 0 4px, transparent 5px),
     linear-gradient(180deg, #f1c7a9 0 72%, #7e8a99 73%);
+}
+
+.avatar.activity-thinking,
+.avatar.activity-answering {
+  animation: passenger-thinking 900ms ease-in-out infinite alternate;
+}
+
+.avatar.activity-asking,
+.avatar.activity-listening {
+  box-shadow: 0 0 0 5px rgba(111, 174, 207, 0.22);
+}
+
+.avatar.activity-celebrating {
+  box-shadow: 0 0 0 6px rgba(130, 197, 61, 0.26);
 }
 
 .speech-bubble {
@@ -823,5 +855,26 @@ body.has-started .prestart-panel {
   }
   70% {
     transform: translateY(-2px) rotate(2deg);
+  }
+}
+
+@keyframes passenger-thinking {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes passenger-celebrate {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-7px);
   }
 }
