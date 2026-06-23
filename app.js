@@ -6,6 +6,7 @@ const SEATS = {
 };
 
 const DEFAULT_WORKFLOW_ENDPOINT = "/api/workflow";
+const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
 const STAGE_WIDTH = 1920;
 const STAGE_HEIGHT = 1080;
 
@@ -357,6 +358,7 @@ const DEFAULT_STATE = {
     activeRequestId: 0,
     activeLabel: "",
     activeController: null,
+    timeoutTimer: null,
     lastResumeAt: 0,
     lastPassengerActionKey: "",
     bubbleTimer: null,
@@ -657,7 +659,6 @@ async function runScriptedQuestion(seat, text) {
   state.host.targetSeat = seat;
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   state.game.questionCount += 1;
-  state.host.text = `${SEATS[seat]}发起了一问，我来判断。`;
   state.ui.alert = `${SEATS[seat]}：${text}`;
   updateDecisionTrace({
     perception: `${SEATS[seat]}参与提问`,
@@ -732,6 +733,8 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
   }
   if (type === "passenger_inactive") {
     state.ui.alert = `${SEATS[seat]}长时间未参与`;
+    state.passengers.seats[seat].mood = "沉默";
+    state.passengers.seats[seat].activity = "listening";
   }
   if (type === "game_stuck" || type === "near_answer") {
     state.perception.gameProgress = type === "game_stuck" ? "stuck" : "near_answer";
@@ -872,7 +875,6 @@ async function sendQuestion() {
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   state.game.questionCount += 1;
   els.playerInput.value = "";
-  state.host.text = "收到，我来判断一下这个问题。";
   if (state.workflow.inFlight) {
     state.workflow.pendingChats.push({ seat, text });
     state.host.text = "这条问题我先记下，等上一轮回答结束马上接上。";
@@ -987,6 +989,7 @@ function applyImmediatePassengerSleep(seat) {
 
 function applyImmediateDriverTired() {
   state.perception.driverState = "fatigued";
+  state.passengers.seats.driver.mood = "疲惫";
   state.ui.cabinMode = "driver_focus";
   state.ui.alert = "主驾疲惫：降低驾驶员互动";
   state.host.targetSeat = "front";
@@ -1038,7 +1041,7 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
   try {
     output = await requestWorkflow(input, state.workflow.activeController.signal);
   } catch (error) {
-    if (error?.name === "AbortError" || requestId !== state.workflow.activeRequestId) {
+    if (requestId !== state.workflow.activeRequestId) {
       return;
     }
     output = localDecision(input, error);
@@ -1050,7 +1053,7 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
 
   output = applyAnswerHitGuard(output, input);
   applyWorkflowOutput(output, input);
-  endWorkflowRequest(requestId);
+  finishWorkflowRequest(requestId);
   render();
 }
 
@@ -1060,13 +1063,19 @@ function beginWorkflowRequest(input) {
   state.workflow.activeRequestId = requestId;
   state.workflow.activeController = new AbortController();
   state.workflow.activeLabel = getWorkflowPendingLabel(input);
+  state.workflow.timeoutTimer = window.setTimeout(() => {
+    if (state.workflow.activeRequestId === requestId && state.workflow.activeController) {
+      state.workflow.activeController.abort();
+    }
+  }, WORKFLOW_CLIENT_TIMEOUT_MS);
   state.ui.alert = state.workflow.activeLabel;
   render();
   return requestId;
 }
 
-function endWorkflowRequest(requestId) {
+function finishWorkflowRequest(requestId) {
   if (requestId !== state.workflow.activeRequestId) return;
+  clearWorkflowTimeout();
   state.workflow.inFlight = false;
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
@@ -1077,10 +1086,17 @@ function abortActiveWorkflow() {
   if (state.workflow.activeController) {
     state.workflow.activeController.abort();
   }
+  clearWorkflowTimeout();
   state.workflow.inFlight = false;
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
   state.workflow.activeRequestId += 1;
+}
+
+function clearWorkflowTimeout() {
+  if (!state.workflow.timeoutTimer) return;
+  clearTimeout(state.workflow.timeoutTimer);
+  state.workflow.timeoutTimer = null;
 }
 
 async function processNextPendingChat() {
@@ -1093,7 +1109,6 @@ async function processNextPendingChat() {
   state.passengers.seats[nextChat.seat].bubble = nextChat.text;
   scheduleBubbleClear();
   state.host.targetSeat = nextChat.seat;
-  state.host.text = "刚才那条问题接上了，我来判断。";
   state.ui.alert = `处理已排队问题：${SEATS[nextChat.seat]}`;
   render();
   await dispatchWorkflow("chat", null, nextChat.text);
@@ -1991,6 +2006,7 @@ function normalizePassengerActivity(value) {
 function normalizePassengerMood(value) {
   const text = String(value || "");
   if (text.includes("睡")) return "睡着";
+  if (text.includes("疲惫") || text.includes("困") || text.includes("累")) return "疲惫";
   if (text.includes("大笑") || text.includes("笑")) return "大笑";
   if (text.includes("沉默") || text.includes("安静")) return "沉默";
   if (text === "普通" || text === "normal") return "普通";
@@ -2126,7 +2142,10 @@ function render() {
   els.riddleHint.classList.toggle("hidden", state.game.status === "idle" && !state.ui.showAnswer);
   els.answerReveal.textContent = `谜底：${riddle.answer}`;
   els.answerReveal.classList.toggle("visible", state.ui.showAnswer);
-  els.hostBubble.textContent = state.host.text;
+  els.hostBubble.classList.toggle("thinking", state.workflow.inFlight);
+  els.hostBubble.setAttribute("aria-busy", state.workflow.inFlight ? "true" : "false");
+  els.hostBubble.textContent = state.workflow.inFlight ? "" : state.host.text;
+  els.hostAvatar.classList.toggle("thinking", state.workflow.inFlight);
   els.timelineName.textContent = state.timeline.name;
   els.decisionPerception.textContent = formatDecisionText(
     state.decisionTrace.perception,
@@ -2172,6 +2191,7 @@ function renderSeats() {
     if (state.passengers.relationship === "中老年+儿女") avatar.classList.add("elder");
     if (seatState.mood === "大笑") avatar.classList.add("laugh");
     if (seatState.mood === "沉默") avatar.classList.add("quiet");
+    if (seatState.mood === "疲惫") avatar.classList.add("tired");
     if (seatState.mood === "睡着") avatar.classList.add("sleep");
     if (seatState.activity && seatState.activity !== "idle") {
       avatar.classList.add(`activity-${seatState.activity}`);

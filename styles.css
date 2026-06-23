@@ -294,6 +294,7 @@ select:disabled {
 }
 
 .avatar {
+  position: relative;
   display: block;
   width: 38%;
   aspect-ratio: 1;
@@ -304,6 +305,24 @@ select:disabled {
     radial-gradient(circle at 36% 40%, #28323c 0 3px, transparent 4px),
     radial-gradient(circle at 50% 68%, #b55d5a 0 7px, transparent 8px),
     linear-gradient(180deg, #f1c7a9 0 72%, #507b9d 73%);
+}
+
+.avatar::after {
+  position: absolute;
+  right: -8px;
+  bottom: -7px;
+  display: none;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(24, 36, 44, 0.18);
 }
 
 .avatar.friends {
@@ -330,6 +349,12 @@ select:disabled {
     linear-gradient(180deg, #f1c7a9 0 72%, #507b9d 73%);
 }
 
+.avatar.laugh::after {
+  display: flex;
+  content: "笑";
+  background: #d45d4f;
+}
+
 .avatar.quiet {
   background:
     linear-gradient(90deg, transparent 42%, #28323c 42% 58%, transparent 58%) 50% 65% / 26px 3px
@@ -337,6 +362,26 @@ select:disabled {
     radial-gradient(circle at 36% 42%, #28323c 0 3px, transparent 4px),
     radial-gradient(circle at 58% 42%, #28323c 0 3px, transparent 4px),
     linear-gradient(180deg, #f1c7a9 0 72%, #507b9d 73%);
+}
+
+.avatar.quiet::after {
+  display: flex;
+  content: "静";
+  background: #6d7884;
+}
+
+.avatar.tired {
+  background:
+    linear-gradient(90deg, transparent 28%, #28323c 28% 42%, transparent 42% 58%, #28323c 58% 72%, transparent 72%)
+      50% 44% / 34px 3px no-repeat,
+    radial-gradient(ellipse at 50% 68%, #8f5652 0 5px, transparent 6px),
+    linear-gradient(180deg, #e8c3a7 0 72%, #7d8790 73%);
+}
+
+.avatar.tired::after {
+  display: flex;
+  content: "累";
+  background: #7d8790;
 }
 
 .avatar.sleep {
@@ -347,9 +392,24 @@ select:disabled {
     linear-gradient(180deg, #f1c7a9 0 72%, #7e8a99 73%);
 }
 
+.avatar.sleep::after {
+  display: flex;
+  content: "Zz";
+  background: #526b86;
+  font-size: 10px;
+}
+
 .avatar.activity-thinking,
 .avatar.activity-answering {
   animation: passenger-thinking 900ms ease-in-out infinite alternate;
+}
+
+.avatar.activity-thinking::after,
+.avatar.activity-answering::after {
+  display: flex;
+  content: "?";
+  background: #4b7e9c;
+  font-size: 15px;
 }
 
 .avatar.activity-asking,
@@ -357,8 +417,22 @@ select:disabled {
   box-shadow: 0 0 0 5px rgba(111, 174, 207, 0.22);
 }
 
+.avatar.activity-asking::after,
+.avatar.activity-listening::after {
+  display: flex;
+  content: "问";
+  background: #4b7e9c;
+}
+
 .avatar.activity-celebrating {
   box-shadow: 0 0 0 6px rgba(130, 197, 61, 0.26);
+}
+
+.avatar.activity-celebrating::after {
+  display: flex;
+  content: "✓";
+  background: #6fa536;
+  font-size: 14px;
 }
 
 .speech-bubble {
@@ -507,6 +581,8 @@ select:disabled {
 
 .host-bubble {
   position: relative;
+  display: flex;
+  align-items: center;
   min-height: 66px;
   border: 3px solid rgba(32, 39, 49, 0.35);
   border-radius: 22px;
@@ -516,6 +592,24 @@ select:disabled {
   font-size: 18px;
   font-weight: 850;
   line-height: 1.45;
+}
+
+.host-bubble.thinking {
+  justify-content: center;
+  color: #31424f;
+  background:
+    radial-gradient(circle at calc(50% - 54px) 50%, rgba(80, 123, 157, 0.95) 0 5px, transparent 6px),
+    radial-gradient(circle at 50% 50%, rgba(80, 123, 157, 0.72) 0 5px, transparent 6px),
+    radial-gradient(circle at calc(50% + 54px) 50%, rgba(80, 123, 157, 0.48) 0 5px, transparent 6px),
+    rgba(255, 255, 255, 0.92);
+  animation: host-thinking-pulse 900ms ease-in-out infinite alternate;
+}
+
+.host-bubble.thinking::before {
+  content: "AI 思考中";
+  margin-left: 104px;
+  font-size: 17px;
+  opacity: 0.78;
 }
 
 .host-bubble::after {
@@ -554,6 +648,15 @@ select:disabled {
       no-repeat,
     linear-gradient(180deg, #f4fbff, #c9dce8);
   box-shadow: 0 18px 34px rgba(40, 55, 66, 0.16);
+}
+
+.host-avatar.thinking .host-face {
+  animation: passenger-thinking 800ms ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 36% 43%, #33404c 0 7px, transparent 8px),
+    radial-gradient(circle at 64% 43%, #33404c 0 7px, transparent 8px),
+    radial-gradient(circle at 50% 68%, #33404c 0 4px, transparent 5px),
+    linear-gradient(180deg, #f4fbff, #c9dce8);
 }
 
 .host-avatar span {
@@ -865,6 +968,18 @@ body.has-started .prestart-panel {
 
   to {
     transform: translateY(-4px);
+  }
+}
+
+@keyframes host-thinking-pulse {
+  from {
+    box-shadow: 0 16px 34px rgba(38, 56, 64, 0.12);
+  }
+
+  to {
+    box-shadow:
+      0 16px 34px rgba(38, 56, 64, 0.12),
+      0 0 0 6px rgba(80, 123, 157, 0.12);
   }
 }
 
