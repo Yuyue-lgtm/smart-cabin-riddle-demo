@@ -572,6 +572,8 @@ function toggleTimelinePause() {
     state.timeline.status = "running";
     state.timeline.currentEvent = "模拟继续";
     state.ui.alert = "模拟继续";
+  } else if (state.game.status !== "idle") {
+    state.ui.alert = state.game.status === "victory" ? "本局已完成，可点击重置模拟重新开始" : "当前没有正在运行的自动时间轴";
   } else {
     state.ui.alert = "请先点击开始模拟";
   }
@@ -1687,13 +1689,16 @@ function applyWorkflowOutput(output, input) {
   const isVictoryOutput = Boolean(output.is_correct || output.game_status === "victory");
   const isHardBrakeOutput = input.event?.type === "hard_brake";
   const eventType = input.event?.type;
-  if (!isVictoryOutput) {
+  const keepRealUserFocus = shouldKeepRealUserFocus(input, output);
+  if (!isVictoryOutput && !keepRealUserFocus) {
     applyPassengerVisualStates(output);
   }
   const passengerActionApplied = isVictoryOutput || shouldSuppressPassengerAction(input.trigger_type, input.event)
+    || keepRealUserFocus
     ? suppressPassengerActionForEvent()
     : applyPassengerAction(output.passenger_action);
   state.host.text = output.ai_reply_text || state.host.text;
+  state.host.text = normalizeHostReplyForRealUser(state.host.text, output, input);
   if (passengerActionApplied && !output.ai_reply_text) {
     state.host.text = "这个问题收到，我来接住这一轮。";
   }
@@ -1703,6 +1708,10 @@ function applyWorkflowOutput(output, input) {
   state.ui.showAnswer = Boolean(uiChange.show_answer || output.is_correct);
   state.host.emotion = uiChange.host_emotion || state.host.emotion;
   state.host.targetSeat = normalizeTargetSeat(uiChange.target_seat) || state.host.targetSeat;
+  if (keepRealUserFocus) {
+    clearPassengerActivities();
+    state.host.targetSeat = "front";
+  }
 
   if (isHardBrakeOutput) {
     state.game.status = "paused";
@@ -2009,6 +2018,38 @@ function makeVictoryHostText(correctSeat, answer) {
   return `${seatLabel}答对了，谜底就是${answer}！这一问收得漂亮，全车侦探团本局破案成功。`;
 }
 
+function shouldKeepRealUserFocus(input, output) {
+  if (input.trigger_type !== "chat") return false;
+  if (input.passengers?.selected_seat !== "front") return false;
+  if (output.is_correct || output.game_status === "victory") return false;
+
+  const targetSeat = normalizeTargetSeat(output.ui_change?.target_seat);
+  if (!targetSeat || targetSeat === "front") return false;
+
+  const passengerSeat = normalizeTargetSeat(output.passenger_action?.seat);
+  const hasPassengerSpeech = Boolean(output.passenger_action?.text && passengerSeat === targetSeat);
+  return !hasPassengerSpeech;
+}
+
+function normalizeHostReplyForRealUser(text, output, input) {
+  if (!shouldKeepRealUserFocus(input, output)) {
+    return text;
+  }
+
+  const targetSeat = SEATS[normalizeTargetSeat(output.ui_change?.target_seat)] || "其他乘客";
+  if (/请.*(提问|回答|猜|参与|来问)|交给|轮到|cue/i.test(text)) {
+    return `${getAnswerLead(text)}我注意到${targetSeat}还没怎么参与，但这轮先由副驾继续接上，流程不会切走。`;
+  }
+  return `${text} 副驾继续接上这一问就好。`;
+}
+
+function getAnswerLead(text) {
+  const normalized = String(text || "").trim();
+  if (/^(是|对|正确)/.test(normalized)) return "是的，这个方向有效。";
+  if (/^(不是|不对|否)/.test(normalized)) return "不是这个方向。";
+  return "";
+}
+
 function suppressPassengerActionForEvent() {
   clearPassengerBubbles();
   return false;
@@ -2152,7 +2193,7 @@ function renderControls() {
   els.startTimeline.disabled = hasStarted || isBusy;
   els.switchScenario.disabled = hasStarted || isBusy;
   els.resetScenario.disabled = !hasStarted;
-  els.pauseTimeline.disabled = !hasStarted || state.timeline.status === "finished";
+  els.pauseTimeline.disabled = !hasStarted;
   els.pauseTimeline.textContent = isTimelinePaused ? "继续模拟" : "暂停模拟";
   els.sendQuestion.disabled = isTimelinePaused;
   els.playerInput.disabled = isTimelinePaused;
