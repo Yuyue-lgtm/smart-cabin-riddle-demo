@@ -7,6 +7,7 @@ const SEATS = {
 
 const DEFAULT_WORKFLOW_ENDPOINT = "/api/workflow";
 const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
+const MIN_BUBBLE_DISPLAY_MS = 3000;
 const STAGE_WIDTH = 1920;
 const STAGE_HEIGHT = 1080;
 
@@ -359,6 +360,7 @@ const DEFAULT_STATE = {
     activeLabel: "",
     activeController: null,
     timeoutTimer: null,
+    lastBubbleShownAt: 0,
     lastResumeAt: 0,
     lastPassengerActionKey: "",
     bubbleTimer: null,
@@ -653,9 +655,7 @@ async function runScriptedQuestion(seat, text) {
   }
   if (state.game.status === "paused") return;
   state.passengers.selectedSeat = seat;
-  clearPassengerBubbles(seat);
-  state.passengers.seats[seat].bubble = text;
-  scheduleBubbleClear();
+  showPassengerBubble(seat, text);
   state.host.targetSeat = seat;
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   state.game.questionCount += 1;
@@ -868,9 +868,7 @@ async function sendQuestion() {
 
   const seat = "front";
   state.passengers.selectedSeat = seat;
-  clearPassengerBubbles(seat);
-  state.passengers.seats[seat].bubble = text;
-  scheduleBubbleClear();
+  showPassengerBubble(seat, text);
   state.host.targetSeat = seat;
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   state.game.questionCount += 1;
@@ -1051,6 +1049,14 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
     return;
   }
 
+  const outputDelayMs = getBubbleOutputDelayMs(input);
+  if (outputDelayMs > 0) {
+    await sleep(outputDelayMs);
+    if (requestId !== state.workflow.activeRequestId) {
+      return;
+    }
+  }
+
   output = applyAnswerHitGuard(output, input);
   applyWorkflowOutput(output, input);
   finishWorkflowRequest(requestId);
@@ -1105,9 +1111,7 @@ async function processNextPendingChat() {
 
   const nextChat = state.workflow.pendingChats.shift();
   state.passengers.selectedSeat = nextChat.seat;
-  clearPassengerBubbles(nextChat.seat);
-  state.passengers.seats[nextChat.seat].bubble = nextChat.text;
-  scheduleBubbleClear();
+  showPassengerBubble(nextChat.seat, nextChat.text);
   state.host.targetSeat = nextChat.seat;
   state.ui.alert = `处理已排队问题：${SEATS[nextChat.seat]}`;
   render();
@@ -1712,7 +1716,7 @@ function applyWorkflowOutput(output, input) {
     || keepRealUserFocus
     ? suppressPassengerActionForEvent()
     : applyPassengerAction(output.passenger_action);
-  state.host.text = output.ai_reply_text || state.host.text;
+  state.host.text = sanitizeHostReplyText(output.ai_reply_text || state.host.text);
   state.host.text = normalizeHostReplyForRealUser(state.host.text, output, input);
   if (passengerActionApplied && !output.ai_reply_text) {
     state.host.text = "这个问题收到，我来接住这一轮。";
@@ -1940,14 +1944,12 @@ function applyPassengerAction(passengerAction) {
     return false;
   }
 
-  clearPassengerBubbles(seat);
-  state.passengers.seats[seat].bubble = passengerAction.text;
+  showPassengerBubble(seat, passengerAction.text);
   if (passengerAction.mood && ["普通", "大笑", "沉默", "睡着"].includes(passengerAction.mood)) {
     state.passengers.seats[seat].mood = passengerAction.mood;
   }
   state.host.targetSeat = seat;
   state.workflow.lastPassengerActionKey = actionKey;
-  scheduleBubbleClear();
   return true;
 }
 
@@ -2059,6 +2061,14 @@ function normalizeHostReplyForRealUser(text, output, input) {
   return `${text} 副驾继续接上这一问就好。`;
 }
 
+function sanitizeHostReplyText(text) {
+  return String(text || "")
+    .replace(/请(选择|挑选)(一个)?主题[。！!？?]?/g, "")
+    .replace(/好的[，,]让我们开始猜谜游戏[。！!]?/g, "好的，我们开始猜谜。")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function getAnswerLead(text) {
   const normalized = String(text || "").trim();
   if (/^(是|对|正确)/.test(normalized)) return "是的，这个方向有效。";
@@ -2069,6 +2079,20 @@ function getAnswerLead(text) {
 function suppressPassengerActionForEvent() {
   clearPassengerBubbles();
   return false;
+}
+
+function showPassengerBubble(seat, text) {
+  clearPassengerBubbles(seat);
+  state.passengers.seats[seat].bubble = text;
+  state.workflow.lastBubbleShownAt = Date.now();
+  scheduleBubbleClear();
+}
+
+function getBubbleOutputDelayMs(input) {
+  if (input.trigger_type !== "chat") return 0;
+  if (!state.workflow.lastBubbleShownAt) return 0;
+  const elapsed = Date.now() - state.workflow.lastBubbleShownAt;
+  return Math.max(0, MIN_BUBBLE_DISPLAY_MS - elapsed);
 }
 
 function clearPassengerBubbles(keepSeat) {
