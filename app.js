@@ -19,6 +19,30 @@ const PASSENGER_ACTIVITY_LABELS = {
   acting: "互动中",
 };
 
+const STRATEGY_LABELS = {
+  S00: "快速问答",
+  S01: "安全接管",
+  S03: "主驾专注",
+  S04: "轻声继续",
+  S06: "游戏启动",
+  S07: "环境融合",
+  S09: "目的地收束",
+  S12: "小朋友互动",
+  S14: "胜利反馈",
+  S17: "接近答案",
+  S18: "卡题提示",
+  S20: "玩梗接住",
+  S21: "参与感照顾",
+};
+
+const LOCAL_TRACE_EVENT_TYPES = new Set([
+  "hard_brake",
+  "resume_game",
+  "driver_tired",
+  "passenger_sleep",
+  "near_destination",
+]);
+
 const ENVIRONMENT_CLASS = {
   高速路晴天白天: "env-highway-day",
   高速路晴天深夜: "env-highway-night",
@@ -564,6 +588,14 @@ function stopTimeline(message) {
     message || "准备好后点击开始模拟，系统会按时间轴触发座舱事件。";
 }
 
+function finishTimelineSilently() {
+  if (state.timeline.status === "running" || state.timeline.status === "paused") {
+    state.timeline.runId += 1;
+  }
+  state.timeline.status = "finished";
+  state.timeline.currentEvent = `${state.timeline.name}已完成`;
+}
+
 function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = false) {
   if (state.workflow.activityTimer) {
     clearTimeout(state.workflow.activityTimer);
@@ -1014,6 +1046,7 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
     return;
   }
 
+  output = applyAnswerHitGuard(output, input);
   applyWorkflowOutput(output, input);
   endWorkflowRequest(requestId);
   render();
@@ -1390,6 +1423,42 @@ function normalizeWorkflowPayload(payload) {
   };
 }
 
+function applyAnswerHitGuard(output, input) {
+  if (!isExplicitAnswerHit(input)) {
+    return output;
+  }
+
+  const answer = input.game?.current_answer || getCurrentRiddle().answer;
+  return {
+    ...output,
+    ai_reply_text: output.ai_reply_text || `${input.passengers.selected_seat_label}答对了，谜底就是${answer}。`,
+    game_status: "victory",
+    is_correct: true,
+    answer,
+    ui_change: {
+      ...(output.ui_change || {}),
+      cabin_mode: "victory",
+      target_seat: input.passengers?.selected_seat,
+      host_emotion: "celebrating",
+      animation: "victory",
+      show_answer: true,
+    },
+  };
+}
+
+function isExplicitAnswerHit(input) {
+  if (input.trigger_type !== "chat") return false;
+  const answer = normalizeAnswerText(input.game?.current_answer || getCurrentRiddle().answer);
+  const playerInput = normalizeAnswerText(input.player_input);
+  return Boolean(answer && playerInput.includes(answer));
+}
+
+function normalizeAnswerText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[\s，。！？、,.!?:"'“”‘’（）()【】\[\]-]/g, "");
+}
+
 function localDecision(input, error) {
   const riddle = getCurrentRiddle();
   const eventType = input.event?.type;
@@ -1617,7 +1686,10 @@ function applyWorkflowOutput(output, input) {
   const uiChange = output.ui_change || {};
   const isVictoryOutput = Boolean(output.is_correct || output.game_status === "victory");
   const isHardBrakeOutput = input.event?.type === "hard_brake";
-  applyPassengerVisualStates(output);
+  const eventType = input.event?.type;
+  if (!isVictoryOutput) {
+    applyPassengerVisualStates(output);
+  }
   const passengerActionApplied = isVictoryOutput || shouldSuppressPassengerAction(input.trigger_type, input.event)
     ? suppressPassengerActionForEvent()
     : applyPassengerAction(output.passenger_action);
@@ -1639,6 +1711,24 @@ function applyWorkflowOutput(output, input) {
     state.host.emotion = "serious";
     state.host.targetSeat = null;
   }
+  if (eventType === "passenger_sleep") {
+    state.game.status = "playing";
+    state.ui.cabinMode = "soft";
+    state.ui.animation = "soft";
+    state.host.targetSeat = normalizeTargetSeat(input.event?.seat) || state.host.targetSeat;
+  }
+  if (eventType === "driver_tired") {
+    state.game.status = "playing";
+    state.ui.cabinMode = "driver_focus";
+    state.ui.animation = "speak";
+    state.host.targetSeat = "front";
+  }
+  if (eventType === "near_destination") {
+    state.game.status = "playing";
+    state.ui.cabinMode = "final_round";
+    state.ui.animation = "final";
+    state.host.targetSeat = null;
+  }
 
   if (output.next_answer) {
     const nextIndex = RIDDLES.findIndex((riddle) => riddle.answer === output.next_answer);
@@ -1649,21 +1739,18 @@ function applyWorkflowOutput(output, input) {
 
   if (isVictoryOutput) {
     const correctSeat = input.passengers?.selected_seat || state.passengers.selectedSeat;
+    finishTimelineSilently();
+    clearPassengerActivities();
     state.ui.cabinMode = "victory";
     state.ui.showAnswer = true;
     state.ui.correctSeat = correctSeat;
+    state.game.status = "victory";
+    state.host.text = makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer);
     state.host.targetSeat = correctSeat;
     playVictorySound();
   }
 
-  const workflowTrace = !isHardBrakeOutput && output.decision_trace
-    ? {
-        ...output.decision_trace,
-        strategy_id: output.decision_trace.strategy_id || output.strategy_id,
-        priority: output.decision_trace.priority || output.priority,
-      }
-    : null;
-  updateDecisionTrace(workflowTrace || createDecisionTraceFromOutput(output, input));
+  updateDecisionTrace(normalizeDecisionTrace(output, input));
 
   state.game.history.push({
     at: new Date().toISOString(),
@@ -1690,6 +1777,25 @@ function createDecisionTraceFromOutput(output, input) {
       execution: "切换主驾专注模式",
       strategyId: "S03",
       priority: "P1",
+    };
+  }
+  if (eventType === "passenger_sleep") {
+    const seatLabel = SEATS[normalizeTargetSeat(input.event?.seat)] || "有乘客";
+    return {
+      perception: `检测到${seatLabel}睡着`,
+      decision: "轻声继续，并避免 cue 睡着乘客",
+      execution: "切换轻声互动模式，排除该座位发言",
+      strategyId: "S04",
+      priority: "P2",
+    };
+  }
+  if (eventType === "near_destination") {
+    return {
+      perception: "检测到快到目的地",
+      decision: "收束游戏节奏，进入绝杀局",
+      execution: "切换 final_round 状态",
+      strategyId: "S09",
+      priority: "P2",
     };
   }
   if (eventType === "resume_game") {
@@ -1735,6 +1841,32 @@ function createDecisionTraceFromOutput(output, input) {
     strategyId: output.debug?.strategy_id || "S00",
     priority: output.debug?.priority || "P3",
   };
+}
+
+function normalizeDecisionTrace(output, input) {
+  const eventType = input.event?.type;
+  if (input.trigger_type === "chat" && (output.is_correct || output.game_status === "victory")) {
+    return createDecisionTraceFromOutput(output, input);
+  }
+  if (LOCAL_TRACE_EVENT_TYPES.has(eventType)) {
+    return createDecisionTraceFromOutput(output, input);
+  }
+
+  if (!output.decision_trace) {
+    return createDecisionTraceFromOutput(output, input);
+  }
+
+  const trace = {
+    ...output.decision_trace,
+    strategy_id: output.decision_trace.strategy_id || output.strategy_id,
+    priority: output.decision_trace.priority || output.priority,
+  };
+  const strategyId = trace.strategy_id || trace.strategyId || "";
+  const label = STRATEGY_LABELS[strategyId];
+  if (label && trace.decision) {
+    trace.decision = trace.decision.replace(`策略${strategyId}(未知)`, `策略${strategyId}(${label})`);
+  }
+  return trace;
 }
 
 function updateDecisionTrace(trace = {}) {
@@ -1859,13 +1991,22 @@ function normalizePassengerMood(value) {
 function schedulePassengerActivityClear() {
   if (state.workflow.activityTimer) clearTimeout(state.workflow.activityTimer);
   state.workflow.activityTimer = setTimeout(() => {
-    Object.values(state.passengers.seats).forEach((seatState) => {
-      seatState.activity = "idle";
-      seatState.activityLabel = "";
-    });
+    clearPassengerActivities();
     state.workflow.activityTimer = null;
     render();
   }, 6000);
+}
+
+function clearPassengerActivities() {
+  Object.values(state.passengers.seats).forEach((seatState) => {
+    seatState.activity = "idle";
+    seatState.activityLabel = "";
+  });
+}
+
+function makeVictoryHostText(correctSeat, answer) {
+  const seatLabel = SEATS[correctSeat] || "这位侦探";
+  return `${seatLabel}答对了，谜底就是${answer}！这一问收得漂亮，全车侦探团本局破案成功。`;
 }
 
 function suppressPassengerActionForEvent() {
