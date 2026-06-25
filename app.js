@@ -597,6 +597,10 @@ function toggleTimelinePause() {
     state.timeline.status = "running";
     state.timeline.currentEvent = "模拟继续";
     state.ui.alert = "模拟继续";
+  } else if (["opening", "playing"].includes(state.game.status)) {
+    state.timeline.status = "paused";
+    state.timeline.currentEvent = "模拟已暂停";
+    state.ui.alert = "模拟已暂停";
   } else if (state.game.status !== "idle") {
     state.ui.alert = state.game.status === "victory" ? "本局已完成，可点击重置模拟重新开始" : "当前没有正在运行的自动时间轴";
   } else {
@@ -762,7 +766,8 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
   }
   if (type === "cabin_laughing") {
     state.passengers.seats[seat].mood = "大笑";
-    state.passengers.seats[seat].activity = "celebrating";
+    state.passengers.seats[seat].activity = "idle";
+    state.passengers.seats[seat].activityLabel = "";
   }
   if (type === "resume_game") {
     if (!canResumeGame()) return;
@@ -1645,7 +1650,7 @@ function localDecision(input, error) {
     const index = findRiddleForEnvironment(input.car.environment);
     const next = RIDDLES[index];
     return {
-      ai_reply_text: `环境已更新为${input.car.environment}。下一题我会更贴近窗外，比如“${next.theme}”方向。`,
+      ai_reply_text: "",
       game_status: input.game.status,
       is_correct: false,
       answer: riddle.answer,
@@ -1730,7 +1735,7 @@ function localDecision(input, error) {
   }
 
   return {
-    ai_reply_text: "状态已更新，我会根据新的座舱信息调整主持节奏。",
+    ai_reply_text: "",
     game_status: input.game.status,
     is_correct: false,
     answer: riddle.answer,
@@ -1768,6 +1773,9 @@ function applyWorkflowOutput(output, input) {
   const isHardBrakeOutput = input.event?.type === "hard_brake";
   const eventType = input.event?.type;
   const keepRealUserFocus = shouldKeepRealUserFocus(input, output);
+  if (!isVictoryOutput) {
+    clearPassengerActivities();
+  }
   if (!isVictoryOutput && !keepRealUserFocus) {
     applyPassengerVisualStates(output);
   }
@@ -1775,8 +1783,15 @@ function applyWorkflowOutput(output, input) {
     || keepRealUserFocus
     ? suppressPassengerActionForEvent()
     : applyPassengerAction(output.passenger_action);
-  state.host.text = sanitizeHostReplyText(output.ai_reply_text || state.host.text);
-  state.host.text = normalizeHostReplyForRealUser(state.host.text, output, input);
+  const previousHostText = state.host.text;
+  const sanitizedHostText = sanitizeHostReplyText(output.ai_reply_text || "");
+  if (shouldMuteHostReplyForEvent(eventType, sanitizedHostText)) {
+    state.host.text = previousHostText;
+  } else if (sanitizedHostText) {
+    state.host.text = normalizeHostReplyForRealUser(sanitizedHostText, output, input);
+  } else {
+    state.host.text = previousHostText;
+  }
   if (passengerActionApplied && !output.ai_reply_text) {
     state.host.text = "这个问题收到，我来接住这一轮。";
   }
@@ -1784,6 +1799,9 @@ function applyWorkflowOutput(output, input) {
   state.ui.cabinMode = uiChange.cabin_mode || state.ui.cabinMode || "normal";
   state.ui.animation = uiChange.animation || "speak";
   state.ui.showAnswer = Boolean(uiChange.show_answer || output.is_correct);
+  if (!isVictoryOutput) {
+    state.ui.correctSeat = null;
+  }
   state.host.emotion = uiChange.host_emotion || state.host.emotion;
   state.host.targetSeat = normalizeTargetSeat(uiChange.target_seat) || state.host.targetSeat;
   if (keepRealUserFocus) {
@@ -2034,6 +2052,9 @@ function applyPassengerVisualStates(output) {
       candidate.action || candidate.activity || candidate.state || candidate.type,
     );
     if (activity) {
+      if (activity === "celebrating" && !(output.is_correct || output.game_status === "victory")) {
+        return;
+      }
       const rawActivityLabel = String(
         candidate.action || candidate.activity || candidate.state || candidate.type || "",
       );
@@ -2121,11 +2142,28 @@ function normalizeHostReplyForRealUser(text, output, input) {
 }
 
 function sanitizeHostReplyText(text) {
-  return String(text || "")
+  const sanitized = String(text || "")
     .replace(/请(选择|挑选)(一个)?主题[。！!？?]?/g, "")
     .replace(/好的[，,]让我们开始猜谜游戏[。！!]?/g, "好的，我们开始猜谜。")
+    .replace(/环境已更新为[^。！!?]*[。！!?]?\s*下一题我会更贴近窗外[^。！!?]*[。！!?]?/g, "")
+    .replace(/环境已更新[^。！!?]*[。！!?]?/g, "")
+    .replace(/状态已更新[，,]?\s*我会根据新的座舱信息调整主持节奏[。！!?]?/g, "")
+    .replace(/会根据新的座舱信息调整主持节奏[。！!?]?/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+  return sanitized;
+}
+
+function shouldMuteHostReplyForEvent(eventType, text) {
+  if (!eventType) return false;
+  const normalized = String(text || "").trim();
+  if (!normalized) return true;
+
+  if (!["environment_change", "speed_change", "cabin_laughing"].includes(eventType)) {
+    return false;
+  }
+
+  return /状态已更新|环境已更新|调整主持节奏|更贴近窗外|同步座舱/.test(normalized);
 }
 
 function getAnswerLead(text) {
@@ -2257,18 +2295,24 @@ function renderSeats() {
     const bubble = seatButton.querySelector("[data-bubble]");
     const avatar = seatButton.querySelector("[data-avatar]");
     const status = seatButton.querySelector("[data-seat-status]");
+    const effectiveActivity =
+      state.game.status === "victory" || seatState.activity !== "celebrating"
+        ? seatState.activity
+        : "idle";
 
-    seatButton.classList.toggle("correct", state.ui.correctSeat === seat);
+    seatButton.classList.toggle("correct", state.game.status === "victory" && state.ui.correctSeat === seat);
     seatButton.classList.toggle("sleeping", seatState.mood === "睡着");
     seatButton.classList.toggle("seat-laughing", seatState.mood === "大笑");
     Object.keys(PASSENGER_ACTIVITY_LABELS).forEach((activity) => {
-      seatButton.classList.toggle(`activity-${activity}`, seatState.activity === activity);
+      seatButton.classList.toggle(`activity-${activity}`, effectiveActivity === activity);
     });
 
     bubble.textContent = seatState.bubble;
     bubble.classList.toggle("visible", Boolean(seatState.bubble));
     status.textContent =
-      seatState.activityLabel || PASSENGER_ACTIVITY_LABELS[seatState.activity] || seatState.mood;
+      (effectiveActivity !== "idle" ? seatState.activityLabel : "")
+      || PASSENGER_ACTIVITY_LABELS[effectiveActivity]
+      || seatState.mood;
 
     avatar.className = "avatar";
     if (state.passengers.relationship === "年轻朋友") avatar.classList.add("friends");
@@ -2277,8 +2321,8 @@ function renderSeats() {
     if (seatState.mood === "沉默") avatar.classList.add("quiet");
     if (seatState.mood === "疲惫") avatar.classList.add("tired");
     if (seatState.mood === "睡着") avatar.classList.add("sleep");
-    if (seatState.activity && seatState.activity !== "idle") {
-      avatar.classList.add(`activity-${seatState.activity}`);
+    if (effectiveActivity && effectiveActivity !== "idle") {
+      avatar.classList.add(`activity-${effectiveActivity}`);
     }
   });
 }
