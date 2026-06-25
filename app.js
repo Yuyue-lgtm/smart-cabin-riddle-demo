@@ -10,6 +10,7 @@ const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
 const MIN_BUBBLE_DISPLAY_MS = 3000;
 const STAGE_WIDTH = 1920;
 const STAGE_HEIGHT = 1080;
+const DEFAULT_DEPLOY_STATUS = "版本检查中";
 
 const PASSENGER_ACTIVITY_LABELS = {
   idle: "",
@@ -368,6 +369,13 @@ const DEFAULT_STATE = {
     activityTimer: null,
     pendingChats: [],
   },
+  health: {
+    release: "",
+    runtime: "",
+    focus: "",
+    proxyConfigured: null,
+    statusText: DEFAULT_DEPLOY_STATUS,
+  },
 };
 
 const state = structuredClone(DEFAULT_STATE);
@@ -378,9 +386,9 @@ function boot() {
   cacheElements();
   bindEvents();
   resizeStage();
-  loadWorkflowUrl();
   applyGoldenLineDefaults(getActiveGoldenLine(), false);
   render();
+  loadHealthStatus();
 }
 
 function cacheElements() {
@@ -405,11 +413,11 @@ function cacheElements() {
     "decisionPerception",
     "decisionDecision",
     "decisionExecution",
-    "workflowUrl",
     "switchScenario",
     "resetScenario",
     "playerInput",
     "sendQuestion",
+    "deployStatus",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -489,23 +497,36 @@ function resizeStage() {
   }
 }
 
-function loadWorkflowUrl() {
-  const savedEndpoint = localStorage.getItem("riddle-demo-workflow-url") || DEFAULT_WORKFLOW_ENDPOINT;
-  const endpoint = normalizeWorkflowEndpoint(savedEndpoint);
-  els.workflowUrl.value = endpoint;
-  localStorage.setItem("riddle-demo-workflow-url", endpoint);
-}
-
-function normalizeWorkflowEndpoint(endpoint) {
-  if (!endpoint || isDirectCozeEndpoint(endpoint)) {
-    return DEFAULT_WORKFLOW_ENDPOINT;
+async function loadHealthStatus() {
+  try {
+    const response = await fetch("/api/health", {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`Health request failed: ${response.status}`);
+    }
+    const payload = await response.json();
+    state.health.release = payload.release || "";
+    state.health.runtime = payload.runtime || "";
+    state.health.focus = payload.focus || "";
+    state.health.proxyConfigured = Boolean(payload.workflow_proxy?.configured);
+    state.health.statusText = formatDeployStatus(payload);
+  } catch {
+    state.health.release = "";
+    state.health.runtime = "";
+    state.health.focus = "";
+    state.health.proxyConfigured = null;
+    state.health.statusText = "版本状态不可用";
   }
-
-  return endpoint;
+  render();
 }
 
-function isDirectCozeEndpoint(endpoint) {
-  return /(^https?:\/\/.*\.coze\.site\/run)|(^https?:\/\/api\.coze\.)/i.test(endpoint);
+function formatDeployStatus(payload) {
+  const release = payload.release || "unknown";
+  const runtime = payload.runtime === "vercel" ? "公网" : payload.runtime === "local" ? "本地" : "未知";
+  const proxyState = payload.workflow_proxy?.configured ? "代理就绪" : "代理未配置";
+  return `${runtime} · ${release} · ${proxyState}`;
 }
 
 function getActiveGoldenLine() {
@@ -1383,10 +1404,7 @@ function getEventPriority(type) {
 }
 
 async function requestWorkflow(input, signal) {
-  const endpoint = normalizeWorkflowEndpoint(els.workflowUrl.value.trim() || DEFAULT_WORKFLOW_ENDPOINT);
-  els.workflowUrl.value = endpoint;
-
-  const response = await fetch(endpoint, {
+  const response = await fetch(DEFAULT_WORKFLOW_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1420,13 +1438,13 @@ function normalizeWorkflowPayload(payload) {
   for (const candidate of candidates) {
     if (typeof candidate === "string") {
       try {
-        return JSON.parse(candidate);
+        return normalizeWorkflowOutput(JSON.parse(candidate));
       } catch {
         continue;
       }
     }
     if (typeof candidate === "object" && candidate.ai_reply_text) {
-      return candidate;
+      return normalizeWorkflowOutput(candidate);
     }
   }
 
@@ -1442,6 +1460,47 @@ function normalizeWorkflowPayload(payload) {
       show_answer: false,
     },
   };
+}
+
+function normalizeWorkflowOutput(output) {
+  const normalized = {
+    ...output,
+    ui_change: {
+      ...(output.ui_change || {}),
+    },
+  };
+
+  if (normalized.game_status === "selecting_theme") {
+    normalized.game_status = "playing";
+  }
+
+  if (!normalized.answer && normalized.game_status !== "failed") {
+    normalized.answer = getCurrentRiddle().answer;
+  }
+
+  normalized.ai_reply_text = normalizeThemeSelectionCopy(normalized.ai_reply_text || "");
+  if (!normalized.ai_reply_text) {
+    normalized.ai_reply_text = getDefaultHostReply(normalized);
+  }
+
+  return normalized;
+}
+
+function normalizeThemeSelectionCopy(text) {
+  return String(text || "")
+    .replace(/请选择一个主题[。！!？?]?/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function getDefaultHostReply(output) {
+  if (output.is_correct || output.game_status === "victory") {
+    return `${SEATS[state.passengers.selectedSeat] || "这位侦探"}答对了，谜底揭晓。`;
+  }
+  if (state.game.status === "idle") {
+    return `${getCurrentRiddle().opening} 你们有 15 个问题，答案先藏好。`;
+  }
+  return "收到，我们继续沿着这个方向推进。";
 }
 
 function applyAnswerHitGuard(output, input) {
@@ -2171,6 +2230,7 @@ function render() {
   els.hostBubble.textContent = state.workflow.inFlight ? "" : state.host.text;
   els.hostAvatar.classList.toggle("thinking", state.workflow.inFlight);
   els.timelineName.textContent = state.timeline.name;
+  els.deployStatus.textContent = state.health.statusText || DEFAULT_DEPLOY_STATUS;
   els.decisionPerception.textContent = formatDecisionText(
     state.decisionTrace.perception,
     state.decisionTrace.strategyId,

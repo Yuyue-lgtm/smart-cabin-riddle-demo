@@ -24,13 +24,19 @@ https://smart-cabin-riddle-demo.vercel.app
 本地运行：
 
 ```bash
-python3 -m http.server 4173
+node server.js
 ```
 
 访问：
 
 ```text
 http://localhost:4173
+```
+
+本地健康检查：
+
+```text
+http://localhost:4173/api/health
 ```
 
 ## 快速冒烟测试
@@ -50,6 +56,7 @@ http://localhost:4173
 - 左下显示手动控制区
 - 右侧显示座舱与环境模拟区
 - 右侧显示融合决策面板
+- 手动控制区显示轻量版本状态，例如 `本地 · V1.3-public-stability · 代理就绪`
 - 手动控制区不再出现目的地、乘客关系、Workflow 代理配置
 - 手动控制区底部固定显示 `副驾` 输入，不是下拉框
 - 无明显遮挡

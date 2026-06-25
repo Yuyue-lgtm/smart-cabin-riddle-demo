@@ -5,6 +5,7 @@ const path = require("path");
 const PORT = Number(process.env.PORT || 4173);
 const ROOT = __dirname;
 const TIMEOUT_MS = 60000;
+const RELEASE_INFO_PATH = path.join(ROOT, "release-info.json");
 
 loadEnvFile(path.join(ROOT, ".env.local"));
 loadEnvFile(path.join(ROOT, ".env"));
@@ -23,6 +24,11 @@ const MIME_TYPES = {
 
 const server = http.createServer(async (req, res) => {
   try {
+    if (req.url === "/api/health" && req.method === "GET") {
+      sendJson(res, 200, buildHealthPayload("local"));
+      return;
+    }
+
     if (req.url === "/api/workflow" && req.method === "POST") {
       await proxyWorkflow(req, res);
       return;
@@ -160,6 +166,40 @@ function sendJson(res, status, payload) {
     "Content-Type": "application/json; charset=utf-8",
   });
   res.end(JSON.stringify(payload));
+}
+
+function buildHealthPayload(runtime) {
+  const workflowUrl = process.env.COZE_WORKFLOW_URL;
+  const apiToken = process.env.COZE_API_TOKEN || process.env.COZE_WORKFLOW_TOKEN;
+  const releaseInfo = readReleaseInfo();
+
+  return {
+    ok: true,
+    runtime,
+    release: releaseInfo.release,
+    milestone: releaseInfo.milestone,
+    focus: releaseInfo.focus,
+    build_date: releaseInfo.build_date,
+    workflow_proxy: {
+      endpoint: "/api/workflow",
+      configured: Boolean(workflowUrl && apiToken),
+      timeout_ms: TIMEOUT_MS,
+    },
+    checked_at: new Date().toISOString(),
+  };
+}
+
+function readReleaseInfo() {
+  try {
+    return JSON.parse(fs.readFileSync(RELEASE_INFO_PATH, "utf8"));
+  } catch {
+    return {
+      milestone: "V1.x",
+      release: "unknown",
+      build_date: "",
+      focus: "unknown",
+    };
+  }
 }
 
 function parseMaybeJson(value) {

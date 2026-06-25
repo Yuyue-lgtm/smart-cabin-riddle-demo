@@ -43,6 +43,14 @@ http://localhost:4173
 
 真实 Token 只会被 `server.js` 读取，不会进入前端代码。
 
+本地健康检查地址：
+
+```text
+http://localhost:4173/api/health
+```
+
+前端不再记忆自定义 Workflow 地址，统一固定走同域 `/api/workflow`，避免不同机器因为历史 `localStorage` 残留而请求到不同代理。
+
 ## 部署方式
 
 当前推荐使用 Vercel，因为项目已经包含 `/api/workflow` 代理。
@@ -61,6 +69,14 @@ COZE_API_TOKEN=replace_with_your_new_coze_api_token
 ```
 
 由服务端代理携带 Token 请求 Coze。不要把 Token 写入 `app.js`、`index.html` 或任何会提交到 Git 的文件。
+
+部署后也可以直接访问：
+
+```text
+/api/health
+```
+
+用于确认当前公网版本是否已经更新、服务端代理是否已正确配置。
 
 ## Workflow 接口
 

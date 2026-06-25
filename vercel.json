@@ -14,17 +14,33 @@
       "use": "@vercel/static"
     },
     {
+      "src": "release-info.json",
+      "use": "@vercel/static"
+    },
+    {
       "src": "api/workflow.js",
       "use": "@vercel/node",
       "config": {
         "maxDuration": 60
       }
+    },
+    {
+      "src": "api/health.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/workflow",
       "dest": "/api/workflow.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/release-info.json",
+      "dest": "/release-info.json"
     },
     {
       "src": "/styles.css",

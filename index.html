@@ -98,13 +98,15 @@
           </div>
           </section>
 
-          <section class="control-region" aria-label="上帝视角控制区">
+      <section class="control-region" aria-label="上帝视角控制区">
           <div class="region-title">手动控制区</div>
-          <input id="workflowUrl" type="hidden" value="/api/workflow" />
           <div class="control-header">
-            <div class="scenario-line">
-              <span class="control-label">场景：</span>
-              <strong id="timelineName">高速亲子出行</strong>
+            <div class="scenario-meta">
+              <div class="scenario-line">
+                <span class="control-label">场景：</span>
+                <strong id="timelineName">高速亲子出行</strong>
+              </div>
+              <p class="deploy-status" id="deployStatus">版本检查中</p>
             </div>
             <button class="ghost-button" id="switchScenario" type="button">场景切换</button>
             <button class="ghost-button" id="pauseTimeline" type="button">暂停模拟</button>

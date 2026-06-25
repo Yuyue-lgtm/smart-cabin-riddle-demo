@@ -15,9 +15,38 @@
 - 公网链接：https://smart-cabin-riddle-demo.vercel.app
 - Vercel 项目：smart-cabin-riddle-demo
 - 当前部署状态：Vercel 显示 Ready
+- 健康检查接口：`/api/health`
 - 当前 Git 基线：
   - `V1.1-stability-fix`
   - `f43cd79 Document experience optimization roadmap`
+
+## V1.3.15 稳定性收口（2026-06-25）
+
+本轮目标不是新增玩法，而是收口“公网一致性与演示稳定”。
+
+本轮修复：
+
+- 前端不再从 `localStorage` 读取历史自定义 Workflow 地址，统一固定走同域 `/api/workflow`。
+- 增加本地与公网统一的健康检查接口 `/api/health`，返回当前发布标识、运行环境、代理是否就绪和超时阈值。
+- 控制区新增轻量版本状态文案，便于演示前快速确认当前页面到底是本地版还是公网版。
+
+本轮价值：
+
+- 避免同一套代码在不同浏览器上因为历史缓存而请求到不同代理。
+- 演示前可以直接用 `/api/health` 判断“当前页面是不是最新部署版本”。
+- 公网问题排查从“靠感觉”变成“先看健康状态”。
+
+本地回归结果：
+
+- `http://localhost:4173/api/health` 返回 `local + V1.3-public-stability + configured=true`，版本和代理状态正常。
+- 本地页面已显示版本状态文案：`本地 · V1.3-public-stability · 代理就绪`。
+- 本地主链路中，开始模拟后不再保留“请选择主题”文案，急刹暂停与自动恢复可稳定完成。
+- 浏览器控制台无新增报错。
+
+当前外部阻塞：
+
+- Vercel 生产部署仍被 TLS 握手问题阻塞，CLI 在拉取 `https://vercel.com/.well-known/openid-configuration` 时连接中断。
+- 当前问题不在前端代码或本地代理，而在当前环境到 Vercel 的网络握手链路。
 
 ## V1.3.9 本地三线回归（2026-06-23）
 

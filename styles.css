@@ -687,10 +687,16 @@ select:disabled {
   padding-top: 10px;
 }
 
+.scenario-meta {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
 .scenario-line {
   display: flex;
   min-width: 0;
-  flex: 1;
   align-items: center;
   gap: 4px;
 }
@@ -698,6 +704,14 @@ select:disabled {
 .scenario-line strong {
   font-size: 17px;
   font-weight: 950;
+}
+
+.deploy-status {
+  margin: 0;
+  color: rgba(38, 48, 42, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .control-label {
