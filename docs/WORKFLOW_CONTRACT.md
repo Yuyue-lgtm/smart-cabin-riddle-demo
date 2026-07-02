@@ -482,6 +482,7 @@ Workflow 生成模拟乘客动作时必须遵守：
   "cabin_mode": "normal",
   "target_seat": "front",
   "host_emotion": "thinking",
+  "host_avatar_state": "normal",
   "animation": "answer",
   "show_answer": false
 }
@@ -492,8 +493,30 @@ Workflow 生成模拟乘客动作时必须遵守：
 | `cabin_mode` | string | 是 | 座舱表现模式 |
 | `target_seat` | string | 否 | 被 cue 或高亮的座位 |
 | `host_emotion` | string | 否 | AI 主持人情绪 |
+| `host_avatar_state` | string | 否 | AI 主持人人偶切片状态，建议值为 `normal` / `smile` / `awkward` / `excited` |
 | `animation` | string | 否 | 页面动画类型 |
 | `show_answer` | boolean | 是 | 是否展示谜底 |
+
+### host_avatar_state
+
+`host_avatar_state` 用于让前端切换 AI 主持人人偶切片。当前前端已支持以下状态：
+
+| 值 | 中文语义 | 前端行为 |
+| --- | --- | --- |
+| `normal` | 普通 | 默认主持人形象 |
+| `smile` | 笑 | 临时表情，显示约 4 秒后回到 `normal` |
+| `awkward` | 尴尬 | 临时表情，显示约 4 秒后回到 `normal` |
+| `excited` | 兴奋 | 答对/胜利高光形象，胜利态下保持显示 |
+
+兼容规则：
+
+- 如果 Workflow 暂时不返回 `host_avatar_state`，前端会根据 `host_emotion` 做兼容映射。
+- `host_emotion = excited`、`celebrating` 或 `victory` 会映射为 `excited`。
+- `host_emotion = smile`、`laugh`、`happy`、`笑` 会映射为 `smile`。
+- `host_emotion = awkward`、`embarrassed`、`尴尬` 会映射为 `awkward`。
+- 未识别值会回落为 `normal`。
+
+中控屏背景不依赖 Workflow 字段。当前前端根据 `car.environment` 进行多对一映射，已预留 `default` / `sunny` / `night` / `snow` / `rain` 五类中控屏背景状态，后续可替换为正式映射表。
 
 ## decision_trace
 

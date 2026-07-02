@@ -11,6 +11,8 @@ const MIN_BUBBLE_DISPLAY_MS = 3000;
 const STAGE_WIDTH = 1920;
 const STAGE_HEIGHT = 1080;
 const DEFAULT_DEPLOY_STATUS = "版本检查中";
+const HOST_AVATAR_DEFAULT_STATE = "normal";
+const HOST_AVATAR_TRANSIENT_MS = 4000;
 
 const PASSENGER_ACTIVITY_LABELS = {
   idle: "",
@@ -54,6 +56,42 @@ const ENVIRONMENT_CLASS = {
   城区雨天白天: "env-city-rain",
   风景区晴天白天: "env-scenic-day",
   风景区雪景白天: "env-snow-day",
+};
+
+const SCREEN_BACKGROUND_CLASS = {
+  高速路晴天白天: "screen-sunny",
+  高速路晴天深夜: "screen-night",
+  高速路雨天白天: "screen-rain",
+  城区晴天白天: "screen-sunny",
+  城区雨天白天: "screen-rain",
+  风景区晴天白天: "screen-sunny",
+  风景区雪景白天: "screen-snow",
+};
+
+const HOST_EMOTION_AVATAR_STATE = {
+  normal: "normal",
+  neutral: "normal",
+  thinking: "normal",
+  serious: "normal",
+  care: "normal",
+  comfort: "smile",
+  confident: "smile",
+  observing: "smile",
+  smile: "smile",
+  smiling: "smile",
+  laugh: "smile",
+  happy: "smile",
+  awkward: "awkward",
+  embarrassed: "awkward",
+  sorry: "awkward",
+  excited: "excited",
+  celebrating: "excited",
+  victory: "excited",
+  普通: "normal",
+  笑: "smile",
+  微笑: "smile",
+  尴尬: "awkward",
+  兴奋: "excited",
 };
 
 const RIDDLES = [
@@ -330,6 +368,7 @@ const DEFAULT_STATE = {
   host: {
     text: "我已经准备好第一道题了，等你发令。",
     emotion: "normal",
+    avatarState: HOST_AVATAR_DEFAULT_STATE,
     targetSeat: null,
   },
   ui: {
@@ -367,6 +406,7 @@ const DEFAULT_STATE = {
     bubbleTimer: null,
     recoveryTimer: null,
     activityTimer: null,
+    hostAvatarTimer: null,
     pendingChats: [],
   },
   health: {
@@ -406,6 +446,7 @@ function cacheElements() {
     "answerReveal",
     "hostBubble",
     "hostAvatar",
+    "gameRegion",
     "timelineName",
     "startTimeline",
     "pauseTimeline",
@@ -632,6 +673,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
     clearTimeout(state.workflow.activityTimer);
     state.workflow.activityTimer = null;
   }
+  clearHostAvatarTimer();
   const index = GOLDEN_TIMELINES.findIndex((item) => item.id === timeline.id);
   state.scenarioIndex = index >= 0 ? index : 0;
   state.timeline.id = timeline.id;
@@ -650,6 +692,8 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.ui.cabinMode = "normal";
   state.ui.alert = announce ? `已切换至${timeline.name}` : "";
   state.host.text = getPrestartHostText(timeline);
+  state.host.emotion = "normal";
+  state.host.avatarState = HOST_AVATAR_DEFAULT_STATE;
   state.host.targetSeat = "front";
   state.workflow.lastPassengerActionKey = "";
   state.perception.driverState = "normal";
@@ -1803,6 +1847,7 @@ function applyWorkflowOutput(output, input) {
     state.ui.correctSeat = null;
   }
   state.host.emotion = uiChange.host_emotion || state.host.emotion;
+  applyHostAvatarState(output, uiChange, isVictoryOutput);
   state.host.targetSeat = normalizeTargetSeat(uiChange.target_seat) || state.host.targetSeat;
   if (keepRealUserFocus) {
     clearPassengerActivities();
@@ -1814,6 +1859,7 @@ function applyWorkflowOutput(output, input) {
     state.ui.cabinMode = "safety_pause";
     state.ui.animation = "pause";
     state.host.emotion = "serious";
+    setHostAvatarState(HOST_AVATAR_DEFAULT_STATE);
     state.host.targetSeat = null;
   }
   if (eventType === "passenger_sleep") {
@@ -1851,6 +1897,7 @@ function applyWorkflowOutput(output, input) {
     state.ui.correctSeat = correctSeat;
     state.game.status = "victory";
     state.host.text = makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer);
+    setHostAvatarState("excited", { transient: false });
     state.host.targetSeat = correctSeat;
     playVictorySound();
   }
@@ -2095,6 +2142,46 @@ function normalizePassengerMood(value) {
   return null;
 }
 
+function applyHostAvatarState(output, uiChange, isVictoryOutput) {
+  const requestedState =
+    uiChange.host_avatar_state ||
+    output.host_avatar_state ||
+    uiChange.host_emotion ||
+    output.host_emotion;
+  const avatarState = isVictoryOutput ? "excited" : normalizeHostAvatarState(requestedState);
+  setHostAvatarState(avatarState, {
+    transient: ["smile", "awkward"].includes(avatarState),
+  });
+}
+
+function normalizeHostAvatarState(value) {
+  const key = String(value || "").trim();
+  if (!key) return HOST_AVATAR_DEFAULT_STATE;
+  return HOST_EMOTION_AVATAR_STATE[key] || HOST_EMOTION_AVATAR_STATE[key.toLowerCase()] || HOST_AVATAR_DEFAULT_STATE;
+}
+
+function setHostAvatarState(avatarState, options = {}) {
+  const normalized = normalizeHostAvatarState(avatarState);
+  state.host.avatarState = normalized;
+  clearHostAvatarTimer();
+
+  if (options.transient && normalized !== HOST_AVATAR_DEFAULT_STATE) {
+    state.workflow.hostAvatarTimer = setTimeout(() => {
+      state.workflow.hostAvatarTimer = null;
+      if (state.game.status !== "victory") {
+        state.host.avatarState = HOST_AVATAR_DEFAULT_STATE;
+        render();
+      }
+    }, HOST_AVATAR_TRANSIENT_MS);
+  }
+}
+
+function clearHostAvatarTimer() {
+  if (!state.workflow.hostAvatarTimer) return;
+  clearTimeout(state.workflow.hostAvatarTimer);
+  state.workflow.hostAvatarTimer = null;
+}
+
 function schedulePassengerActivityClear() {
   if (state.workflow.activityTimer) clearTimeout(state.workflow.activityTimer);
   state.workflow.activityTimer = setTimeout(() => {
@@ -2251,6 +2338,9 @@ function render() {
   els.environmentBackdrop.className = `environment-backdrop ${
     ENVIRONMENT_CLASS[state.car.environment] || "env-highway-day"
   }`;
+  els.gameRegion.className = `game-region ${
+    SCREEN_BACKGROUND_CLASS[state.car.environment] || "screen-default"
+  }`;
   els.environmentLabel.textContent = state.car.environment;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
@@ -2267,6 +2357,7 @@ function render() {
   els.hostBubble.setAttribute("aria-busy", state.workflow.inFlight ? "true" : "false");
   els.hostBubble.textContent = state.workflow.inFlight ? "" : state.host.text;
   els.hostAvatar.classList.toggle("thinking", state.workflow.inFlight);
+  els.hostAvatar.dataset.avatarState = state.host.avatarState || HOST_AVATAR_DEFAULT_STATE;
   els.timelineName.textContent = state.timeline.name;
   els.deployStatus.textContent = state.health.statusText || DEFAULT_DEPLOY_STATUS;
   els.decisionPerception.textContent = formatDecisionText(

@@ -471,9 +471,58 @@ select:disabled {
   position: relative;
   min-height: 0;
   overflow: hidden;
+  color: var(--ink);
+  transition: background 260ms ease, color 260ms ease;
+}
+
+.game-region.screen-default {
   background:
     radial-gradient(circle at 76% 52%, rgba(255, 255, 255, 0.5), transparent 30%),
     var(--blue);
+}
+
+.game-region.screen-sunny {
+  background:
+    radial-gradient(circle at 76% 52%, rgba(255, 255, 255, 0.58), transparent 30%),
+    linear-gradient(180deg, #cfe7f4 0%, #dbeefa 58%, #e9f4df 100%);
+}
+
+.game-region.screen-night {
+  color: #edf6ff;
+  background:
+    radial-gradient(circle at 78% 46%, rgba(136, 181, 223, 0.22), transparent 30%),
+    linear-gradient(180deg, #182636 0%, #243849 56%, #314452 100%);
+}
+
+.game-region.screen-rain {
+  background:
+    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.22) 0 2px, transparent 2px 18px),
+    radial-gradient(circle at 76% 52%, rgba(255, 255, 255, 0.36), transparent 30%),
+    linear-gradient(180deg, #bdd5e0 0%, #cedfe7 58%, #dbe8df 100%);
+}
+
+.game-region.screen-snow {
+  background:
+    radial-gradient(circle at 24% 24%, rgba(255, 255, 255, 0.86) 0 4px, transparent 5px),
+    radial-gradient(circle at 72% 20%, rgba(255, 255, 255, 0.7) 0 3px, transparent 4px),
+    radial-gradient(circle at 76% 52%, rgba(255, 255, 255, 0.58), transparent 30%),
+    linear-gradient(180deg, #d9ecf6 0%, #edf6fb 62%, #e6f1f0 100%);
+}
+
+.game-region.screen-night .riddle-copy p,
+.game-region.screen-night .muted {
+  color: rgba(237, 246, 255, 0.74);
+}
+
+.game-region.screen-night .stage-label,
+.game-region.screen-night .onboarding-hint {
+  color: #eef7ff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.game-region.screen-night .host-bubble {
+  color: #172231;
 }
 
 .game-topbar {
@@ -648,6 +697,7 @@ select:disabled {
       no-repeat,
     linear-gradient(180deg, #f4fbff, #c9dce8);
   box-shadow: 0 18px 34px rgba(40, 55, 66, 0.16);
+  transition: background 220ms ease, box-shadow 220ms ease, transform 220ms ease;
 }
 
 .host-avatar.thinking .host-face {
@@ -657,6 +707,49 @@ select:disabled {
     radial-gradient(circle at 64% 43%, #33404c 0 7px, transparent 8px),
     radial-gradient(circle at 50% 68%, #33404c 0 4px, transparent 5px),
     linear-gradient(180deg, #f4fbff, #c9dce8);
+}
+
+.host-avatar[data-avatar-state="smile"] .host-face {
+  background:
+    radial-gradient(circle at 36% 43%, #33404c 0 7px, transparent 8px),
+    radial-gradient(circle at 64% 43%, #33404c 0 7px, transparent 8px),
+    radial-gradient(ellipse at 50% 68%, transparent 0 8px, #33404c 9px 12px, transparent 13px) 50% 66% / 46px 26px
+      no-repeat,
+    linear-gradient(180deg, #f4fbff, #c9dce8);
+}
+
+.host-avatar[data-avatar-state="awkward"] .host-face {
+  background:
+    radial-gradient(circle at 29% 60%, rgba(212, 93, 82, 0.36) 0 8px, transparent 9px),
+    radial-gradient(circle at 71% 60%, rgba(212, 93, 82, 0.36) 0 8px, transparent 9px),
+    radial-gradient(circle at 36% 43%, #33404c 0 6px, transparent 7px),
+    radial-gradient(circle at 64% 43%, #33404c 0 6px, transparent 7px),
+    linear-gradient(90deg, transparent 34%, #33404c 34% 66%, transparent 66%) 50% 68% / 34px 4px
+      no-repeat,
+    linear-gradient(180deg, #f9fbff, #d9e3ec);
+}
+
+.host-avatar[data-avatar-state="excited"] .host-face {
+  transform: translateY(-2px) scale(1.03);
+  background:
+    radial-gradient(circle at 36% 43%, #33404c 0 8px, transparent 9px),
+    radial-gradient(circle at 64% 43%, #33404c 0 8px, transparent 9px),
+    radial-gradient(ellipse at 50% 70%, #33404c 0 10px, transparent 11px),
+    linear-gradient(180deg, #fff8e6, #bfdff0);
+  box-shadow:
+    0 0 0 8px rgba(127, 178, 60, 0.18),
+    0 20px 38px rgba(40, 55, 66, 0.18);
+}
+
+.host-avatar.thinking .host-face {
+  transform: none;
+  animation: passenger-thinking 800ms ease-in-out infinite alternate;
+  background:
+    radial-gradient(circle at 36% 43%, #33404c 0 7px, transparent 8px),
+    radial-gradient(circle at 64% 43%, #33404c 0 7px, transparent 8px),
+    radial-gradient(circle at 50% 68%, #33404c 0 4px, transparent 5px),
+    linear-gradient(180deg, #f4fbff, #c9dce8);
+  box-shadow: 0 18px 34px rgba(40, 55, 66, 0.16);
 }
 
 .host-avatar span {
