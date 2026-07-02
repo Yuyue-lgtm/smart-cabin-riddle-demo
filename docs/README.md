@@ -15,7 +15,8 @@
 9. [HOST_COPY_OWNERSHIP.md](./HOST_COPY_OWNERSHIP.md)
 10. [PUBLIC_ACCEPTANCE_REPORT.md](./PUBLIC_ACCEPTANCE_REPORT.md)
 11. [ROADMAP.md](./ROADMAP.md)
-12. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
+12. [V1_4_UI_DESIGN_INPUT.md](./V1_4_UI_DESIGN_INPUT.md)
+13. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
 
 ## 文档用途
 
@@ -62,6 +63,10 @@
 ### ROADMAP.md
 
 规划后续版本节奏，避免一次性塞太多功能导致不稳定。
+
+### V1_4_UI_DESIGN_INPUT.md
+
+为 `V1.4` 的整体 UI 与交互体验优化提供设计输入，包括三张核心画面定义、组件清单、资源清单、出图流程，以及 ChatGPT 与 Codex 的分工建议。
 
 ### TEST_SCRIPT.md
 
