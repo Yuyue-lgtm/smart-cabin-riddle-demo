@@ -1,6 +1,6 @@
 {
-  "milestone": "V1.3",
-  "release": "V1.3-public-stability",
-  "build_date": "2026-06-25",
-  "focus": "公网一致性与演示稳定"
+  "milestone": "V1.4",
+  "release": "V1.4-ui-foundation",
+  "build_date": "2026-07-20",
+  "focus": "Figma 视觉落地与媒体接口基础"
 }

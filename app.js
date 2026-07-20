@@ -14,6 +14,15 @@ const DEFAULT_DEPLOY_STATUS = "版本检查中";
 const HOST_AVATAR_DEFAULT_STATE = "normal";
 const HOST_AVATAR_TRANSIENT_MS = 4000;
 
+// The host renderer is intentionally media-agnostic. Replace a mode with a
+// video source later without changing layout, workflow fields, or state logic.
+const HOST_MEDIA_SOURCES = {
+  ready: { kind: "image", src: "./assets/figma-ready-host.png" },
+  playing: { kind: "image", src: "./assets/figma-playing-host.png" },
+  reveal: { kind: "image", src: "./assets/figma-reveal-host.png" },
+  summary: { kind: "image", src: "./assets/figma-summary-host.png" },
+};
+
 const PASSENGER_ACTIVITY_LABELS = {
   idle: "",
   thinking: "思考中",
@@ -438,15 +447,27 @@ function cacheElements() {
     "environmentLabel",
     "speedLabel",
     "destinationLabel",
+    "gameScreen",
     "roundProgress",
     "questionProgress",
     "stageLabel",
     "riddleTitle",
     "riddleHint",
     "answerReveal",
+    "revealAnswerText",
+    "revealSeatLabel",
+    "remainingQuestions",
     "hostBubble",
     "hostAvatar",
-    "gameRegion",
+    "hostMedia",
+    "hostImage",
+    "hostVideo",
+    "summaryStats",
+    "summaryTotal",
+    "summarySolved",
+    "summaryMvp",
+    "summaryContinue",
+    "readyStartButton",
     "timelineName",
     "startTimeline",
     "pauseTimeline",
@@ -474,6 +495,8 @@ function bindEvents() {
   document.addEventListener("pointerdown", prepareAudioContext, { once: true });
   els.switchScenario.addEventListener("click", nextGoldenLine);
   els.resetScenario.addEventListener("click", resetCurrentGoldenLine);
+  els.summaryContinue.addEventListener("click", resetCurrentGoldenLine);
+  els.readyStartButton.addEventListener("click", startGoldenTimeline);
   els.startTimeline.addEventListener("click", startGoldenTimeline);
   els.pauseTimeline.addEventListener("click", toggleTimelinePause);
   els.sendQuestion.addEventListener("click", sendQuestion);
@@ -624,6 +647,13 @@ async function startGoldenTimeline() {
   if (state.timeline.runId === runId) {
     state.timeline.status = "finished";
     state.timeline.currentEvent = `${timeline.name}已完成`;
+    state.game.status = "summary";
+    state.ui.cabinMode = "summary";
+    state.ui.showAnswer = false;
+    state.ui.correctSeat = getSummaryMvpSeat();
+    state.host.text = makeSummaryHostText();
+    state.host.emotion = "celebrating";
+    state.host.targetSeat = null;
     state.ui.alert = "模拟完成";
     render();
   }
@@ -714,7 +744,7 @@ function getPrestartHostText(timeline) {
     scenic_snow_family: "窗外雪景正好适合开一局猜谜，大家一起动动脑。",
   };
   const lead = sceneLead[timeline.id] || "大家好，欢迎来到车内 AI 猜谜。";
-  return `${lead} 规则很简单：我藏一个谜底，大家轮流问“是/否”问题，15 问内猜出来就算赢。我来当主持人，准备好了我们就开始。`;
+  return lead;
 }
 
 async function runScriptedQuestion(seat, text) {
@@ -2331,31 +2361,56 @@ function normalizeTargetSeat(seat) {
 
 function render() {
   const riddle = getCurrentRiddle();
+  const screenMode = getGameScreenMode();
   document.body.classList.toggle("is-paused", state.game.status === "paused");
   document.body.classList.toggle("is-victory", state.game.status === "victory");
   document.body.classList.toggle("is-working", state.workflow.inFlight);
+  els.gameScreen.className = `game-screen screen-${screenMode} ${getScreenEnvironmentClass(screenMode)}`;
+  renderHostMedia(screenMode);
 
   els.environmentBackdrop.className = `environment-backdrop ${
     ENVIRONMENT_CLASS[state.car.environment] || "env-highway-day"
-  }`;
-  els.gameRegion.className = `game-region ${
-    SCREEN_BACKGROUND_CLASS[state.car.environment] || "screen-default"
   }`;
   els.environmentLabel.textContent = state.car.environment;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
   els.roundProgress.textContent = `${state.game.roundIndex}/${state.game.totalRounds}`;
-  els.questionProgress.textContent = `${state.game.questionCount}/${state.game.maxQuestions}`;
+  els.questionProgress.textContent = `${getScreenProgressValue()} / ${state.game.totalRounds}`;
   els.stageLabel.textContent = getStageLabel();
   els.riddleTitle.textContent = getRiddleTitle(riddle);
-  els.riddleHint.textContent = state.game.status === "idle" && !state.ui.showAnswer ? "" : riddle.hint;
+  els.riddleHint.textContent = getRiddleSupportText(riddle);
   els.riddleHint.classList.toggle("hidden", state.game.status === "idle" && !state.ui.showAnswer);
+  els.remainingQuestions.textContent = Math.max(0, state.game.maxQuestions - state.game.questionCount);
   els.answerReveal.textContent = `谜底：${riddle.answer}`;
   els.answerReveal.classList.toggle("visible", state.ui.showAnswer);
+  els.revealAnswerText.textContent = riddle.answer;
+  els.revealSeatLabel.textContent = SEATS[state.ui.correctSeat] || "副驾";
+  els.summaryTotal.textContent = state.game.totalRounds;
+  els.summarySolved.textContent = getSummarySolvedCount();
+  els.summaryMvp.textContent = SEATS[getSummaryMvpSeat()] || "副驾";
+  const hostBubbleText = state.workflow.inFlight ? "" : String(state.host.text || "");
+  const hostBubbleLength = Array.from(hostBubbleText).length;
+  const hostBubbleVariant =
+    hostBubbleLength > 46 ? "long-text" : hostBubbleLength > 28 ? "medium-text" : "";
   els.hostBubble.classList.toggle("thinking", state.workflow.inFlight);
+  els.hostBubble.classList.toggle(
+    "medium-text",
+    !state.workflow.inFlight && hostBubbleVariant === "medium-text",
+  );
+  els.hostBubble.classList.toggle(
+    "long-text",
+    !state.workflow.inFlight && hostBubbleVariant === "long-text",
+  );
   els.hostBubble.setAttribute("aria-busy", state.workflow.inFlight ? "true" : "false");
-  els.hostBubble.textContent = state.workflow.inFlight ? "" : state.host.text;
+  const hostBubbleTextElement = setHostBubbleText(hostBubbleText);
+  if (!state.workflow.inFlight && hostBubbleVariant) {
+    scheduleTextClamp(
+      hostBubbleTextElement,
+      hostBubbleText,
+      hostBubbleVariant === "long-text" ? 4 : 3,
+    );
+  }
   els.hostAvatar.classList.toggle("thinking", state.workflow.inFlight);
   els.hostAvatar.dataset.avatarState = state.host.avatarState || HOST_AVATAR_DEFAULT_STATE;
   els.timelineName.textContent = state.timeline.name;
@@ -2374,9 +2429,133 @@ function render() {
   renderControls();
 }
 
+function getScreenEnvironmentClass(screenMode) {
+  if (screenMode !== "playing") return "screen-default";
+  return SCREEN_BACKGROUND_CLASS[state.car.environment] || "screen-default";
+}
+
+function getGameScreenMode() {
+  if (state.game.status === "summary") return "summary";
+  if (state.game.status === "victory" || state.ui.showAnswer) return "reveal";
+  if (state.game.status === "idle" && state.timeline.status === "idle") return "ready";
+  return "playing";
+}
+
+function renderHostMedia(screenMode) {
+  const media = resolveHostMedia(screenMode, state.host.avatarState);
+  const isVideo = media.kind === "video" && media.src;
+
+  if (isVideo) {
+    const currentSrc = els.hostVideo.dataset.mediaSrc || "";
+    els.hostImage.hidden = true;
+    els.hostVideo.hidden = false;
+    els.hostVideo.poster = media.poster || HOST_MEDIA_SOURCES.playing.src;
+    if (currentSrc !== media.src) {
+      els.hostVideo.pause();
+      els.hostVideo.src = media.src;
+      els.hostVideo.dataset.mediaSrc = media.src;
+      els.hostVideo.load();
+    }
+    const playRequest = els.hostVideo.play();
+    if (playRequest) playRequest.catch(() => {});
+    return;
+  }
+
+  if (els.hostVideo.dataset.mediaSrc) {
+    els.hostVideo.pause();
+    els.hostVideo.removeAttribute("src");
+    els.hostVideo.removeAttribute("data-media-src");
+    els.hostVideo.load();
+  }
+  els.hostVideo.hidden = true;
+  els.hostImage.hidden = false;
+  els.hostImage.src = media.src;
+}
+
+function resolveHostMedia(screenMode, avatarState) {
+  const stateKey = normalizeHostAvatarState(avatarState);
+  const explicitStateKey = `${screenMode}:${stateKey}`;
+  return HOST_MEDIA_SOURCES[explicitStateKey] || HOST_MEDIA_SOURCES[screenMode] || HOST_MEDIA_SOURCES.playing;
+}
+
+function getScreenProgressValue() {
+  if (state.game.status === "summary") return state.game.totalRounds;
+  if (state.game.status === "victory") {
+    return Math.max(1, Math.min(state.game.totalRounds, state.game.roundIndex));
+  }
+  return Math.max(1, Math.min(state.game.totalRounds, state.game.roundIndex));
+}
+
+function getSummaryStatsText() {
+  return `完成 ${state.game.totalRounds} 题     破解 ${getSummarySolvedCount()} 题`;
+}
+
+function getSummarySolvedCount() {
+  return Math.min(7, state.game.totalRounds);
+}
+
+function getSummaryMvpSeat() {
+  return state.ui.correctSeat || "front";
+}
+
+function makeSummaryHostText() {
+  return "本次案件调查圆满收官。全车智商在线，下次上车我们继续开局！";
+}
+
 function formatDecisionText(text, suffix) {
   if (!suffix) return text;
   return `${text}（${suffix}）`;
+}
+
+function setHostBubbleText(text) {
+  let textElement = els.hostBubble.querySelector(".host-bubble-text");
+  if (!textElement) {
+    textElement = document.createElement("span");
+    textElement.className = "host-bubble-text";
+    els.hostBubble.textContent = "";
+    els.hostBubble.append(textElement);
+  }
+  textElement.textContent = text;
+  return textElement;
+}
+
+function scheduleTextClamp(element, text, maxLines) {
+  window.requestAnimationFrame(() => {
+    if (
+      !els.hostBubble.classList.contains("medium-text") &&
+      !els.hostBubble.classList.contains("long-text")
+    ) {
+      return;
+    }
+    if (element.textContent !== text) return;
+    clampTextToLines(element, text, maxLines);
+  });
+}
+
+function clampTextToLines(element, text, maxLines) {
+  const chars = Array.from(String(text || ""));
+  if (!chars.length) return;
+
+  const style = getComputedStyle(element);
+  const toNumber = (value) => Number(String(value).replace("px", "")) || 0;
+  const lineHeight = toNumber(style.lineHeight) || toNumber(style.fontSize) * 1.4;
+  const maxHeight = Math.ceil(lineHeight * maxLines + 1);
+
+  element.textContent = chars.join("");
+  if (element.scrollHeight <= maxHeight) return;
+
+  let low = 0;
+  let high = chars.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    element.textContent = `${chars.slice(0, mid).join("")}…`;
+    if (element.scrollHeight <= maxHeight) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  element.textContent = `${chars.slice(0, low).join("")}…`;
 }
 
 function renderSeats() {
@@ -2456,13 +2635,21 @@ function setActive(buttons, key, value) {
 }
 
 function getStageLabel() {
-  return "";
+  if (state.ui.showAnswer || state.game.status === "victory") return "公布答案";
+  if (state.game.status === "idle") return "准备开局";
+  return "提示时间";
 }
 
 function getRiddleTitle(riddle) {
   if (state.ui.showAnswer) return riddle.answer;
   if (state.game.status === "idle") return "游戏待开始";
-  return "提示";
+  return riddle.hint;
+}
+
+function getRiddleSupportText(riddle) {
+  if (state.game.status === "idle" && !state.ui.showAnswer) return "";
+  if (state.ui.showAnswer) return `主题：${riddle.theme}`;
+  return "剩余时间提示";
 }
 
 function getCabinModeText() {

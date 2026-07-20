@@ -17,6 +17,7 @@
 11. [ROADMAP.md](./ROADMAP.md)
 12. [V1_4_UI_DESIGN_INPUT.md](./V1_4_UI_DESIGN_INPUT.md)
 13. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
+14. [V1_4_UI_IMPLEMENTATION.md](./V1_4_UI_IMPLEMENTATION.md)
 
 ## 文档用途
 
@@ -71,6 +72,10 @@
 ### TEST_SCRIPT.md
 
 提供每次修改后的回归测试步骤、分享体验测试步骤和比赛现场讲解脚本。
+
+### V1_4_UI_IMPLEMENTATION.md
+
+记录 V1.4 当前已落地的 Figma 页面资源、固定画布规则、主持人媒体接口、气泡小三角和透明切片阴影实现约定。
 
 ## 维护规则
 
