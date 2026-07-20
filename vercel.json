@@ -6,6 +6,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "assets/(.*)",
+      "use": "@vercel/static"
+    },
+    {
       "src": "styles.css",
       "use": "@vercel/static"
     },
@@ -49,6 +53,10 @@
     {
       "src": "/app.js",
       "dest": "/app.js"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
       "src": "/",
