@@ -483,7 +483,7 @@ select:disabled {
   border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
-    url("./assets/cockpit-road-bg.png") center / cover no-repeat;
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
   box-shadow: 0 25px 43.75px -12px rgba(0, 0, 0, 0.25);
   transform: scale(0.7708333333);
   transform-origin: left top;
@@ -494,13 +494,13 @@ select:disabled {
 .game-screen.screen-sunny {
   background:
     linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
-    url("./assets/cockpit-road-bg.png") center / cover no-repeat;
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
 }
 
 .game-screen.screen-night {
   background:
     linear-gradient(180deg, rgba(9, 14, 34, 0.48), rgba(10, 18, 42, 0.42)),
-    url("./assets/cockpit-road-bg.png") center / cover no-repeat;
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
   box-shadow: 0 25px 43.75px -12px rgba(8, 12, 28, 0.45);
 }
 
@@ -508,7 +508,7 @@ select:disabled {
   background:
     linear-gradient(180deg, rgba(20, 34, 46, 0.18), rgba(20, 34, 46, 0.18)),
     repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 18px),
-    url("./assets/cockpit-road-bg.png") center / cover no-repeat;
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
 }
 
 .game-screen.screen-snow {
@@ -516,7 +516,7 @@ select:disabled {
     linear-gradient(180deg, rgba(228, 240, 255, 0.06), rgba(228, 240, 255, 0.06)),
     radial-gradient(circle at 24% 24%, rgba(255, 255, 255, 0.72) 0 4px, transparent 5px),
     radial-gradient(circle at 72% 20%, rgba(255, 255, 255, 0.56) 0 3px, transparent 4px),
-    url("./assets/cockpit-road-bg.png") center / cover no-repeat;
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
 }
 
 .game-screen::before {
@@ -539,7 +539,7 @@ select:disabled {
   height: 47px;
   overflow: hidden;
   border-radius: 10px;
-  background: url("./assets/pencil-game-icon.webp") center / cover no-repeat;
+  background: none;
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.25);
 }
 
@@ -736,7 +736,7 @@ select:disabled {
   content: "";
   border-radius: 24px;
   opacity: 0.18;
-  background: url("./assets/cockpit-road-bg.png") center / cover no-repeat;
+  background: url("./assets/figma-playing-background.png") center / cover no-repeat;
   filter: saturate(0.78) brightness(1.18);
   pointer-events: none;
 }

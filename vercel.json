@@ -1,66 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "assets/(.*)",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "styles.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "app.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "release-info.json",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "api/workflow.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 60
-      }
-    },
-    {
-      "src": "api/health.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/workflow.js": {
+      "maxDuration": 60
     }
-  ],
+  },
   "routes": [
     {
-      "src": "/api/workflow",
-      "dest": "/api/workflow.js"
-    },
-    {
-      "src": "/api/health",
-      "dest": "/api/health.js"
-    },
-    {
-      "src": "/release-info.json",
-      "dest": "/release-info.json"
-    },
-    {
-      "src": "/styles.css",
-      "dest": "/styles.css"
-    },
-    {
-      "src": "/app.js",
-      "dest": "/app.js"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/index.html"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
