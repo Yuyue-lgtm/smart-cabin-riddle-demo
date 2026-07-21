@@ -1,0 +1,2272 @@
+:root {
+  --ink: #202731;
+  --muted: #5c6875;
+  --line: rgba(32, 39, 49, 0.18);
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-solid: #f7f9f7;
+  --green: #7fb23c;
+  --green-dark: #5c8f28;
+  --blue: #cfe3f1;
+  --cream: #f4efcf;
+  --warning: #f1b84b;
+  --danger: #d45d52;
+  font-family:
+    Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background: #cfd8d4;
+  overflow: hidden;
+}
+
+.stage-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.app-shell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: 1110px 810px;
+  width: 1920px;
+  height: 1080px;
+  min-width: 1920px;
+  min-height: 1080px;
+  overflow: hidden;
+  box-shadow: 0 18px 60px rgba(24, 36, 42, 0.18);
+  transform-origin: left top;
+}
+
+.cabin-region {
+  position: relative;
+  order: 2;
+  overflow: hidden;
+  background: var(--cream);
+  border: 2px solid rgba(32, 39, 49, 0.28);
+}
+
+.region-title {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  height: 28px;
+  place-items: center;
+  color: #8d1f3d;
+  background: rgba(96, 198, 226, 0.72);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.environment-backdrop {
+  position: absolute;
+  inset: 0;
+  transition:
+    background 260ms ease,
+    filter 260ms ease;
+}
+
+.environment-backdrop::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.58), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04));
+}
+
+.env-highway-day {
+  background:
+    linear-gradient(180deg, #8fcae6 0%, #cde9ef 38%, #98bc72 39%, #6b7c73 62%, #3f4b52 63%),
+    repeating-linear-gradient(90deg, transparent 0 110px, rgba(255, 255, 255, 0.35) 110px 124px);
+}
+
+.env-highway-night {
+  background:
+    radial-gradient(circle at 82% 18%, #f4f0c0 0 42px, transparent 43px),
+    linear-gradient(180deg, #182235 0%, #2b4056 42%, #293535 43%, #1d252c 100%);
+}
+
+.env-highway-rain {
+  background:
+    repeating-linear-gradient(105deg, rgba(255, 255, 255, 0.45) 0 2px, transparent 2px 20px),
+    linear-gradient(180deg, #698899 0%, #a5bcc0 38%, #7b8b72 39%, #465766 100%);
+}
+
+.env-city-day {
+  background:
+    linear-gradient(180deg, #9ed3ee 0%, #d8eef3 42%, #8aa2a7 43%, #5d6a70 100%),
+    repeating-linear-gradient(90deg, rgba(42, 54, 61, 0.34) 0 46px, transparent 46px 86px);
+}
+
+.env-city-rain {
+  background:
+    repeating-linear-gradient(110deg, rgba(255, 255, 255, 0.52) 0 2px, transparent 2px 18px),
+    linear-gradient(180deg, #647f8f 0%, #b5c4c6 40%, #657077 41%, #424b53 100%);
+}
+
+.env-scenic-day {
+  background:
+    radial-gradient(circle at 78% 18%, #ffe080 0 50px, transparent 51px),
+    linear-gradient(180deg, #83caed 0%, #ccebdc 40%, #75a94f 41%, #4e7e42 100%);
+}
+
+.env-snow-day {
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.95) 0 4px, transparent 5px),
+    radial-gradient(circle at 52% 26%, rgba(255, 255, 255, 0.9) 0 3px, transparent 4px),
+    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.9) 0 5px, transparent 6px),
+    linear-gradient(180deg, #b7d8e8 0%, #e7f0f4 45%, #eff3f5 46%, #b6c3c8 100%);
+}
+
+.cabin-overlay {
+  position: relative;
+  display: grid;
+  height: calc(100% - 28px);
+  grid-template-rows: auto auto 1fr;
+  gap: 10px;
+  padding: 28px;
+  min-height: 0;
+}
+
+.scene-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.scene-badges span {
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: #17212a;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 10px 28px rgba(20, 34, 44, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.cabin-decision-card {
+  width: min(720px, 100%);
+  margin-top: 28px;
+  justify-self: start;
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 14px 30px rgba(20, 34, 44, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.car-cabin {
+  position: relative;
+  align-self: center;
+  justify-self: center;
+  width: 420px;
+  aspect-ratio: 0.75;
+  margin: 0;
+  border: 3px solid rgba(32, 39, 49, 0.42);
+  border-radius: 76px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 243, 0.88)),
+    radial-gradient(circle at 50% 15%, rgba(108, 155, 180, 0.12), transparent 34%);
+  box-shadow:
+    inset 0 0 0 14px rgba(255, 255, 255, 0.4),
+    0 22px 50px rgba(28, 43, 50, 0.22);
+}
+
+.car-cabin::before {
+  position: absolute;
+  inset: 9% 13% 18%;
+  content: "";
+  border: 2px dashed rgba(32, 39, 49, 0.12);
+  border-radius: 44px;
+}
+
+.seat {
+  position: absolute;
+  width: 27%;
+  aspect-ratio: 1;
+  border: 2px solid rgba(32, 39, 49, 0.28);
+  border-radius: 10px;
+  color: var(--ink);
+  cursor: default;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 12px 24px rgba(28, 42, 48, 0.12);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.seat.correct {
+  border-color: #6ba52c;
+  background: rgba(244, 255, 232, 0.96);
+  box-shadow:
+    0 0 0 7px rgba(130, 197, 61, 0.34),
+    0 0 26px rgba(130, 197, 61, 0.58),
+    0 12px 24px rgba(28, 42, 48, 0.12);
+}
+
+.seat.sleeping {
+  filter: saturate(0.55);
+  opacity: 0.82;
+}
+
+.seat-laughing {
+  animation: laugh 650ms ease 2;
+}
+
+.seat.activity-thinking,
+.seat.activity-answering,
+.seat.activity-asking,
+.seat.activity-listening,
+.seat.activity-acting {
+  border-color: rgba(75, 126, 156, 0.72);
+  background: rgba(239, 249, 255, 0.94);
+  box-shadow:
+    0 0 0 5px rgba(111, 174, 207, 0.16),
+    0 12px 24px rgba(28, 42, 48, 0.12);
+}
+
+.seat.activity-celebrating {
+  border-color: rgba(107, 165, 44, 0.82);
+  background: rgba(245, 255, 232, 0.96);
+  animation: passenger-celebrate 520ms ease 2;
+}
+
+.seat-rear-left {
+  top: 20%;
+  left: 18%;
+}
+
+.seat-rear-right {
+  top: 20%;
+  right: 18%;
+}
+
+.seat-front {
+  bottom: 16%;
+  left: 18%;
+}
+
+.seat-driver {
+  right: 18%;
+  bottom: 16%;
+}
+
+.seat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 24px;
+}
+
+.seat small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.avatar {
+  position: relative;
+  display: block;
+  width: 38%;
+  aspect-ratio: 1;
+  margin: 12% auto 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 36% 40%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 68%, #b55d5a 0 7px, transparent 8px),
+    linear-gradient(180deg, #f1c7a9 0 72%, #507b9d 73%);
+}
+
+.avatar::after {
+  position: absolute;
+  right: -8px;
+  bottom: -7px;
+  display: none;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(24, 36, 44, 0.18);
+}
+
+.avatar.friends {
+  background:
+    radial-gradient(circle at 50% 42%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 36% 40%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 68%, #b55d5a 0 7px, transparent 8px),
+    linear-gradient(180deg, #efc39c 0 72%, #d47b56 73%);
+}
+
+.avatar.elder {
+  background:
+    radial-gradient(circle at 50% 42%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 36% 40%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 68%, #8f5652 0 6px, transparent 7px),
+    linear-gradient(180deg, #e8c3a7 0 72%, #7d8790 73%);
+}
+
+.avatar.laugh {
+  background:
+    radial-gradient(ellipse at 50% 67%, #9d3d39 0 12px, transparent 13px),
+    radial-gradient(circle at 36% 40%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 58% 40%, #28323c 0 3px, transparent 4px),
+    linear-gradient(180deg, #f1c7a9 0 72%, #507b9d 73%);
+}
+
+.avatar.laugh::after {
+  display: flex;
+  content: "笑";
+  background: #d45d4f;
+}
+
+.avatar.quiet {
+  background:
+    linear-gradient(90deg, transparent 42%, #28323c 42% 58%, transparent 58%) 50% 65% / 26px 3px
+      no-repeat,
+    radial-gradient(circle at 36% 42%, #28323c 0 3px, transparent 4px),
+    radial-gradient(circle at 58% 42%, #28323c 0 3px, transparent 4px),
+    linear-gradient(180deg, #f1c7a9 0 72%, #507b9d 73%);
+}
+
+.avatar.quiet::after {
+  display: flex;
+  content: "静";
+  background: #6d7884;
+}
+
+.avatar.tired {
+  background:
+    linear-gradient(90deg, transparent 28%, #28323c 28% 42%, transparent 42% 58%, #28323c 58% 72%, transparent 72%)
+      50% 44% / 34px 3px no-repeat,
+    radial-gradient(ellipse at 50% 68%, #8f5652 0 5px, transparent 6px),
+    linear-gradient(180deg, #e8c3a7 0 72%, #7d8790 73%);
+}
+
+.avatar.tired::after {
+  display: flex;
+  content: "累";
+  background: #7d8790;
+}
+
+.avatar.sleep {
+  background:
+    linear-gradient(90deg, transparent 28%, #28323c 28% 42%, transparent 42% 58%, #28323c 58% 72%, transparent 72%)
+      50% 42% / 34px 3px no-repeat,
+    radial-gradient(circle at 68% 20%, rgba(76, 94, 122, 0.85) 0 4px, transparent 5px),
+    linear-gradient(180deg, #f1c7a9 0 72%, #7e8a99 73%);
+}
+
+.avatar.sleep::after {
+  display: flex;
+  content: "Zz";
+  background: #526b86;
+  font-size: 10px;
+}
+
+.avatar.activity-thinking,
+.avatar.activity-answering {
+  animation: passenger-thinking 900ms ease-in-out infinite alternate;
+}
+
+.avatar.activity-thinking::after,
+.avatar.activity-answering::after {
+  display: flex;
+  content: "?";
+  background: #4b7e9c;
+  font-size: 15px;
+}
+
+.avatar.activity-asking,
+.avatar.activity-listening {
+  box-shadow: 0 0 0 5px rgba(111, 174, 207, 0.22);
+}
+
+.avatar.activity-asking::after,
+.avatar.activity-listening::after {
+  display: flex;
+  content: "问";
+  background: #4b7e9c;
+}
+
+.avatar.activity-celebrating {
+  box-shadow: 0 0 0 6px rgba(130, 197, 61, 0.26);
+}
+
+.avatar.activity-celebrating::after {
+  display: flex;
+  content: "✓";
+  background: #6fa536;
+  font-size: 14px;
+}
+
+.speech-bubble {
+  position: absolute;
+  z-index: 3;
+  bottom: 104%;
+  left: 50%;
+  display: none;
+  width: 210px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 2px solid rgba(32, 39, 49, 0.22);
+  border-radius: 14px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14px 30px rgba(24, 36, 42, 0.14);
+  font-weight: 700;
+  line-height: 1.35;
+  transform: translateX(-50%);
+}
+
+.speech-bubble.visible {
+  display: block;
+}
+
+.right-stack {
+  order: 1;
+  display: grid;
+  grid-template-rows: 652px 1fr;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.game-region {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  color: #f9fbff;
+  background: #111117;
+}
+
+.game-screen {
+  position: relative;
+  width: 1440px;
+  height: 810px;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
+  box-shadow: 0 25px 43.75px -12px rgba(0, 0, 0, 0.25);
+  transform: scale(0.7708333333);
+  transform-origin: left top;
+  transition: background 260ms ease, box-shadow 260ms ease, filter 260ms ease;
+}
+
+.game-screen.screen-default,
+.game-screen.screen-sunny {
+  background:
+    linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
+}
+
+.game-screen.screen-night {
+  background:
+    linear-gradient(180deg, rgba(9, 14, 34, 0.48), rgba(10, 18, 42, 0.42)),
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
+  box-shadow: 0 25px 43.75px -12px rgba(8, 12, 28, 0.45);
+}
+
+.game-screen.screen-rain {
+  background:
+    linear-gradient(180deg, rgba(20, 34, 46, 0.18), rgba(20, 34, 46, 0.18)),
+    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 18px),
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
+}
+
+.game-screen.screen-snow {
+  background:
+    linear-gradient(180deg, rgba(228, 240, 255, 0.06), rgba(228, 240, 255, 0.06)),
+    radial-gradient(circle at 24% 24%, rgba(255, 255, 255, 0.72) 0 4px, transparent 5px),
+    radial-gradient(circle at 72% 20%, rgba(255, 255, 255, 0.56) 0 3px, transparent 4px),
+    url("./assets/figma-playing-background.png") center / cover no-repeat;
+}
+
+.game-screen::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(13, 10, 23, 0.2) 0%, rgba(13, 10, 23, 0.03) 33%, rgba(13, 10, 23, 0.16) 100%),
+    radial-gradient(circle at 42% 28%, rgba(255, 203, 116, 0.16), transparent 23%);
+}
+
+.pencil-game-icon {
+  position: absolute;
+  left: 31px;
+  top: 39px;
+  z-index: 4;
+  width: 47px;
+  height: 47px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: none;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.pencil-title {
+  position: absolute;
+  left: 90px;
+  top: 42px;
+  z-index: 3;
+  width: 171px;
+  height: 42px;
+  color: transparent;
+  background: linear-gradient(0deg, #fff 0%, #e1c9ed 61.199%, #d4c1dc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 31px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  line-height: 41px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.pencil-progress-rail {
+  position: absolute;
+  left: 485px;
+  top: 51px;
+  z-index: 1;
+  width: 472px;
+  height: 26px;
+}
+
+.pencil-rail-base,
+.pencil-rail-fill,
+.pencil-progress-rail .dot {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+}
+
+.pencil-rail-base {
+  left: 20px;
+  top: 8px;
+  width: 442px;
+  height: 10px;
+  background: rgba(10, 10, 10, 0.3);
+}
+
+.pencil-rail-fill {
+  left: 0;
+  top: 8px;
+  width: 166px;
+  height: 10px;
+  background: linear-gradient(90deg, #ffe175 0%, #ff95c6 33.333%, #a155d9 66.667%, #5d33a1 100%);
+}
+
+.dot-light {
+  width: 21px;
+  height: 21px;
+  background: #ffbfbf;
+  box-shadow: 0 0 8.75px rgba(255, 255, 255, 0.8);
+}
+
+.dot-light-one {
+  left: 30px;
+  top: 3px;
+}
+
+.dot-light-two {
+  left: 73px;
+  top: 3px;
+}
+
+.dot-light-three {
+  left: 119px;
+  top: 3px;
+}
+
+.dot-pink {
+  left: 163px;
+  top: 0;
+  width: 26px;
+  height: 28px;
+  background: #ff95c6;
+  box-shadow: 0 0 8.75px rgba(255, 149, 198, 0.8);
+}
+
+.dot-purple {
+  top: 5px;
+  width: 16px;
+  height: 16px;
+  background: #6d30bd;
+}
+
+.dot-one {
+  left: 218px;
+}
+
+.dot-two {
+  left: 263px;
+}
+
+.dot-three {
+  left: 308px;
+}
+
+.dot-four {
+  left: 355px;
+}
+
+.dot-five {
+  left: 402px;
+}
+
+.dot-six {
+  left: 454px;
+}
+
+.question-counter {
+  position: absolute;
+  left: 1178px;
+  top: 31px;
+  z-index: 2;
+  display: flex;
+  width: 231px;
+  height: 57px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 8px 16px;
+  color: #fff;
+  background: rgba(78, 78, 78, 0.09);
+  backdrop-filter: blur(9.625px);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.ticket-mark {
+  position: relative;
+  display: block;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 19px;
+}
+
+.ticket-mark::before {
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 29px;
+  height: 24px;
+  content: "";
+  opacity: 0.8;
+  background: #fff;
+  clip-path: polygon(8% 0, 66% 0, 66% 62%, 100% 62%, 100% 100%, 28% 100%, 28% 84%, 16% 84%, 16% 30%, 0 30%, 0 10%);
+}
+
+.question-copy {
+  color: #fff;
+  font-size: 31px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 41px;
+  white-space: nowrap;
+}
+
+.question-copy strong {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.round-pill {
+  display: none;
+}
+
+.riddle-panel {
+  position: absolute;
+  left: 83px;
+  top: 200px;
+  z-index: 6;
+  width: 793px;
+  height: 516px;
+  border-radius: 40px;
+  color: rgba(0, 0, 0, 0.75);
+  background: rgba(240, 244, 255, 0.5);
+  box-shadow: 0 10px 43.75px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(26.25px);
+}
+
+.riddle-panel::before {
+  position: absolute;
+  inset: 31px 38px 50px 39px;
+  z-index: 0;
+  content: "";
+  border-radius: 24px;
+  opacity: 0.18;
+  background: url("./assets/figma-playing-background.png") center / cover no-repeat;
+  filter: saturate(0.78) brightness(1.18);
+  pointer-events: none;
+}
+
+.riddle-ribbon {
+  position: absolute;
+  left: 162px;
+  top: -40px;
+  z-index: 3;
+  width: 468px;
+  height: 113px;
+}
+
+.riddle-ribbon svg {
+  position: absolute;
+  left: 0;
+  top: 21px;
+  width: 468px;
+  height: 74px;
+  overflow: visible;
+}
+
+.riddle-ribbon path {
+  fill: #633b99;
+}
+
+.riddle-ribbon span {
+  position: absolute;
+  left: 35px;
+  top: 4px;
+  display: flex;
+  width: 400px;
+  height: 108px;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 3.1px;
+  line-height: 42px;
+  text-align: center;
+}
+
+.riddle-panel h1 {
+  position: absolute;
+  left: 74px;
+  top: 123px;
+  display: flex;
+  width: 645px;
+  height: 240px;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  color: rgba(0, 0, 0, 0.75);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  line-height: 80px;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.riddle-panel p,
+.clue-tags,
+.hint-credit,
+.game-mode,
+.game-topbar {
+  display: none;
+}
+
+.answer-reveal {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: 90px;
+  z-index: 3;
+  transform: translateX(-50%);
+  border: 2px solid rgba(99, 59, 153, 0.45);
+  border-radius: 999px;
+  padding: 10px 23px;
+  color: #633b99;
+  background: rgba(255, 255, 255, 0.88);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.answer-reveal.visible {
+  display: none;
+  animation: pop 260ms ease;
+}
+
+.reveal-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: none;
+  color: rgba(0, 0, 0, 0.78);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  text-align: center;
+}
+
+.reveal-stars {
+  position: absolute;
+  left: 112px;
+  top: -19px;
+  width: 538px;
+  height: 538px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 243, 152, 0.42) 0 8%, transparent 9%),
+    radial-gradient(circle at 32% 38%, rgba(255, 246, 177, 0.5) 0 2%, transparent 4%),
+    radial-gradient(circle at 71% 30%, rgba(255, 246, 177, 0.42) 0 1.5%, transparent 3.5%),
+    radial-gradient(circle at 50% 50%, rgba(179, 106, 255, 0.34), transparent 45%);
+  filter: blur(0.3px);
+  opacity: 0.92;
+  mix-blend-mode: screen;
+}
+
+.reveal-kicker {
+  position: absolute;
+  left: 347px;
+  top: 133px;
+  width: 146px;
+  height: 59px;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 59px;
+}
+
+.reveal-answer-text {
+  position: absolute;
+  left: 316px;
+  top: 199px;
+  width: 200px;
+  height: 97px;
+  color: #1f2937;
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 97px;
+  white-space: nowrap;
+}
+
+.reveal-answer-text::before {
+  position: absolute;
+  left: -92px;
+  top: -38px;
+  z-index: -1;
+  width: 344px;
+  height: 168px;
+  content: "";
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at center, rgba(255, 246, 158, 0.8), rgba(255, 212, 91, 0.34) 42%, transparent 70%);
+  filter: blur(10px);
+}
+
+.reveal-seat-line {
+  position: absolute;
+  left: 265px;
+  top: 371px;
+  display: inline-grid;
+  min-width: 281px;
+  height: 58px;
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 58px;
+}
+
+.reveal-seat-line strong {
+  color: #6e42ad;
+  font-weight: 800;
+}
+
+.host-bubble {
+  position: absolute;
+  left: 916px;
+  top: 155px;
+  z-index: 6;
+  display: flex;
+  width: 494px;
+  height: 167px;
+  align-items: flex-start;
+  border-radius: 40px;
+  padding: 22px 40px;
+  color: #1f2937;
+  background: #fff;
+  box-shadow: 0 8px 21px rgba(0, 0, 0, 0.15);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 52px;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  transition:
+    top 180ms ease,
+    height 180ms ease,
+    font-size 180ms ease,
+    line-height 180ms ease;
+}
+
+.host-bubble-text {
+  display: block;
+  width: 100%;
+}
+
+.host-bubble.medium-text {
+  top: 132px;
+  height: 190px;
+  padding-top: 24px;
+  font-size: 30px;
+  line-height: 44px;
+}
+
+.host-bubble.long-text {
+  top: 102px;
+  height: 220px;
+  padding-top: 26px;
+  font-size: 26px;
+  line-height: 38px;
+}
+
+.host-bubble.long-text .host-bubble-text {
+  display: -webkit-box;
+  max-height: 152px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.host-bubble.thinking {
+  justify-content: center;
+  align-items: center;
+  color: #633b99;
+  background:
+    radial-gradient(circle at calc(50% - 67px) 50%, rgba(149, 73, 228, 0.95) 0 6px, transparent 7px),
+    radial-gradient(circle at 50% 50%, rgba(149, 73, 228, 0.72) 0 6px, transparent 7px),
+    radial-gradient(circle at calc(50% + 67px) 50%, rgba(149, 73, 228, 0.48) 0 6px, transparent 7px),
+    rgba(255, 255, 255, 0.95);
+  animation: host-thinking-pulse 900ms ease-in-out infinite alternate;
+}
+
+.host-bubble.thinking::before {
+  content: "AI 思考中";
+  margin-left: 126px;
+  font-size: 23px;
+  opacity: 0.78;
+}
+
+.host-bubble.thinking .host-bubble-text {
+  display: none;
+}
+
+.host-bubble::after {
+  position: absolute;
+  left: 87px;
+  top: calc(100% - 1px);
+  width: 57px;
+  height: 51px;
+  content: "";
+  background: #fff;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.host-avatar {
+  position: absolute;
+  left: 922px;
+  top: 287px;
+  z-index: 0;
+  display: block;
+  width: 440px;
+  height: 605px;
+  margin: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.host-avatar img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 440px;
+  height: 605px;
+  max-width: none;
+  object-fit: cover;
+  object-position: center top;
+  filter: none;
+  transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
+}
+
+.host-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.host-avatar video {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 440px;
+  height: 605px;
+  max-width: none;
+  object-fit: cover;
+  object-position: center top;
+  filter: none;
+  transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
+}
+
+.host-avatar img[hidden],
+.host-avatar video[hidden] {
+  display: none;
+}
+
+.host-avatar.thinking img {
+  animation: passenger-thinking 800ms ease-in-out infinite alternate;
+}
+
+.host-avatar.thinking video {
+  animation: none;
+}
+
+.host-avatar[data-avatar-state="smile"] img,
+.host-avatar[data-avatar-state="smile"] video {
+  filter: brightness(1.04) saturate(1.06) drop-shadow(0 0 18px rgba(255, 237, 165, 0.18));
+}
+
+.host-avatar[data-avatar-state="awkward"] img,
+.host-avatar[data-avatar-state="awkward"] video {
+  filter: saturate(0.92) hue-rotate(-4deg) drop-shadow(0 0 14px rgba(255, 189, 189, 0.14));
+}
+
+.host-avatar[data-avatar-state="excited"] img,
+.host-avatar[data-avatar-state="excited"] video {
+  transform: translateY(-3px) scale(1.015);
+  filter: brightness(1.03) saturate(1.08) drop-shadow(0 0 22px rgba(255, 234, 127, 0.28));
+}
+
+.host-avatar.thinking[data-avatar-state] img,
+.host-avatar.thinking[data-avatar-state] video {
+  transform: none;
+  filter: none;
+}
+
+.remaining-questions {
+  position: absolute;
+  left: 300px;
+  top: 413px;
+  z-index: 2;
+  color: #fff;
+  filter: drop-shadow(0 0 0.438px rgba(0, 0, 0, 0.3));
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  line-height: 42px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.summary-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: none;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #20242b;
+}
+
+.summary-title-asset {
+  position: absolute;
+  left: 201px;
+  top: 21px;
+  width: 625px;
+  height: 196px;
+  object-fit: contain;
+}
+
+.summary-light {
+  position: absolute;
+  left: 231px;
+  top: 363px;
+  width: 621px;
+  height: 347px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 76%, rgba(255, 238, 117, 0.46), transparent 36%),
+    radial-gradient(ellipse at 50% 42%, rgba(151, 92, 255, 0.26), transparent 54%);
+  filter: blur(10px);
+  mix-blend-mode: screen;
+}
+
+.summary-stats {
+  position: absolute;
+  left: 250px;
+  top: 281px;
+  z-index: 2;
+  width: 528px;
+  height: 53px;
+  color: rgba(0, 0, 0, 0.78);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 53px;
+  text-align: center;
+  white-space: pre;
+}
+
+.summary-mvp-asset {
+  position: absolute;
+  left: 419px;
+  top: 351px;
+  z-index: 2;
+  width: 210px;
+  height: 107px;
+  object-fit: contain;
+}
+
+.summary-mvp-name {
+  position: absolute;
+  left: 450px;
+  top: 452px;
+  z-index: 3;
+  width: 139px;
+  height: 43px;
+  color: #6d3eb2;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 43px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.summary-continue {
+  position: absolute;
+  left: 232px;
+  top: 633px;
+  z-index: 4;
+  width: 573px;
+  height: 157px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.summary-continue img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.screen-reveal .riddle-panel h1,
+.screen-reveal .remaining-questions {
+  display: none;
+}
+
+.screen-reveal .reveal-stage {
+  display: block;
+}
+
+.screen-summary .pencil-game-icon,
+.screen-summary .pencil-title,
+.screen-summary .pencil-progress-rail,
+.screen-summary .question-counter,
+.screen-summary .round-pill,
+.screen-summary .riddle-panel {
+  display: none;
+}
+
+.screen-summary .summary-stage {
+  display: block;
+}
+
+.screen-summary .host-bubble {
+  top: 155px;
+  height: 167px;
+  padding: 22px 40px;
+  font-size: 28px;
+  line-height: 43px;
+}
+
+.screen-summary .host-bubble.medium-text,
+.screen-summary .host-bubble.long-text {
+  top: 135px;
+  height: 187px;
+  font-size: 25px;
+  line-height: 38px;
+}
+
+.screen-summary .host-bubble.long-text .host-bubble-text {
+  max-height: 152px;
+}
+
+/* Figma mosaic layer sits behind the glass panel so the blur remains effective. */
+.riddle-mosaic {
+  position: absolute;
+  left: 122px;
+  top: 231px;
+  z-index: 5;
+  width: 716px;
+  height: 435px;
+  opacity: 0.5;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.screen-reveal .riddle-mosaic {
+  content: url("./assets/figma-reveal-mosaic.png");
+}
+
+.screen-summary .riddle-mosaic {
+  display: none;
+}
+
+.remaining-questions strong {
+  color: #fff;
+  font-size: 26px;
+}
+
+.control-region {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 6px;
+  overflow: hidden;
+  border-top: 1px solid rgba(32, 39, 49, 0.12);
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.48), transparent 22%),
+    #dceacd;
+  padding: 0 24px 12px;
+}
+
+.control-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+
+.scenario-meta {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.scenario-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.scenario-line strong {
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.deploy-status {
+  margin: 0;
+  color: rgba(38, 48, 42, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.control-label {
+  font-size: 15px;
+  font-weight: 950;
+}
+
+input,
+select {
+  min-height: 34px;
+  border: 2px solid rgba(32, 39, 49, 0.22);
+  border-radius: 10px;
+  padding: 0 14px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.82);
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--green-dark);
+  box-shadow: 0 0 0 4px rgba(127, 178, 60, 0.18);
+}
+
+.ghost-button,
+.reset-button,
+#startTimeline,
+#sendQuestion {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 18px;
+  color: white;
+  background: #111817;
+  font-weight: 950;
+}
+
+.primary-start {
+  min-width: 150px;
+  min-height: 88px;
+  border: 2px solid rgba(32, 39, 49, 0.3);
+  border-radius: 8px;
+  color: #981f37;
+  background: rgba(255, 255, 255, 0.94);
+  font-size: 23px;
+  font-weight: 950;
+}
+
+.ghost-button {
+  color: #26302a;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(32, 39, 49, 0.18);
+}
+
+.prestart-panel {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  align-content: center;
+  gap: 26px;
+}
+
+.prestart-panel p {
+  margin: 0;
+  color: #b02137;
+  font-size: 19px;
+  font-weight: 950;
+}
+
+#sendQuestion {
+  background: var(--green-dark);
+}
+
+.decision-card {
+  min-width: 0;
+  border: 2px solid rgba(32, 39, 49, 0.12);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.panel-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.decision-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.decision-card div {
+  min-width: 0;
+}
+
+.decision-card dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.decision-card dd {
+  margin: 2px 0 0;
+  color: #263545;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.control-grid {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.environment-row {
+  grid-template-columns: 82px 1fr;
+  align-items: start;
+}
+
+.control-row:last-child {
+  grid-template-columns: 82px 1fr;
+}
+
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip,
+.event-button {
+  min-height: 29px;
+  border: 2px solid rgba(32, 39, 49, 0.24);
+  border-radius: 9px;
+  padding: 0 8px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.chip.active {
+  border-color: rgba(73, 125, 30, 0.52);
+  color: white;
+  background: var(--green);
+}
+
+.event-button {
+  color: white;
+  background: #516477;
+}
+
+.event-button.danger {
+  background: var(--danger);
+}
+
+.event-button.danger:disabled {
+  opacity: 0.78;
+}
+
+.destination-input {
+  width: 80px;
+}
+
+.ask-bar {
+  display: grid;
+  grid-template-columns: 86px 1fr auto;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.fixed-speaker {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border: 2px solid rgba(32, 39, 49, 0.22);
+  border-radius: 10px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.82);
+  font-weight: 950;
+}
+
+.ask-bar input {
+  min-width: 0;
+}
+
+.control-ask-bar {
+  align-self: end;
+  border: 2px solid rgba(255, 255, 255, 0.52);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 16px 32px rgba(20, 34, 44, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+body:not(.has-started) .control-grid,
+body:not(.has-started) .control-ask-bar,
+body:not(.has-started) #pauseTimeline,
+body:not(.has-started) #resetScenario {
+  display: none;
+}
+
+body.has-started #switchScenario,
+body.has-started .prestart-panel {
+  display: none;
+}
+
+.is-paused .car-cabin {
+  box-shadow:
+    inset 0 0 0 14px rgba(255, 255, 255, 0.4),
+    0 0 0 12px rgba(212, 93, 82, 0.2),
+    0 22px 50px rgba(28, 43, 50, 0.22);
+}
+
+.is-victory .game-region {
+  background: #111117;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.92);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes laugh {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+  70% {
+    transform: translateY(-2px) rotate(2deg);
+  }
+}
+
+@keyframes passenger-thinking {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes host-thinking-pulse {
+  from {
+    box-shadow: 0 16px 34px rgba(38, 56, 64, 0.12);
+  }
+
+  to {
+    box-shadow:
+      0 16px 34px rgba(38, 56, 64, 0.12),
+      0 0 0 6px rgba(80, 123, 157, 0.12);
+  }
+}
+
+@keyframes passenger-celebrate {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+/* Figma Page 1 fidelity layer: all coordinates use the 1440 x 810 game canvas. */
+.game-screen {
+  background-image: url("./assets/figma-playing-background.png");
+  background-position: center;
+  background-size: cover;
+}
+
+.screen-reveal {
+  background-image: url("./assets/figma-reveal-background.png");
+}
+
+.screen-reveal .pencil-game-icon img {
+  content: url("./assets/figma-reveal-game-icon.png");
+}
+
+.screen-reveal .ticket-mark img {
+  content: url("./assets/figma-reveal-question-icon.svg");
+}
+
+.screen-reveal .riddle-ribbon > img {
+  content: url("./assets/figma-reveal-ribbon.svg");
+}
+
+.screen-reveal .host-bubble-tail {
+  content: url("./assets/figma-reveal-bubble-tail.svg");
+}
+
+.screen-summary {
+  background-image: url("./assets/figma-summary-background.png");
+}
+
+.screen-summary .host-bubble-tail {
+  content: url("./assets/figma-summary-bubble-tail.svg");
+}
+
+.game-screen::before {
+  display: none;
+}
+
+.pencil-game-icon {
+  background: none;
+}
+
+.pencil-game-icon img {
+  display: block;
+  width: 47px;
+  height: 47px;
+  object-fit: cover;
+}
+
+.ticket-mark::before {
+  display: none;
+}
+
+.ticket-mark img {
+  display: block;
+  width: 29px;
+  height: 24px;
+  margin: 1px 0 0 4px;
+}
+
+.riddle-panel {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(240, 244, 255, 0.5);
+  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(30px);
+}
+
+.riddle-panel::before {
+  inset: auto;
+  left: 39px;
+  top: 31px;
+  width: 716px;
+  height: 435px;
+  border-radius: 0;
+  opacity: 0.5;
+  background: url("./assets/figma-playing-mosaic.png") center / cover no-repeat;
+  filter: none;
+}
+
+.screen-reveal .riddle-panel::before {
+  background-image: url("./assets/figma-reveal-mosaic.png");
+}
+
+.riddle-ribbon {
+  overflow: visible;
+}
+
+.riddle-ribbon svg {
+  display: none;
+}
+
+.riddle-ribbon > img {
+  position: absolute;
+  left: -20px;
+  top: 5px;
+  width: 508px;
+  height: 114px;
+  max-width: none;
+}
+
+.riddle-ribbon span {
+  left: 0;
+  top: 15px;
+  width: 468px;
+  height: 42px;
+  line-height: 42px;
+}
+
+.remaining-questions {
+  top: 412px;
+  font-size: 25px;
+  line-height: 32px;
+}
+
+.remaining-questions strong {
+  font-size: 32px;
+  color: #facc15;
+}
+
+.host-bubble {
+  box-shadow: 0 8px 10.5px rgba(0, 0, 0, 0.15);
+}
+
+.host-bubble::after {
+  display: none;
+}
+
+.host-bubble-tail {
+  position: absolute;
+  left: 87px;
+  top: 167px;
+  display: block;
+  width: 57px;
+  height: 51px;
+  pointer-events: none;
+}
+
+.reveal-ring {
+  position: absolute;
+  left: 224px;
+  top: 158px;
+  width: 344px;
+  height: 168px;
+  object-fit: fill;
+  opacity: 0.4;
+}
+
+.reveal-stars {
+  left: 111px;
+  top: -20px;
+  width: 538px;
+  height: 538px;
+  object-fit: fill;
+  background: none;
+  filter: none;
+  opacity: 0.6;
+  mix-blend-mode: normal;
+}
+
+.reveal-kicker {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.reveal-answer-text {
+  color: #633b99;
+  text-shadow: 0 4px 70px #fff;
+}
+
+.reveal-answer-text::before {
+  display: none;
+}
+
+.reveal-seat-line {
+  left: 264px;
+  top: 370px;
+  width: 281px;
+  min-width: 0;
+  background: rgba(215, 188, 251, 0.3);
+}
+
+.reveal-seat-line strong {
+  color: #facc15;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+}
+
+.reveal-seat-line span {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.summary-stage::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12.5px);
+}
+
+.summary-stage > * {
+  position: absolute;
+  z-index: 1;
+}
+
+.summary-beam-right {
+  left: 937px;
+  top: -435px;
+  width: 1064px;
+  height: 1064px;
+  object-fit: fill;
+}
+
+.summary-beam-left {
+  left: -505px;
+  top: -284px;
+  width: 942px;
+  height: 942px;
+  object-fit: fill;
+}
+
+.summary-mosaic {
+  left: 55px;
+  top: 109px;
+  width: 917px;
+  height: 601px;
+  object-fit: fill;
+}
+
+.summary-light-ring {
+  left: 256px;
+  top: 156px;
+  width: 536px;
+  height: 536px;
+  object-fit: fill;
+  opacity: 0.5;
+}
+
+.summary-light-base {
+  left: 231px;
+  top: 363px;
+  width: 621px;
+  height: 347px;
+  object-fit: fill;
+}
+
+.summary-bright-light {
+  left: 327px;
+  top: 176px;
+  width: 388px;
+  height: 517px;
+  object-fit: fill;
+  opacity: 0.4;
+}
+
+.summary-confetti {
+  left: -20px;
+  top: -190px;
+  width: 1489px;
+  height: 1489px;
+  object-fit: fill;
+}
+
+.summary-title-asset {
+  left: 231px;
+  top: 51px;
+  width: 565px;
+  height: 136px;
+  object-fit: fill;
+  filter: drop-shadow(0 4px 30px #4f2c69);
+}
+
+.summary-stats {
+  left: 250px;
+  top: 281px;
+  width: 528px;
+  height: 53px;
+  display: block;
+  color: #fff;
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 53px;
+  text-align: left;
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.summary-stats strong {
+  margin: 0 8px;
+  color: transparent;
+  background: linear-gradient(90deg, #facc15 0%, #f0c863 31.731%, #facc15 65.865%, #ffeb9a 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 53px;
+}
+
+.summary-gap {
+  display: inline-block;
+  width: 42px;
+}
+
+.summary-mvp-asset {
+  left: 419px;
+  top: 351px;
+  width: 209px;
+  height: 106px;
+  object-fit: fill;
+}
+
+.summary-mvp-name {
+  left: 450px;
+  top: 451px;
+  width: 139px;
+  height: 43px;
+  color: transparent;
+  background: linear-gradient(90deg, #facc15 0%, #f5e9b8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 43px;
+  text-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.summary-continue {
+  left: 257px;
+  top: 658px;
+  width: 523px;
+  height: 107px;
+  filter: drop-shadow(0 2px 25px #6d30bd);
+}
+
+.summary-continue img {
+  width: 523px;
+  height: 107px;
+  object-fit: fill;
+}
+
+.screen-summary .host-avatar {
+  z-index: 7;
+}
+
+.screen-summary .host-bubble {
+  z-index: 8;
+}
+
+/* Last-order overrides: keep these after the Figma coordinate layer. */
+.riddle-panel {
+  isolation: isolate;
+  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
+}
+
+.riddle-panel::before {
+  display: none;
+}
+
+.riddle-ribbon span {
+  top: 16px;
+  height: 42px;
+  align-items: center;
+  line-height: 42px;
+}
+
+.reveal-kicker,
+.reveal-answer-text {
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.reveal-answer-text {
+  -webkit-text-stroke: 5px rgba(255, 255, 255, 0.92);
+  paint-order: stroke fill;
+  text-shadow:
+    0 4px 70px rgba(255, 255, 255, 0.95),
+    0 0 2px rgba(255, 255, 255, 0.95);
+}
+
+.summary-stage::before {
+  -webkit-backdrop-filter: blur(12.5px);
+  backdrop-filter: blur(12.5px);
+}
+
+.summary-stats {
+  letter-spacing: 1.5px;
+}
+
+.summary-stats strong {
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+}
+
+.summary-mvp-name {
+  text-align: center;
+  -webkit-text-fill-color: transparent;
+}
+
+.host-bubble {
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: break-all;
+}
+
+.host-bubble-text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.host-bubble.medium-text .host-bubble-text {
+  display: -webkit-box;
+  max-height: 132px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.host-bubble.medium-text .host-bubble-tail {
+  top: 190px;
+}
+
+.host-bubble.long-text .host-bubble-tail {
+  top: 220px;
+}
+
+.screen-summary .host-bubble.medium-text .host-bubble-tail,
+.screen-summary .host-bubble.long-text .host-bubble-tail {
+  top: 187px;
+}
+
+.host-avatar.thinking img {
+  animation: none;
+}
+
+/* Game preparation state from Figma node 134:45. */
+.ready-stage {
+  display: none;
+}
+
+.screen-ready {
+  background-image: url("./assets/figma-ready-background.png");
+}
+
+.screen-ready::before {
+  display: block;
+  z-index: 0;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(12.5px);
+  backdrop-filter: blur(12.5px);
+}
+
+.screen-ready .pencil-game-icon,
+.screen-ready .pencil-title,
+.screen-ready .pencil-progress-rail,
+.screen-ready .question-counter,
+.screen-ready .round-pill,
+.screen-ready .riddle-panel,
+.screen-ready .summary-stage {
+  display: none;
+}
+
+.screen-ready .ready-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+}
+
+.ready-stage > img,
+.ready-stage > button {
+  position: absolute;
+}
+
+.ready-beam-right {
+  left: 937px;
+  top: -435px;
+  width: 1064px;
+  height: 1064px;
+  object-fit: fill;
+}
+
+.ready-ring-mosaic {
+  left: 0;
+  top: 34px;
+  width: 1458px;
+  height: 820px;
+  opacity: 0.4;
+  object-fit: fill;
+}
+
+.ready-panel-mosaic {
+  left: 152px;
+  top: 242px;
+  width: 641px;
+  height: 420px;
+  object-fit: fill;
+}
+
+.ready-beam-left {
+  left: -505px;
+  top: -284px;
+  width: 942px;
+  height: 942px;
+  object-fit: fill;
+}
+
+.ready-logo {
+  left: 202px;
+  top: 123px;
+  width: 641px;
+  height: 219px;
+  object-fit: fill;
+}
+
+.ready-rules {
+  position: absolute;
+  left: 167px;
+  top: 360px;
+  width: 693px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  line-height: 62px;
+  text-align: center;
+}
+
+.ready-rules p {
+  margin: 0;
+}
+
+.ready-rules span {
+  color: #facc15;
+}
+
+.ready-start-button {
+  left: 252px;
+  top: 603px;
+  width: 523px;
+  height: 107px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  filter: drop-shadow(0 2px 25px #6d30bd);
+}
+
+.ready-start-button img,
+.summary-continue img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.ready-start-button span,
+.summary-continue span {
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 100%;
+  height: 80px;
+  color: #fff;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  line-height: 80px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.screen-ready .host-avatar {
+  z-index: 7;
+}
+
+.screen-ready .host-bubble {
+  z-index: 8;
+  height: 167px;
+  padding: 32px;
+  font-size: 36px;
+  line-height: 43px;
+}
+
+.screen-ready .host-bubble-text {
+  width: 418px;
+  margin-left: 8px;
+}
+
+.summary-continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.summary-continue span {
+  z-index: 1;
+}
+
+/* Final Figma adjustments for the preparation page and shared host bubbles. */
+.screen-ready::before {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.ready-beam-right {
+  transform: rotate(180deg) scaleY(-1);
+  transform-origin: center;
+}
+
+.ready-panel-mosaic {
+  left: 96px;
+  top: 165px;
+  width: 764px;
+  height: 501px;
+  opacity: 0.5;
+}
+
+.ready-logo {
+  left: 193px;
+  top: 124px;
+  box-shadow: none;
+  filter: drop-shadow(4px 4px 30px rgba(0, 0, 0, 0.6));
+}
+
+.ready-rules {
+  top: 373px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 30px;
+  line-height: 55px;
+  text-shadow: 0 0 100px rgba(0, 0, 0, 0.6);
+}
+
+.ready-start-button {
+  filter: none;
+}
+
+.summary-continue {
+  filter: none;
+}
+
+.ready-start-button img,
+.summary-continue img {
+  filter: drop-shadow(0 2px 30px #6d30bd);
+}
+
+/* The Figma bubble tail is a 26 x 21 white inner icon inside a larger wrapper. */
+.host-bubble-tail {
+  display: none;
+}
+
+.host-bubble::after {
+  display: block;
+  position: absolute;
+  left: 103px;
+  top: calc(100% - 1px);
+  width: 26px;
+  height: 21px;
+  content: "";
+  background: #fff;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  z-index: 2;
+}

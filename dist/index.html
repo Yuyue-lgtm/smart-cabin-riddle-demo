@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能座舱 AI 猜谜 Demo</title>
+    <link rel="stylesheet" href="./styles.css?v=20260721-57fc014" />
+  </head>
+  <body>
+    <div class="stage-viewport">
+      <main class="app-shell" id="appShell">
+        <section class="cabin-region" aria-label="虚拟座舱">
+        <div class="region-title">座舱&环境模拟</div>
+        <div class="environment-backdrop" id="environmentBackdrop"></div>
+        <div class="cabin-overlay">
+          <div class="scene-badges">
+            <span id="environmentLabel">高速路晴天白天</span>
+            <span id="speedLabel">50 km/h</span>
+            <span id="destinationLabel">目的地：公司</span>
+          </div>
+          <div class="decision-card cabin-decision-card">
+            <span class="panel-kicker">融合决策</span>
+            <dl>
+              <div>
+                <dt>感知</dt>
+                <dd id="decisionPerception">等待座舱事件</dd>
+              </div>
+              <div>
+                <dt>决策</dt>
+                <dd id="decisionDecision">等待 Workflow 判断</dd>
+              </div>
+              <div>
+                <dt>执行</dt>
+                <dd id="decisionExecution">等待网页动作</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="car-cabin">
+            <button class="seat seat-rear-left" data-seat="rearLeft" type="button">
+              <span class="speech-bubble" data-bubble="rearLeft"></span>
+              <span class="avatar" data-avatar="rearLeft"></span>
+              <strong>后排左</strong>
+              <small data-seat-status="rearLeft">普通</small>
+            </button>
+            <button class="seat seat-rear-right" data-seat="rearRight" type="button">
+              <span class="speech-bubble" data-bubble="rearRight"></span>
+              <span class="avatar" data-avatar="rearRight"></span>
+              <strong>后排右</strong>
+              <small data-seat-status="rearRight">普通</small>
+            </button>
+            <button class="seat seat-front" data-seat="front" type="button">
+              <span class="speech-bubble" data-bubble="front"></span>
+              <span class="avatar" data-avatar="front"></span>
+              <strong>副驾</strong>
+              <small data-seat-status="front">普通</small>
+            </button>
+            <button class="seat seat-driver" data-seat="driver" type="button">
+              <span class="speech-bubble" data-bubble="driver"></span>
+              <span class="avatar" data-avatar="driver"></span>
+              <strong>主驾</strong>
+              <small data-seat-status="driver">普通</small>
+            </button>
+          </div>
+        </div>
+        </section>
+
+        <section class="right-stack">
+          <section class="game-region" aria-label="游戏界面">
+          <div class="region-title">中控屏</div>
+          <div class="game-screen" id="gameScreen">
+            <div class="pencil-game-icon" aria-hidden="true">
+              <img src="./assets/figma-playing-game-icon.png" alt="" />
+            </div>
+            <div class="pencil-title" aria-hidden="true">旅途猜谜</div>
+            <div class="pencil-progress-rail" aria-hidden="true">
+              <span class="pencil-rail-base"></span>
+              <span class="pencil-rail-fill"></span>
+              <i class="dot dot-light dot-light-one"></i>
+              <i class="dot dot-light dot-light-two"></i>
+              <i class="dot dot-light dot-light-three"></i>
+              <i class="dot dot-pink"></i>
+              <i class="dot dot-purple dot-one"></i>
+              <i class="dot dot-purple dot-two"></i>
+              <i class="dot dot-purple dot-three"></i>
+              <i class="dot dot-purple dot-four"></i>
+              <i class="dot dot-purple dot-five"></i>
+              <i class="dot dot-purple dot-six"></i>
+            </div>
+            <div class="question-counter">
+              <span class="ticket-mark" aria-hidden="true">
+                <img src="./assets/figma-playing-question-icon.svg" alt="" />
+              </span>
+              <span class="question-copy"><strong id="questionProgress">0 / 15</strong> 题</span>
+            </div>
+
+            <span class="round-pill" aria-hidden="true">进度 <b id="roundProgress">1/10</b></span>
+
+              <img class="riddle-mosaic" src="./assets/figma-playing-mosaic.png" alt="" aria-hidden="true" />
+              <div class="riddle-panel">
+                <div class="riddle-ribbon" aria-hidden="true">
+                <img src="./assets/figma-playing-ribbon.svg" alt="" />
+                <span id="stageLabel">准备开局</span>
+              </div>
+              <h1 id="riddleTitle">游戏待开始</h1>
+              <p id="riddleHint"></p>
+              <div class="answer-reveal" id="answerReveal">谜底：雨伞</div>
+              <div class="reveal-stage" aria-live="polite">
+                <img class="reveal-ring" src="./assets/figma-reveal-light-ring.png" alt="" aria-hidden="true" />
+                <img class="reveal-stars" src="./assets/figma-reveal-stars.png" alt="" aria-hidden="true" />
+                <div class="reveal-kicker">答案是</div>
+                <div class="reveal-answer-text" id="revealAnswerText">雨伞</div>
+                <div class="reveal-seat-line">
+                  <strong id="revealSeatLabel">副驾</strong><span>答对了！</span>
+                </div>
+              </div>
+              <div class="remaining-questions">剩余可提问 <strong id="remainingQuestions">15</strong> 次</div>
+            </div>
+
+            <div class="summary-stage" aria-live="polite">
+              <img class="summary-beam-right" src="./assets/figma-summary-beam-right.png" alt="" aria-hidden="true" />
+              <img class="summary-beam-left" src="./assets/figma-summary-beam-right.png" alt="" aria-hidden="true" />
+              <img class="summary-mosaic" src="./assets/figma-summary-mosaic.png" alt="" aria-hidden="true" />
+              <img class="summary-light-ring" src="./assets/figma-summary-light-ring.png" alt="" aria-hidden="true" />
+              <img class="summary-light-base" src="./assets/figma-summary-light-base.png" alt="" aria-hidden="true" />
+              <img class="summary-bright-light" src="./assets/figma-summary-bright-light.png" alt="" aria-hidden="true" />
+              <img class="summary-confetti" src="./assets/figma-summary-ribbon.png" alt="" aria-hidden="true" />
+              <img class="summary-title-asset" src="./assets/figma-summary-title.png" alt="旅途战报" />
+              <div class="summary-stats" id="summaryStats"><span>完成</span><strong id="summaryTotal">10</strong><span>题</span><span class="summary-gap"></span><span>破解</span><strong id="summarySolved">7</strong><span>题</span></div>
+              <img class="summary-mvp-asset" src="./assets/figma-summary-mvp.png" alt="MVP" />
+              <div class="summary-mvp-name" id="summaryMvp">副驾</div>
+              <button class="summary-continue" id="summaryContinue" type="button" aria-label="继续挑战">
+                <img src="./assets/figma-ready-button.png" alt="" aria-hidden="true" />
+                <span>继续挑战</span>
+              </button>
+            </div>
+
+            <div class="ready-stage" aria-live="polite">
+              <img class="ready-beam-right" src="./assets/figma-ready-beam.png" alt="" aria-hidden="true" />
+              <img class="ready-ring-mosaic" src="./assets/figma-ready-ring-mosaic.png" alt="" aria-hidden="true" />
+              <img class="ready-panel-mosaic" src="./assets/figma-ready-panel-mosaic.png" alt="" aria-hidden="true" />
+              <img class="ready-beam-left" src="./assets/figma-ready-beam.png" alt="" aria-hidden="true" />
+              <img class="ready-logo" src="./assets/figma-ready-logo.png" alt="旅途猜谜" />
+              <div class="ready-rules">
+                <p>主持人藏一个谜底，</p>
+                <p>大家提问<span>“是/否”</span>的问题，</p>
+                <p>并在<span>10</span>个提问内猜出答案。</p>
+              </div>
+              <button class="ready-start-button" id="readyStartButton" type="button">
+                <img src="./assets/figma-ready-button.png" alt="" aria-hidden="true" />
+                <span>开始游戏</span>
+              </button>
+            </div>
+
+            <div class="host-avatar" id="hostAvatar">
+              <div class="host-media" id="hostMedia">
+                <video id="hostVideo" muted playsinline preload="none" poster="./assets/figma-playing-host.png" aria-hidden="true"></video>
+                <img id="hostImage" src="./assets/figma-playing-host.png" alt="AI 主持人" decoding="async" fetchpriority="high" />
+              </div>
+            </div>
+            <div class="host-bubble" id="hostBubble">
+              <span class="host-bubble-text">我已经准备好第一道题了，等你发令。</span>
+              <img class="host-bubble-tail" src="./assets/figma-playing-bubble-tail.svg" alt="" aria-hidden="true" />
+            </div>
+          </div>
+          </section>
+
+      <section class="control-region" aria-label="上帝视角控制区">
+          <div class="region-title">手动控制区</div>
+          <div class="control-header">
+            <div class="scenario-meta">
+              <div class="scenario-line">
+                <span class="control-label">场景：</span>
+                <strong id="timelineName">高速亲子出行</strong>
+              </div>
+              <p class="deploy-status" id="deployStatus">版本检查中</p>
+            </div>
+            <button class="ghost-button" id="switchScenario" type="button">场景切换</button>
+            <button class="ghost-button" id="pauseTimeline" type="button">暂停模拟</button>
+            <button class="reset-button" id="resetScenario" type="button">重置模拟</button>
+          </div>
+
+          <div class="prestart-panel" id="prestartPanel">
+            <button class="primary-start" id="startTimeline" type="button">开始模拟</button>
+            <p>点击开始模式，作为副驾参与一局15问猜谜。其他乘客会自动加入。</p>
+          </div>
+
+          <div class="control-grid">
+            <div class="control-row">
+              <span class="control-label">车速</span>
+              <div class="chip-group" id="speedChips">
+                <button class="chip active" data-speed="50" type="button">50</button>
+                <button class="chip" data-speed="80" type="button">80</button>
+                <button class="chip" data-speed="100" type="button">100</button>
+                <button class="chip" data-speed="120" type="button">120</button>
+              </div>
+            </div>
+
+            <div class="control-row environment-row">
+              <span class="control-label">车外环境</span>
+              <div class="chip-group" id="environmentChips">
+                <button class="chip active" data-environment="高速路晴天白天" type="button">高速路晴天白天</button>
+                <button class="chip" data-environment="高速路晴天深夜" type="button">高速路晴天深夜</button>
+                <button class="chip" data-environment="高速路雨天白天" type="button">高速路雨天白天</button>
+                <button class="chip" data-environment="城区晴天白天" type="button">城区晴天白天</button>
+                <button class="chip" data-environment="城区雨天白天" type="button">城区雨天白天</button>
+                <button class="chip" data-environment="风景区晴天白天" type="button">风景区晴天白天</button>
+                <button class="chip" data-environment="风景区雪景白天" type="button">风景区雪景白天</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <span class="control-label">事件</span>
+              <div class="chip-group">
+                <button class="event-button danger" data-event="hard_brake" type="button">急刹打断</button>
+                <button class="event-button" data-event="driver_tired" type="button">主驾疲惫</button>
+                <button class="event-button" data-event="passenger_sleep" type="button">有人睡着</button>
+                <button class="event-button" data-event="near_destination" type="button">快到目的地</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ask-bar control-ask-bar">
+            <div class="fixed-speaker" aria-label="当前乘客">副驾</div>
+            <input id="playerInput" placeholder="请输入 TA 的提问或答案" />
+            <button id="sendQuestion" type="button">发送提问</button>
+          </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js?v=20260721-57fc014"></script>
+  </body>
+</html>

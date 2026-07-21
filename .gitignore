@@ -3,5 +3,4 @@
 .env.*
 !.env.example
 .vercel
-dist
 tmp/
