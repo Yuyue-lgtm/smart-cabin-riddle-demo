@@ -28,7 +28,7 @@ COZE_API_TOKEN=replace_with_your_new_coze_api_token
 然后启动本地代理服务：
 
 ```bash
-node server.js
+node dev-server.cjs
 ```
 
 然后访问：
@@ -43,7 +43,7 @@ http://localhost:4173
 /api/workflow
 ```
 
-真实 Token 只会被 `server.js` 读取，不会进入前端代码。
+真实 Token 只会被 `dev-server.cjs` 读取，不会进入前端代码。
 
 本地健康检查地址：
 

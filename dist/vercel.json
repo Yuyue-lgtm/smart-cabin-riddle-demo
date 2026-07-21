@@ -1,8 +1,20 @@
 {
   "version": 2,
   "functions": {
+    "api/health.js": {
+      "maxDuration": 10
+    },
     "api/workflow.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }

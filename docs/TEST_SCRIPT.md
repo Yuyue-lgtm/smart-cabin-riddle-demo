@@ -24,7 +24,7 @@ https://smart-cabin-riddle-demo.vercel.app
 本地运行：
 
 ```bash
-node server.js
+node dev-server.cjs
 ```
 
 访问：
