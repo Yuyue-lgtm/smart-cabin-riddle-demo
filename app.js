@@ -17,10 +17,10 @@ const HOST_AVATAR_TRANSIENT_MS = 4000;
 // The host renderer is intentionally media-agnostic. Replace a mode with a
 // video source later without changing layout, workflow fields, or state logic.
 const HOST_MEDIA_SOURCES = {
-  ready: { kind: "image", src: "./assets/figma-ready-host.png" },
-  playing: { kind: "image", src: "./assets/figma-playing-host.png" },
-  reveal: { kind: "image", src: "./assets/figma-reveal-host.png" },
-  summary: { kind: "image", src: "./assets/figma-summary-host.png" },
+  ready: { kind: "image", src: "./assets/host-default.png" },
+  playing: { kind: "image", src: "./assets/host-default.png" },
+  reveal: { kind: "image", src: "./assets/host-default.png" },
+  summary: { kind: "image", src: "./assets/host-default.png" },
 };
 
 const PASSENGER_ACTIVITY_LABELS = {

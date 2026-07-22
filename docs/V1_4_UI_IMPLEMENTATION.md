@@ -90,6 +90,7 @@ const HOST_MEDIA_SOURCES = {
 
 ## 资源与加载约定
 
+- Figma 导出资源与项目规范文件的映射统一记录在 `docs/ASSET_MANIFEST.md`。
 - 首屏准备页使用的背景、Logo、主持人和按钮资源保留高优先级加载。
 - 非当前页面资源通过页面状态切换使用，后续可继续改为预加载队列或懒加载。
 - 主持人视频接口已预留 `preload="none"`、`poster` 和播放失败保护。
