@@ -479,7 +479,6 @@ function cacheElements() {
     "resetScenario",
     "playerInput",
     "sendQuestion",
-    "deployStatus",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -2414,7 +2413,6 @@ function render() {
   els.hostAvatar.classList.toggle("thinking", state.workflow.inFlight);
   els.hostAvatar.dataset.avatarState = state.host.avatarState || HOST_AVATAR_DEFAULT_STATE;
   els.timelineName.textContent = state.timeline.name;
-  els.deployStatus.textContent = state.health.statusText || DEFAULT_DEPLOY_STATUS;
   els.decisionPerception.textContent = formatDecisionText(
     state.decisionTrace.perception,
     state.decisionTrace.strategyId,
@@ -2613,6 +2611,8 @@ function renderControls() {
   els.resetScenario.disabled = !hasStarted;
   els.pauseTimeline.disabled = !hasStarted;
   els.pauseTimeline.textContent = isTimelinePaused ? "继续模拟" : "暂停模拟";
+  els.pauseTimeline.classList.toggle("is-paused", isTimelinePaused);
+  els.pauseTimeline.setAttribute("aria-pressed", isTimelinePaused ? "true" : "false");
   els.sendQuestion.disabled = isTimelinePaused;
   els.playerInput.disabled = isTimelinePaused;
 

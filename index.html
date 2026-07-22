@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智能座舱 AI 猜谜 Demo</title>
-    <link rel="stylesheet" href="./styles.css?v=20260721-57fc014" />
+    <link rel="stylesheet" href="./styles.css?v=20260722-start-pulse" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -172,16 +172,20 @@
                 <span class="control-label">场景：</span>
                 <strong id="timelineName">高速亲子出行</strong>
               </div>
-              <p class="deploy-status" id="deployStatus">版本检查中</p>
             </div>
-            <button class="ghost-button" id="switchScenario" type="button">场景切换</button>
-            <button class="ghost-button" id="pauseTimeline" type="button">暂停模拟</button>
-            <button class="reset-button" id="resetScenario" type="button">重置模拟</button>
+            <div class="control-actions" aria-label="模拟控制">
+              <button class="ghost-button" id="switchScenario" type="button">
+                <span class="button-icon" aria-hidden="true">⇄</span>
+                <span>场景切换</span>
+              </button>
+              <button class="ghost-button" id="pauseTimeline" type="button" aria-pressed="false">暂停模拟</button>
+              <button class="reset-button" id="resetScenario" type="button">重置模拟</button>
+            </div>
           </div>
 
           <div class="prestart-panel" id="prestartPanel">
             <button class="primary-start" id="startTimeline" type="button">开始模拟</button>
-            <p>点击开始模式，作为副驾参与一局15问猜谜。其他乘客会自动加入。</p>
+            <p>模拟副驾参与一局15问猜谜。其他乘客会自动加入。</p>
           </div>
 
           <div class="control-grid">
@@ -211,7 +215,7 @@
             <div class="control-row">
               <span class="control-label">事件</span>
               <div class="chip-group">
-                <button class="event-button danger" data-event="hard_brake" type="button">急刹打断</button>
+                <button class="event-button" data-event="hard_brake" type="button">急刹打断</button>
                 <button class="event-button" data-event="driver_tired" type="button">主驾疲惫</button>
                 <button class="event-button" data-event="passenger_sleep" type="button">有人睡着</button>
                 <button class="event-button" data-event="near_destination" type="button">快到目的地</button>
@@ -220,8 +224,8 @@
           </div>
 
           <div class="ask-bar control-ask-bar">
-            <div class="fixed-speaker" aria-label="当前乘客">副驾</div>
-            <input id="playerInput" placeholder="请输入 TA 的提问或答案" />
+            <div class="fixed-speaker" aria-label="当前乘客">副驾：</div>
+            <input id="playerInput" placeholder="请输入副驾的提问或答案" />
             <button id="sendQuestion" type="button">发送提问</button>
           </div>
           </section>
@@ -229,6 +233,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260721-57fc014"></script>
+    <script src="./app.js?v=20260722-start-pulse"></script>
   </body>
 </html>
