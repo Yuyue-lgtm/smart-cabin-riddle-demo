@@ -8,8 +8,10 @@ const SEATS = {
 const DEFAULT_WORKFLOW_ENDPOINT = "/api/workflow";
 const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
 const MIN_BUBBLE_DISPLAY_MS = 3000;
-const STAGE_WIDTH = 1920;
-const STAGE_HEIGHT = 1080;
+const PASSENGER_BUBBLE_MS = 8000;
+const CORRECT_LIGHT_MS = 5000;
+const STAGE_WIDTH = 1940;
+const STAGE_HEIGHT = 1100;
 const DEFAULT_DEPLOY_STATUS = "版本检查中";
 const HOST_AVATAR_DEFAULT_STATE = "normal";
 const HOST_AVATAR_TRANSIENT_MS = 4000;
@@ -385,6 +387,7 @@ const DEFAULT_STATE = {
     animation: "idle",
     showAnswer: false,
     correctSeat: null,
+    correctLightSeat: null,
     alert: "",
   },
   timeline: {
@@ -415,6 +418,7 @@ const DEFAULT_STATE = {
     bubbleTimer: null,
     recoveryTimer: null,
     activityTimer: null,
+    correctLightTimer: null,
     hostAvatarTimer: null,
     pendingChats: [],
   },
@@ -702,6 +706,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
     clearTimeout(state.workflow.activityTimer);
     state.workflow.activityTimer = null;
   }
+  clearCorrectLightTimer();
   clearHostAvatarTimer();
   const index = GOLDEN_TIMELINES.findIndex((item) => item.id === timeline.id);
   state.scenarioIndex = index >= 0 ? index : 0;
@@ -718,6 +723,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.game.history = [];
   state.ui.showAnswer = false;
   state.ui.correctSeat = null;
+  state.ui.correctLightSeat = null;
   state.ui.cabinMode = "normal";
   state.ui.alert = announce ? `已切换至${timeline.name}` : "";
   state.host.text = getPrestartHostText(timeline);
@@ -783,7 +789,6 @@ function cueRealUser(text) {
     strategyId: "S00",
     priority: "P3",
   });
-  clearPassengerBubbles();
   render();
 }
 
@@ -801,6 +806,7 @@ function ensureScriptedVictory(seat, text) {
   state.ui.cabinMode = "victory";
   state.ui.showAnswer = true;
   state.ui.correctSeat = seat;
+  showCorrectSeatLight(seat);
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
   state.host.text = `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`;
@@ -942,7 +948,6 @@ async function startGame() {
     render();
     return;
   }
-  clearPassengerBubbles();
   state.game.status = "opening";
   state.ui.showAnswer = false;
   state.ui.correctSeat = null;
@@ -1080,7 +1085,6 @@ function applyImmediatePassengerSleep(seat) {
     strategyId: "S04",
     priority: "P2",
   });
-  clearPassengerBubbles();
   render();
 }
 
@@ -1098,7 +1102,6 @@ function applyImmediateDriverTired() {
     strategyId: "S03",
     priority: "P1",
   });
-  clearPassengerBubbles();
   render();
 }
 
@@ -1114,7 +1117,6 @@ function applyImmediateNearDestination() {
     strategyId: "S09",
     priority: "P2",
   });
-  clearPassengerBubbles();
   render();
 }
 
@@ -1854,7 +1856,7 @@ function applyWorkflowOutput(output, input) {
   }
   const passengerActionApplied = isVictoryOutput || shouldSuppressPassengerAction(input.trigger_type, input.event)
     || keepRealUserFocus
-    ? suppressPassengerActionForEvent()
+    ? suppressPassengerActionForEvent(eventType)
     : applyPassengerAction(output.passenger_action);
   const previousHostText = state.host.text;
   const sanitizedHostText = sanitizeHostReplyText(output.ai_reply_text || "");
@@ -1924,6 +1926,7 @@ function applyWorkflowOutput(output, input) {
     state.ui.cabinMode = "victory";
     state.ui.showAnswer = true;
     state.ui.correctSeat = correctSeat;
+    showCorrectSeatLight(correctSeat);
     state.game.status = "victory";
     state.host.text = makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer);
     setHostAvatarState("excited", { transient: false });
@@ -2082,18 +2085,15 @@ function applyPassengerAction(passengerAction) {
   }
 
   if (seat === "front") {
-    clearPassengerBubbles();
     return false;
   }
 
   if (state.passengers.seats[seat].mood === "睡着") {
-    clearPassengerBubbles();
     return false;
   }
 
   const actionKey = `${seat}:${passengerAction.text}`;
   if (actionKey === state.workflow.lastPassengerActionKey) {
-    clearPassengerBubbles();
     return false;
   }
 
@@ -2220,6 +2220,22 @@ function schedulePassengerActivityClear() {
   }, 6000);
 }
 
+function showCorrectSeatLight(seat) {
+  clearCorrectLightTimer();
+  state.ui.correctLightSeat = seat;
+  state.workflow.correctLightTimer = setTimeout(() => {
+    state.workflow.correctLightTimer = null;
+    state.ui.correctLightSeat = null;
+    render();
+  }, CORRECT_LIGHT_MS);
+}
+
+function clearCorrectLightTimer() {
+  if (!state.workflow.correctLightTimer) return;
+  clearTimeout(state.workflow.correctLightTimer);
+  state.workflow.correctLightTimer = null;
+}
+
 function clearPassengerActivities() {
   Object.values(state.passengers.seats).forEach((seatState) => {
     seatState.activity = "idle";
@@ -2289,8 +2305,10 @@ function getAnswerLead(text) {
   return "";
 }
 
-function suppressPassengerActionForEvent() {
-  clearPassengerBubbles();
+function suppressPassengerActionForEvent(eventType) {
+  if (eventType === "hard_brake") {
+    clearPassengerBubbles();
+  }
   return false;
 }
 
@@ -2327,7 +2345,7 @@ function scheduleBubbleClear() {
   state.workflow.bubbleTimer = setTimeout(() => {
     clearPassengerBubbles();
     render();
-  }, 6500);
+  }, PASSENGER_BUBBLE_MS);
 }
 
 function normalizeTargetSeat(seat) {
@@ -2370,7 +2388,7 @@ function render() {
   els.environmentBackdrop.className = `environment-backdrop ${
     ENVIRONMENT_CLASS[state.car.environment] || "env-highway-day"
   }`;
-  els.environmentLabel.textContent = state.car.environment;
+  els.environmentLabel.textContent = `车外环境：${state.car.environment}`;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
@@ -2568,7 +2586,9 @@ function renderSeats() {
         ? seatState.activity
         : "idle";
 
-    seatButton.classList.toggle("correct", state.game.status === "victory" && state.ui.correctSeat === seat);
+    const isCorrectLightActive = state.ui.correctLightSeat === seat;
+    seatButton.classList.toggle("correct", isCorrectLightActive);
+    seatButton.classList.toggle("ambient-on", isCorrectLightActive);
     seatButton.classList.toggle("sleeping", seatState.mood === "睡着");
     seatButton.classList.toggle("seat-laughing", seatState.mood === "大笑");
     Object.keys(PASSENGER_ACTIVITY_LABELS).forEach((activity) => {
@@ -2582,16 +2602,9 @@ function renderSeats() {
       || PASSENGER_ACTIVITY_LABELS[effectiveActivity]
       || seatState.mood;
 
-    avatar.className = "avatar";
-    if (state.passengers.relationship === "年轻朋友") avatar.classList.add("friends");
-    if (state.passengers.relationship === "中老年+儿女") avatar.classList.add("elder");
-    if (seatState.mood === "大笑") avatar.classList.add("laugh");
-    if (seatState.mood === "沉默") avatar.classList.add("quiet");
-    if (seatState.mood === "疲惫") avatar.classList.add("tired");
-    if (seatState.mood === "睡着") avatar.classList.add("sleep");
-    if (effectiveActivity && effectiveActivity !== "idle") {
-      avatar.classList.add(`activity-${effectiveActivity}`);
-    }
+    avatar.className = "passenger-figure";
+    avatar.dataset.mood = seatState.mood;
+    avatar.dataset.activity = effectiveActivity || "idle";
   });
 }
 

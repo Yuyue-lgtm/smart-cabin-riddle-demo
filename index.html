@@ -4,19 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智能座舱 AI 猜谜 Demo</title>
-    <link rel="stylesheet" href="./styles.css?v=20260722-start-pulse" />
+    <link rel="preload" as="image" href="./assets/screen-background.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-env-sunset.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
+    <link rel="stylesheet" href="./styles.css?v=20260725-cabin-stability-3" />
   </head>
   <body>
     <div class="stage-viewport">
       <main class="app-shell" id="appShell">
         <section class="cabin-region" aria-label="虚拟座舱">
         <div class="region-title">座舱&环境模拟</div>
-        <div class="environment-backdrop" id="environmentBackdrop"></div>
+        <div class="environment-backdrop" id="environmentBackdrop">
+          <img
+            class="environment-backdrop-image"
+            src="./assets/cabin-env-sunset.png"
+            alt=""
+            aria-hidden="true"
+            decoding="sync"
+            fetchpriority="high"
+          />
+        </div>
+        <div class="cabin-glass" aria-hidden="true"></div>
         <div class="cabin-overlay">
           <div class="scene-badges">
-            <span id="environmentLabel">高速路晴天白天</span>
-            <span id="speedLabel">50 km/h</span>
-            <span id="destinationLabel">目的地：公司</span>
+            <span class="environment-badge" id="environmentLabel">车外环境：高速路晴天白天</span>
+            <span class="destination-badge">
+              <img src="./assets/cabin-location-icon.svg" alt="" aria-hidden="true" />
+              <b id="destinationLabel">目的地：公司</b>
+            </span>
+            <span class="speed-badge">
+              <img src="./assets/cabin-speed-icon.svg" alt="" aria-hidden="true" />
+              <b id="speedLabel">50 km/h</b>
+            </span>
           </div>
           <div class="decision-card cabin-decision-card">
             <span class="panel-kicker">融合决策</span>
@@ -37,28 +56,40 @@
           </div>
           <div class="car-cabin">
             <button class="seat seat-rear-left" data-seat="rearLeft" type="button">
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="rearLeft"></span>
-              <span class="avatar" data-avatar="rearLeft"></span>
-              <strong>后排左</strong>
-              <small data-seat-status="rearLeft">普通</small>
+              <img class="passenger-figure" data-avatar="rearLeft" src="./assets/passenger-male.png" alt="" />
+              <span class="seat-info">
+                <strong>后排左</strong>
+                <small data-seat-status="rearLeft">普通</small>
+              </span>
             </button>
             <button class="seat seat-rear-right" data-seat="rearRight" type="button">
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="rearRight"></span>
-              <span class="avatar" data-avatar="rearRight"></span>
-              <strong>后排右</strong>
-              <small data-seat-status="rearRight">普通</small>
+              <img class="passenger-figure" data-avatar="rearRight" src="./assets/passenger-female.png" alt="" />
+              <span class="seat-info">
+                <strong>后排右</strong>
+                <small data-seat-status="rearRight">普通</small>
+              </span>
             </button>
             <button class="seat seat-front" data-seat="front" type="button">
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="front"></span>
-              <span class="avatar" data-avatar="front"></span>
-              <strong>副驾</strong>
-              <small data-seat-status="front">普通</small>
+              <img class="passenger-figure" data-avatar="front" src="./assets/passenger-female.png" alt="" />
+              <span class="seat-info">
+                <strong>副驾</strong>
+                <small data-seat-status="front">普通</small>
+              </span>
             </button>
             <button class="seat seat-driver" data-seat="driver" type="button">
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="driver"></span>
-              <span class="avatar" data-avatar="driver"></span>
-              <strong>主驾</strong>
-              <small data-seat-status="driver">普通</small>
+              <img class="passenger-figure" data-avatar="driver" src="./assets/passenger-male.png" alt="" />
+              <span class="seat-info">
+                <strong>主驾</strong>
+                <small data-seat-status="driver">普通</small>
+              </span>
             </button>
           </div>
         </div>
@@ -68,6 +99,14 @@
           <section class="game-region" aria-label="游戏界面">
           <div class="region-title">中控屏</div>
           <div class="game-screen" id="gameScreen">
+            <img
+              class="game-screen-background"
+              src="./assets/screen-background.png"
+              alt=""
+              aria-hidden="true"
+              decoding="sync"
+              fetchpriority="high"
+            />
             <div class="pencil-game-icon" aria-hidden="true">
               <img src="./assets/game-icon.png" alt="" />
             </div>
@@ -233,6 +272,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260722-start-pulse"></script>
+    <script src="./app.js?v=20260725-cabin-stability"></script>
   </body>
 </html>

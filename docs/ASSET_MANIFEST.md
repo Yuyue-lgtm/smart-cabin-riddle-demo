@@ -12,6 +12,14 @@
 | `game-icon.png` | 游戏图标 | `figma-playing-game-icon.png`、`figma-reveal-game-icon.png` |
 | `question-icon.svg` | 问题计数图标 | `figma-playing-question-icon.svg`、`figma-reveal-question-icon.svg` |
 | `bubble-tail.svg` | 主持人气泡尾部 | `figma-*-bubble-tail.*` |
+| `cabin-env-sunset.png` | 座舱区夕阳车外环境 | Figma `外部环境-夕阳` |
+| `cabin-interior.png` | 座舱内饰透明叠层 | Figma `座舱内` |
+| `cabin-correct-light.png` | 答对座位氛围灯，单次显示 5 秒 | Figma `答对 氛围灯` |
+| `passenger-female.png` | 当前女性乘客基础形象 | Figma `用户-后排右`、`用户-副驾` |
+| `passenger-male.png` | 当前男性乘客基础形象 | Figma `用户-后排左`、`用户-主驾` |
+| `cabin-location-icon.svg` | 座舱目的地状态图标 | Figma `状态胶囊 / 目的地 / 图标` |
+| `cabin-speed-icon.svg` | 座舱车速状态图标 | Figma `状态胶囊 / 车速 / 图标` |
+| `cabin-bubble-tail.svg` | 乘客发言气泡尾部 | Figma 乘客气泡 `Icon` |
 
 ## Import Rules
 

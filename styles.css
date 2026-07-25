@@ -10,6 +10,8 @@
   --cream: #f4efcf;
   --warning: #f1b84b;
   --danger: #d45d52;
+  --screen-divider: #000;
+  --screen-divider-highlight: rgba(214, 232, 246, 0.24);
   font-family:
     Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
@@ -25,13 +27,14 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--ink);
-  background: #cfd8d4;
+  background: #000;
   overflow: hidden;
 }
 
 .stage-viewport {
   position: fixed;
   inset: 0;
+  background: #000;
   overflow: hidden;
 }
 
@@ -58,41 +61,64 @@ select:disabled {
   left: 0;
   display: grid;
   grid-template-columns: 1110px 810px;
-  width: 1920px;
-  height: 1080px;
-  min-width: 1920px;
-  min-height: 1080px;
+  width: 1940px;
+  height: 1100px;
+  min-width: 1940px;
+  min-height: 1100px;
+  padding: 10px;
   overflow: hidden;
-  box-shadow: 0 18px 60px rgba(24, 36, 42, 0.18);
+  background: #000;
   transform-origin: left top;
 }
 
 .cabin-region {
   position: relative;
   order: 2;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: var(--cream);
-  border: 2px solid rgba(32, 39, 49, 0.28);
+  border: 0;
+  border-left: 10px solid var(--screen-divider);
+}
+
+.cabin-region::after {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  border: 1px solid var(--screen-divider-highlight);
+  content: "";
+  pointer-events: none;
 }
 
 .region-title {
   position: relative;
   z-index: 4;
-  display: grid;
-  height: 28px;
-  place-items: center;
-  color: #8d1f3d;
-  background: rgba(96, 198, 226, 0.72);
-  font-size: 15px;
-  font-weight: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  gap: 8px;
+  border: 0;
+  color: #f4f6fb;
+  background: #131e2f;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.region-title::before {
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  background: #20c997;
+  content: "";
 }
 
 .environment-backdrop {
   position: absolute;
   inset: 0;
-  transition:
-    background 260ms ease,
-    filter 260ms ease;
+  transition: none;
 }
 
 .environment-backdrop::before {
@@ -104,48 +130,14 @@ select:disabled {
     linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04));
 }
 
-.env-highway-day {
-  background:
-    linear-gradient(180deg, #8fcae6 0%, #cde9ef 38%, #98bc72 39%, #6b7c73 62%, #3f4b52 63%),
-    repeating-linear-gradient(90deg, transparent 0 110px, rgba(255, 255, 255, 0.35) 110px 124px);
-}
-
-.env-highway-night {
-  background:
-    radial-gradient(circle at 82% 18%, #f4f0c0 0 42px, transparent 43px),
-    linear-gradient(180deg, #182235 0%, #2b4056 42%, #293535 43%, #1d252c 100%);
-}
-
-.env-highway-rain {
-  background:
-    repeating-linear-gradient(105deg, rgba(255, 255, 255, 0.45) 0 2px, transparent 2px 20px),
-    linear-gradient(180deg, #698899 0%, #a5bcc0 38%, #7b8b72 39%, #465766 100%);
-}
-
-.env-city-day {
-  background:
-    linear-gradient(180deg, #9ed3ee 0%, #d8eef3 42%, #8aa2a7 43%, #5d6a70 100%),
-    repeating-linear-gradient(90deg, rgba(42, 54, 61, 0.34) 0 46px, transparent 46px 86px);
-}
-
-.env-city-rain {
-  background:
-    repeating-linear-gradient(110deg, rgba(255, 255, 255, 0.52) 0 2px, transparent 2px 18px),
-    linear-gradient(180deg, #647f8f 0%, #b5c4c6 40%, #657077 41%, #424b53 100%);
-}
-
-.env-scenic-day {
-  background:
-    radial-gradient(circle at 78% 18%, #ffe080 0 50px, transparent 51px),
-    linear-gradient(180deg, #83caed 0%, #ccebdc 40%, #75a94f 41%, #4e7e42 100%);
-}
-
+.env-highway-day,
+.env-highway-night,
+.env-highway-rain,
+.env-city-day,
+.env-city-rain,
+.env-scenic-day,
 .env-snow-day {
-  background:
-    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.95) 0 4px, transparent 5px),
-    radial-gradient(circle at 52% 26%, rgba(255, 255, 255, 0.9) 0 3px, transparent 4px),
-    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, 0.9) 0 5px, transparent 6px),
-    linear-gradient(180deg, #b7d8e8 0%, #e7f0f4 45%, #eff3f5 46%, #b6c3c8 100%);
+  background: #10151e;
 }
 
 .cabin-overlay {
@@ -461,7 +453,8 @@ select:disabled {
 .right-stack {
   order: 1;
   display: grid;
-  grid-template-rows: 652px 1fr;
+  grid-template-rows: 656px 1fr;
+  height: 100%;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
@@ -475,48 +468,61 @@ select:disabled {
   background: #111117;
 }
 
+.game-region::after,
+.control-region::after {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  border: 1px solid var(--screen-divider-highlight);
+  content: "";
+  pointer-events: none;
+}
+
 .game-screen {
   position: relative;
+  isolation: isolate;
   width: 1440px;
   height: 810px;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 0;
   background:
     linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
     url("./assets/screen-background.png") center / cover no-repeat;
   box-shadow: 0 25px 43.75px -12px rgba(0, 0, 0, 0.25);
   transform: scale(0.7708333333);
   transform-origin: left top;
-  transition: background 260ms ease, box-shadow 260ms ease, filter 260ms ease;
+  transition: none;
+}
+
+.game-screen-background {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  backface-visibility: hidden;
+  pointer-events: none;
 }
 
 .game-screen.screen-default,
-.game-screen.screen-sunny {
+.game-screen.screen-sunny,
+.game-screen.screen-night,
+.game-screen.screen-rain,
+.game-screen.screen-snow {
   background:
     linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
     url("./assets/screen-background.png") center / cover no-repeat;
+  box-shadow: 0 25px 43.75px -12px rgba(0, 0, 0, 0.25);
 }
 
-.game-screen.screen-night {
-  background:
-    linear-gradient(180deg, rgba(9, 14, 34, 0.48), rgba(10, 18, 42, 0.42)),
-    url("./assets/screen-background.png") center / cover no-repeat;
-  box-shadow: 0 25px 43.75px -12px rgba(8, 12, 28, 0.45);
-}
-
-.game-screen.screen-rain {
-  background:
-    linear-gradient(180deg, rgba(20, 34, 46, 0.18), rgba(20, 34, 46, 0.18)),
-    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 18px),
-    url("./assets/screen-background.png") center / cover no-repeat;
-}
-
-.game-screen.screen-snow {
-  background:
-    linear-gradient(180deg, rgba(228, 240, 255, 0.06), rgba(228, 240, 255, 0.06)),
-    radial-gradient(circle at 24% 24%, rgba(255, 255, 255, 0.72) 0 4px, transparent 5px),
-    radial-gradient(circle at 72% 20%, rgba(255, 255, 255, 0.56) 0 3px, transparent 4px),
-    url("./assets/screen-background.png") center / cover no-repeat;
+.game-screen.screen-default .game-screen-background,
+.game-screen.screen-sunny .game-screen-background,
+.game-screen.screen-night .game-screen-background,
+.game-screen.screen-rain .game-screen-background,
+.game-screen.screen-snow .game-screen-background {
+  filter: none;
 }
 
 .game-screen::before {
@@ -1272,21 +1278,16 @@ select:disabled {
   grid-template-rows: auto auto 1fr auto;
   gap: 10px;
   overflow: hidden;
-  border-top: 1px solid #28364a;
+  border-top: 10px solid var(--screen-divider);
   padding: 0 24px 14px;
   color: #f4f6fb;
   background: #090711;
-  box-shadow: inset 0 1px 0 rgba(141, 165, 196, 0.08);
 }
 
 .control-region > .region-title {
-  height: 34px;
+  height: 32px;
   margin: 0 -24px;
-  color: #b7c7dc;
-  background: #131e2f;
-  border-bottom: 1px solid #2a3a51;
   font-size: 14px;
-  letter-spacing: 0;
 }
 
 .control-header {
@@ -2244,7 +2245,7 @@ body.has-started .prestart-panel {
 
 .screen-ready::before {
   display: block;
-  z-index: 0;
+  z-index: 1;
   background: rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(12.5px);
   backdrop-filter: blur(12.5px);
@@ -2263,7 +2264,7 @@ body.has-started .prestart-panel {
 .screen-ready .ready-stage {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   display: block;
   overflow: hidden;
 }
@@ -2463,4 +2464,444 @@ body.has-started .prestart-panel {
   background: #fff;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   z-index: 2;
+}
+
+/* V1.4 cabin presentation, matched to the 810 x 1080 Figma frame. */
+.cabin-region {
+  background: #10151e;
+}
+
+.cabin-region .environment-backdrop {
+  position: absolute;
+  inset: 0;
+  background: url("./assets/cabin-env-sunset.png") center top / 811px 800px no-repeat;
+  filter: none;
+  transition: none;
+}
+
+.cabin-region .environment-backdrop-image {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 811px;
+  height: 800px;
+  object-fit: fill;
+  object-position: center top;
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.cabin-region .environment-backdrop::before {
+  display: none;
+}
+
+.cabin-region .cabin-glass {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 810px;
+  height: 654px;
+  background: rgba(0, 0, 0, 0.004);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.cabin-region .cabin-overlay {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 810px;
+  height: 1080px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.cabin-region .scene-badges {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.cabin-region .scene-badges > span {
+  position: absolute;
+  top: 62px;
+  display: flex;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 23px;
+  padding: 0 16px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 11px rgba(255, 178, 243, 0.24);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  backdrop-filter: blur(10px) saturate(115%);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.cabin-region .scene-badges img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.cabin-region .scene-badges b {
+  font: inherit;
+}
+
+.cabin-region .environment-badge {
+  left: 43px;
+  width: 236px;
+}
+
+.cabin-region .destination-badge {
+  left: 402px;
+  width: 194px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.cabin-region .speed-badge {
+  left: 616px;
+  width: 149px;
+  font-weight: 500;
+}
+
+.cabin-region .cabin-decision-card {
+  position: absolute;
+  z-index: 9;
+  left: 43px;
+  top: 129px;
+  width: 724px;
+  height: 161px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 16px;
+  padding: 0;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 14px 1px rgba(255, 178, 243, 0.2);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+  backdrop-filter: blur(12px) saturate(115%);
+}
+
+.cabin-region .cabin-decision-card .panel-kicker {
+  position: absolute;
+  left: 17px;
+  top: 11px;
+  display: block;
+  width: 688px;
+  height: 31px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.cabin-region .cabin-decision-card dl {
+  position: absolute;
+  left: 17px;
+  top: 55px;
+  display: grid;
+  width: 690px;
+  grid-template-columns: 190px 190px 190px;
+  column-gap: 57px;
+  margin: 0;
+}
+
+.cabin-region .cabin-decision-card dl > div {
+  position: relative;
+  min-width: 0;
+}
+
+.cabin-region .cabin-decision-card dl > div:not(:last-child)::after {
+  position: absolute;
+  right: -43px;
+  top: 20px;
+  color: #ffd56a;
+  content: "→";
+  font-size: 25px;
+  font-weight: 900;
+  line-height: 28px;
+}
+
+.cabin-region .cabin-decision-card dt {
+  margin: 0 0 4px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+}
+
+.cabin-region .cabin-decision-card dd {
+  display: -webkit-box;
+  max-height: 63px;
+  margin: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.cabin-region .car-cabin {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 810px;
+  height: 1080px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: url("./assets/cabin-interior.png") center -5px / 811px 1085px no-repeat;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.cabin-region .car-cabin::before {
+  display: none;
+}
+
+.cabin-region .seat {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: #fff;
+  cursor: default;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+  transition: none;
+  animation: none !important;
+}
+
+.cabin-region .seat-rear-left {
+  left: 36px;
+  top: 398px;
+  width: 415px;
+  height: 341px;
+}
+
+.cabin-region .seat-rear-right {
+  left: 354px;
+  top: 398px;
+  width: 415px;
+  height: 341px;
+}
+
+.cabin-region .seat-front {
+  left: -2px;
+  top: 680px;
+  width: 478px;
+  height: 400px;
+}
+
+.cabin-region .seat-driver {
+  left: 344px;
+  top: 680px;
+  width: 478px;
+  height: 400px;
+}
+
+.cabin-region .seat-correct-light {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  top: 69px;
+  width: 415px;
+  height: 295px;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(0.98);
+  transition:
+    opacity 220ms ease,
+    transform 320ms ease;
+}
+
+.cabin-region .seat-front .seat-correct-light,
+.cabin-region .seat-driver .seat-correct-light {
+  top: 62px;
+  width: 478px;
+  height: 340px;
+}
+
+.cabin-region .seat.ambient-on .seat-correct-light {
+  opacity: 1;
+  transform: scale(1);
+  animation: cabin-light-bloom 800ms ease-out both;
+}
+
+.cabin-region .passenger-figure {
+  position: absolute;
+  z-index: 2;
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+  transition: none;
+  animation: none !important;
+}
+
+.cabin-region .seat-rear-left .passenger-figure {
+  left: 103px;
+  top: 88px;
+}
+
+.cabin-region .seat-rear-right .passenger-figure {
+  left: 103px;
+  top: 79px;
+}
+
+.cabin-region .seat-front .passenger-figure {
+  left: 97px;
+  top: 67px;
+  width: 282px;
+  height: 282px;
+}
+
+.cabin-region .seat-driver .passenger-figure {
+  left: 106px;
+  top: 67px;
+  width: 282px;
+  height: 282px;
+}
+
+.cabin-region .seat.sleeping .passenger-figure {
+  opacity: 0.78;
+  filter: grayscale(0.35) brightness(0.75);
+}
+
+.cabin-region .seat-info {
+  position: absolute;
+  z-index: 4;
+  left: 118px;
+  top: 281px;
+  display: flex;
+  width: 179px;
+  height: 60px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  background: rgba(101, 101, 101, 0.6);
+  box-shadow: 0 5px 12px rgba(0, 8, 20, 0.22);
+  -webkit-backdrop-filter: blur(8px) saturate(115%);
+  backdrop-filter: blur(8px) saturate(115%);
+}
+
+.cabin-region .seat-rear-right .seat-info {
+  left: 114px;
+}
+
+.cabin-region .seat-front .seat-info {
+  left: 117px;
+  top: 332px;
+  width: 218px;
+}
+
+.cabin-region .seat-driver .seat-info {
+  left: 129px;
+  top: 332px;
+  width: 218px;
+}
+
+.cabin-region .seat-info strong {
+  display: block;
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.cabin-region .seat-info small {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.cabin-region .speech-bubble {
+  position: absolute;
+  z-index: 6;
+  left: 32px;
+  top: 0;
+  bottom: auto;
+  display: none;
+  width: 256px;
+  height: 104px;
+  align-items: center;
+  border: 0;
+  border-radius: 20px;
+  padding: 16px 24px;
+  overflow: visible;
+  color: #1f2937;
+  background: #fff;
+  box-shadow: 0 8px 10.5px rgba(0, 0, 0, 0.15);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: left;
+  transform: none;
+}
+
+.cabin-region .speech-bubble::after {
+  position: absolute;
+  left: calc(50% - 13px);
+  bottom: -20px;
+  width: 26px;
+  height: 21px;
+  background: url("./assets/cabin-bubble-tail.svg") center / contain no-repeat;
+  content: "";
+}
+
+.cabin-region .seat-rear-right .speech-bubble {
+  left: 141px;
+}
+
+.cabin-region .seat-front .speech-bubble {
+  left: 20px;
+}
+
+.cabin-region .seat-driver .speech-bubble {
+  left: 192px;
+}
+
+.cabin-region .speech-bubble.visible {
+  display: flex;
+}
+
+@keyframes cabin-light-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.025);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
