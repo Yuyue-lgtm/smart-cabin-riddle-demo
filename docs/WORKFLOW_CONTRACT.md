@@ -35,6 +35,7 @@ Content-Type: application/json
   "car": {},
   "passengers": {},
   "perception": {},
+  "round_question_plan_request": null,
   "timeline": {},
   "game": {},
   "interaction": {},
@@ -43,6 +44,43 @@ Content-Type: application/json
   "event": null
 }
 ```
+
+## round_question_plan_request
+
+前端只在每题的 `event.type=start_game` 请求中携带此字段。Workflow 应在同一次开场调用中生成本题的逻辑提问链，不额外增加一次网络请求。
+
+```json
+{
+  "enabled": true,
+  "step_count": 5,
+  "reasoning_stages": [
+    "category",
+    "location",
+    "function",
+    "feature",
+    "near_answer"
+  ],
+  "persona_age_groups": ["adult", "child"],
+  "generate_question_variants": true,
+  "generate_host_replies": true,
+  "passenger_slots": [
+    {
+      "slot": 1,
+      "delay_ms": 7000,
+      "label": "模拟乘客提出第一问"
+    }
+  ],
+  "rules": [
+    "问题之间必须形成逐步缩小范围的逻辑链",
+    "每个问题必须可以用是或否回答",
+    "不要在前两个步骤直接说出或猜中谜底",
+    "为不同年龄人群提供自然的措辞变体",
+    "每一步同时生成可即时播放的主持人回答"
+  ]
+}
+```
+
+前端会根据当前单题黄金时间轴的乘客发言槽位决定 `step_count`，并额外请求少量备用步骤。具体发言座位不写入计划，由前端在 `driver`、`rearLeft`、`rearRight` 中临时选择；`front` 始终留给真实用户。
 
 ### trigger_type
 
@@ -262,7 +300,8 @@ V1.2 的收敛后感知状态。这里传递的是时间轴或前端状态中心
   "asked_questions": [
     "它是车上的东西吗？",
     "它能保护我们吗？"
-  ]
+  ],
+  "covered_fact_keys": ["is_object", "in_car"]
 }
 ```
 
@@ -278,6 +317,7 @@ V1.2 的收敛后感知状态。这里传递的是时间轴或前端状态中心
 | `hint` | string | 是 | 给 Workflow 的题目辅助信息 |
 | `progress` | string | 否 | `normal` / `stuck` / `near_answer` / `correct`，与 `perception.game_progress` 保持一致 |
 | `asked_questions` | array | 否 | 已经问过的问题，用于避免重复 |
+| `covered_fact_keys` | array | 否 | 已经确认过的事实键；Workflow 可根据真实用户的新问题补充返回，前端据此跳过提问链中的重复步骤 |
 
 ### status
 
@@ -404,6 +444,8 @@ Workflow 必须返回结构化 JSON。
   "game_status": "playing",
   "is_correct": false,
   "answer": "安全带",
+  "covered_fact_keys": ["protective"],
+  "round_question_plan": null,
   "decision_trace": {
     "perception": "识别到后排右提出了安全相关问题",
     "decision": "继续围绕出行安全方向推进",
@@ -434,6 +476,72 @@ Workflow 必须返回结构化 JSON。
 | `passenger_states` | object/array | 否 | 一个或多个座位的可视化状态变化 |
 | `ui_change` | object | 是 | 网页执行动作 |
 | `decision_trace` | object | 否 | 融合决策可视化摘要 |
+| `covered_fact_keys` | array | 否 | 本次对话新覆盖的事实键；用于让预生成提问链跳过已被真实用户问过的方向 |
+| `round_question_plan` | object/null | 否 | 每题开场时返回的有序逻辑提问链；非开场请求可省略或返回 `null` |
+
+## round_question_plan
+
+`round_question_plan` 是模拟乘客本题后续发言的唯一主计划。每一步同时包含不同人物口吻的问题变体和主持人预生成回答。
+
+```json
+{
+  "round_question_plan": {
+    "plan_id": "round-3-moon",
+    "reasoning_path": [
+      "is_object",
+      "in_sky",
+      "visible_at_night",
+      "reflects_light",
+      "near_answer"
+    ],
+    "steps": [
+      {
+        "id": "q1",
+        "order": 1,
+        "stage": "category",
+        "fact_key": "is_object",
+        "depends_on": [],
+        "expected_answer": "yes",
+        "variants": {
+          "child": "它是一个东西吗？",
+          "adult": "它属于具体物品吗？",
+          "elder": "这是能看得见的实物吗？",
+          "default": "它是具体存在的东西吗？"
+        },
+        "host_reply_text": "是，它是可以看见的具体事物。这个分类问得很稳。",
+        "host_emotion": "thinking"
+      },
+      {
+        "id": "q2",
+        "order": 2,
+        "stage": "location",
+        "fact_key": "in_sky",
+        "depends_on": ["is_object"],
+        "expected_answer": "yes",
+        "variants": {
+          "child": "它在天上吗？",
+          "adult": "它通常会出现在天空中吗？",
+          "default": "它和天空有关吗？"
+        },
+        "host_reply_text": "是，位置已经锁定到天空了，范围一下小了很多。",
+        "host_emotion": "smile"
+      }
+    ]
+  }
+}
+```
+
+约束：
+
+- `steps` 至少 2 步，按 `order` 递增。
+- `fact_key` 在同一计划内唯一且稳定，供前端去重和跳步。
+- `depends_on` 只引用前序步骤的 `fact_key`。
+- `variants` 至少提供 `default`；建议按请求中的 `persona_age_groups` 提供 `child`、`adult`、`elder` 等变体。
+- `host_reply_text` 必须能直接播放，不包含 JSON、分析过程或答案泄露。
+- `host_reply_text` 可使用 `{{seat_label}}`、`{{speaker_label}}` 或 `{{passenger_label}}`，前端播放前替换为实际座位名称。
+- 前两步不得直接猜谜底，最后一步也不强制模拟乘客答对。
+- 正常模拟提问使用此计划时，前端不再逐问调用 Workflow；真实副驾提问和高优先级座舱事件仍实时调用。
+- 计划缺失、少于 2 个有效步骤或字段不合法时，前端自动退回本地提问库，并保留逐问 Workflow 回答。
 
 ## passenger_action
 
@@ -488,6 +596,7 @@ Workflow 生成模拟乘客动作时必须遵守：
 - 不重复问已问过的问题
 - 不连续让同一乘客抢话
 - 不在太早阶段直接猜中
+- 当 `interaction.speaker_source=timeline_simulation` 且问题来自 `round_question_plan` 时，返回 `passenger_action=null`，避免再生成另一位乘客发言
 
 ## passenger_states
 

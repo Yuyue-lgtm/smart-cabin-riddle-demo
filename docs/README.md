@@ -18,6 +18,7 @@
 12. [V1_4_UI_DESIGN_INPUT.md](./V1_4_UI_DESIGN_INPUT.md)
 13. [TEST_SCRIPT.md](./TEST_SCRIPT.md)
 14. [V1_4_UI_IMPLEMENTATION.md](./V1_4_UI_IMPLEMENTATION.md)
+15. [COZE_ROUND_QUESTION_PLAN.md](./COZE_ROUND_QUESTION_PLAN.md)
 
 ## 文档用途
 
@@ -76,6 +77,10 @@
 ### V1_4_UI_IMPLEMENTATION.md
 
 记录 V1.4 当前已落地的 Figma 页面资源、固定画布规则、主持人媒体接口、气泡小三角和透明切片阴影实现约定。
+
+### COZE_ROUND_QUESTION_PLAN.md
+
+定义“每题开场一次生成逻辑提问链”的 Coze 改造方式、Prompt、输出守卫、前端消费规则与验收用例。
 
 ## 维护规则
 

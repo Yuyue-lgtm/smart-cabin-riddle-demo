@@ -421,6 +421,27 @@ AI 会根据当前座舱状态和谜底主题开场。
 - AI 进入绝杀局话术
 - 游戏保持可继续
 
+## 每题批量逻辑提问链
+
+步骤：
+
+1. 在浏览器 Network 面板中清空请求。
+2. 点击开始模拟，检查 `start_game` 请求包含 `round_question_plan_request`。
+3. 确认 Workflow 返回至少 2 个 `round_question_plan.steps`。
+4. 等待两个模拟乘客提问槽位自动播放。
+5. 副驾手动问一个与后续步骤相同方向的问题。
+6. 触发急刹，确认可以立即打断当前思考态。
+
+预期：
+
+- 模拟乘客的问题呈现逐步缩小范围的逻辑关系。
+- 实际座位只会从主驾、左后、右后中选择，并使用该座位人设对应口吻。
+- 有效提问链播放期间不会为每个模拟问题新增 Workflow 请求。
+- 真实副驾提问仍会新增 Workflow 请求。
+- Workflow 返回 `covered_fact_keys` 后，模拟链跳过同一事实方向。
+- 急刹立即进入安全暂停，不等待预生成主持回答。
+- 删除或破坏返回计划后，页面自动使用本地问题池，流程不崩溃。
+
 ## 回归检查清单
 
 每次提交前确认：
@@ -441,7 +462,11 @@ AI 会根据当前座舱状态和谜底主题开场。
 - 高速或主驾疲惫时，自动提问不会选择主驾
 - 睡着座位不会被选择为自动提问者
 - Workflow 输入包含 `selected_seat`、`selected_persona`、`personas` 和 `speaker_source`
-- 时间轴模拟提问请求设置 `suppress_passenger_action=true`
+- 每题开场输入包含 `round_question_plan_request`
+- 有效计划包含有序 `steps`、人物 `variants` 和 `host_reply_text`
+- 有效计划播放普通模拟问题时不产生逐问 Workflow 请求
+- 回退路径的时间轴模拟提问请求设置 `suppress_passenger_action=true`
+- 真实用户问题返回的 `covered_fact_keys` 会让计划跳过重复事实
 - 时间轴可切换或重置
 - 时间轴事件能触发状态变化
 - 急刹会暂停

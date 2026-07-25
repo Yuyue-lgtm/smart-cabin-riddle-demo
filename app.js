@@ -12,6 +12,8 @@ const PASSENGER_BUBBLE_MS = 8000;
 const CORRECT_LIGHT_MS = 5000;
 const NEXT_ROUND_DELAY_MS = 5000;
 const PAUSED_ROUND_POLL_MS = 300;
+const PREPARED_REPLY_DELAY_MS = 3000;
+const ROUND_PLAN_EXTRA_STEPS = 2;
 const PROGRESS_DOT_STEP_PX = 46;
 const PROGRESS_RAIL_EDGE_PX = 20;
 const STAGE_WIDTH = 1940;
@@ -438,6 +440,9 @@ const DEFAULT_STATE = {
     maxQuestions: 15,
     currentRiddleIndex: 1,
     history: [],
+    roundQuestionPlan: null,
+    usedRoundQuestionStepIds: [],
+    coveredFactKeys: [],
   },
   host: {
     text: "我已经准备好第一道题了，等你发令。",
@@ -489,6 +494,8 @@ const DEFAULT_STATE = {
     activityTimer: null,
     correctLightTimer: null,
     nextRoundTimer: null,
+    preparedReplyPending: false,
+    preparedReplyRunId: 0,
     hostAvatarTimer: null,
     pendingChats: [],
   },
@@ -599,7 +606,7 @@ function bindEvents() {
   els.eventButtons.forEach((button) => {
     button.addEventListener("click", async () => {
       const type = button.dataset.event;
-      if (type !== "hard_brake" && state.workflow.inFlight) {
+      if (type !== "hard_brake" && isHostBusy()) {
         state.ui.alert = "AI 正在处理上一条信息，请稍等";
         render();
         return;
@@ -776,8 +783,9 @@ async function runRandomTimelinePassengerQuestion() {
     cueRealUser("其他乘客暂时不适合发言，副驾可以继续这一问。");
     return;
   }
-  const question = pickTimelinePassengerQuestion();
-  await runScriptedQuestion(seat, question);
+  const preparedQuestion = pickPreparedRoundQuestion(seat);
+  const question = preparedQuestion?.text || pickTimelinePassengerQuestion();
+  await runScriptedQuestion(seat, question, preparedQuestion?.step || null);
 }
 
 function selectRandomSimulatedSeat({ rearOnly = false } = {}) {
@@ -817,6 +825,56 @@ function pickTimelinePassengerQuestion() {
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+function pickPreparedRoundQuestion(seat) {
+  const plan = state.game.roundQuestionPlan;
+  if (!plan?.steps?.length) return null;
+
+  const usedStepIds = new Set(state.game.usedRoundQuestionStepIds);
+  const coveredFactKeys = new Set(state.game.coveredFactKeys);
+  plan.steps
+    .filter((step) => usedStepIds.has(step.id))
+    .forEach((step) => coveredFactKeys.add(step.factKey));
+
+  const unusedSteps = plan.steps.filter(
+    (step) => !usedStepIds.has(step.id) && !coveredFactKeys.has(step.factKey),
+  );
+  const dependencyReadySteps = unusedSteps.filter((step) =>
+    step.dependsOn.every((factKey) => coveredFactKeys.has(String(factKey))),
+  );
+  const step = dependencyReadySteps[0] || unusedSteps[0];
+  if (!step) return null;
+
+  const text = pickQuestionVariantForSeat(step, seat);
+  if (!text) return null;
+
+  return { text, step };
+}
+
+function pickQuestionVariantForSeat(step, seat) {
+  const variants = step.variants || {};
+  const ageGroup = getPassengerPersona(seat)?.age_group || "adult";
+  const variantKeysByAge = {
+    child: ["child", "kid"],
+    teen: ["teen", "child", "young_adult"],
+    young_adult: ["young_adult", "adult"],
+    adult: ["adult", "middle_aged"],
+    middle_aged: ["middle_aged", "adult"],
+    elder: ["elder", "senior", "adult"],
+  };
+  const preferredKeys = [
+    ...(variantKeysByAge[ageGroup] || [ageGroup]),
+    "default",
+    "neutral",
+    "all",
+  ];
+  const askedQuestions = new Set(getAskedQuestions());
+  const preferredQuestions = preferredKeys
+    .map((key) => variants[key])
+    .filter(Boolean);
+  const allQuestions = [...new Set([...preferredQuestions, ...Object.values(variants)])];
+  return allQuestions.find((question) => !askedQuestions.has(question)) || allQuestions[0] || "";
+}
+
 function toggleTimelinePause() {
   if (state.timeline.status === "running") {
     state.timeline.status = "paused";
@@ -853,6 +911,7 @@ function finishTimelineSilently() {
   if (state.timeline.status === "running" || state.timeline.status === "paused") {
     state.timeline.runId += 1;
   }
+  cancelPreparedHostReply();
   state.timeline.status = "finished";
   state.timeline.currentEventType = "round_finished";
   state.timeline.currentEvent = `${state.timeline.roundTimelineName || state.timeline.name}已完成`;
@@ -865,6 +924,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   }
   clearCorrectLightTimer();
   clearNextRoundTimer();
+  cancelPreparedHostReply();
   clearHostAvatarTimer();
   const index = GOLDEN_TIMELINES.findIndex((item) => item.id === timeline.id);
   state.scenarioIndex = index >= 0 ? index : 0;
@@ -889,6 +949,9 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.game.totalRounds = RIDDLES.length;
   state.game.questionCount = 0;
   state.game.history = [];
+  state.game.roundQuestionPlan = null;
+  state.game.usedRoundQuestionStepIds = [];
+  state.game.coveredFactKeys = [];
   state.ui.showAnswer = false;
   state.ui.correctSeat = null;
   state.ui.correctLightSeat = null;
@@ -921,7 +984,7 @@ function getPrestartHostText(timeline) {
   return lead;
 }
 
-async function runScriptedQuestion(seat, text) {
+async function runScriptedQuestion(seat, text, preparedStep = null) {
   if (seat === "front") return;
   if (state.game.status === "paused") return;
   state.passengers.selectedSeat = seat;
@@ -940,13 +1003,105 @@ async function runScriptedQuestion(seat, text) {
     priority: "P3",
   });
   render();
-  await dispatchWorkflow(
-    "chat",
-    { type: "passenger_question", source: "timeline", seat },
-    text,
-  );
+  if (preparedStep) {
+    await playPreparedPassengerExchange(seat, text, preparedStep);
+  } else {
+    await dispatchWorkflow(
+      "chat",
+      { type: "passenger_question", source: "timeline", seat },
+      text,
+    );
+  }
   ensureScriptedVictory(seat, text);
   restoreRealUserSeat();
+}
+
+async function playPreparedPassengerExchange(seat, text, step) {
+  const input = buildWorkflowInput(
+    "chat",
+    {
+      type: "passenger_question",
+      source: "round_question_plan",
+      seat,
+      plan_id: state.game.roundQuestionPlan?.id || "",
+      step_id: step.id,
+      fact_key: step.factKey,
+    },
+    text,
+  );
+  const runId = beginPreparedHostReply();
+
+  await sleep(PREPARED_REPLY_DELAY_MS);
+  while (
+    runId === state.workflow.preparedReplyRunId
+    && state.timeline.status === "paused"
+    && state.game.status !== "paused"
+  ) {
+    await sleep(PAUSED_ROUND_POLL_MS);
+  }
+  if (
+    runId !== state.workflow.preparedReplyRunId
+    || state.game.status === "paused"
+    || ["victory", "summary", "failed"].includes(state.game.status)
+  ) {
+    finishPreparedHostReply(runId);
+    return;
+  }
+
+  const replyText = interpolatePreparedReply(step.hostReplyText, seat);
+  const output = {
+    passenger_action: null,
+    ai_reply_text: replyText,
+    game_status: "playing",
+    is_correct: false,
+    answer: "",
+    covered_fact_keys: [step.factKey],
+    ui_change: {
+      cabin_mode: "game",
+      target_seat: seat,
+      host_emotion: step.hostEmotion || "thinking",
+      animation: "answer",
+      show_answer: false,
+    },
+    decision_trace: {
+      perception: `${SEATS[seat]}按逻辑提问链推进到“${step.stage || step.factKey}”`,
+      decision: "使用本题开场时预生成的连续问答，避免逐问等待模型",
+      execution: "显示乘客问题，并即时播放对应主持回答",
+      strategy_id: "S00",
+      priority: "P3",
+    },
+    strategy_id: "S00",
+    priority: "P3",
+    debug: {
+      source: "round_question_plan",
+      plan_id: state.game.roundQuestionPlan?.id || "",
+      step_id: step.id,
+    },
+  };
+
+  state.host.text = sanitizeHostReplyText(replyText) || state.host.text;
+  state.host.targetSeat = seat;
+  state.host.emotion = step.hostEmotion || "thinking";
+  applyHostAvatarState(output, output.ui_change, false);
+  state.game.usedRoundQuestionStepIds = [
+    ...new Set([...state.game.usedRoundQuestionStepIds, step.id]),
+  ];
+  mergeCoveredFactKeysFromOutput(output);
+  updateDecisionTrace(output.decision_trace);
+  state.game.history.push({
+    at: new Date().toISOString(),
+    input,
+    output,
+  });
+  finishPreparedHostReply(runId);
+  render();
+}
+
+function interpolatePreparedReply(text, seat) {
+  const seatLabel = SEATS[seat] || "这位乘客";
+  return String(text || "")
+    .replace(/\{\{\s*(speaker_label|seat_label|passenger_label)\s*\}\}/g, seatLabel)
+    .trim();
 }
 
 function cueRealUser(text) {
@@ -1108,7 +1263,7 @@ async function waitUntilRoundTimelineReady(runId) {
     && (
       state.timeline.status === "paused"
       || state.game.status === "paused"
-      || state.workflow.inFlight
+      || isHostBusy()
       || state.workflow.pendingChats.length > 0
     )
   ) {
@@ -1156,7 +1311,7 @@ async function sendQuestion() {
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   state.game.questionCount += 1;
   els.playerInput.value = "";
-  if (state.workflow.inFlight) {
+  if (isHostBusy()) {
     state.workflow.pendingChats.push({ seat, text });
     state.host.text = "这条问题我先记下，等上一轮回答结束马上接上。";
     state.ui.alert = "玩家提问已加入队列";
@@ -1205,6 +1360,7 @@ function findRiddleForEnvironment(environment) {
 
 function applyImmediateSafetyPause() {
   abortActiveWorkflow();
+  cancelPreparedHostReply();
   clearNextRoundTimer();
   if (state.workflow.recoveryTimer) {
     clearTimeout(state.workflow.recoveryTimer);
@@ -1303,7 +1459,7 @@ function applyImmediateNearDestination() {
 async function dispatchWorkflow(triggerType, event, playerInput = "") {
   const eventType = event?.type;
   const isSafetyInterrupt = eventType === "hard_brake";
-  if (state.workflow.inFlight && !isSafetyInterrupt) {
+  if (isHostBusy() && !isSafetyInterrupt) {
     state.ui.alert = "AI 正在处理上一条信息，请稍等";
     render();
     return;
@@ -1311,6 +1467,7 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
 
   if (isSafetyInterrupt) {
     abortActiveWorkflow();
+    cancelPreparedHostReply();
   }
 
   const input = buildWorkflowInput(triggerType, event, playerInput);
@@ -1342,6 +1499,34 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
   applyWorkflowOutput(output, input);
   finishWorkflowRequest(requestId);
   render();
+}
+
+function isHostBusy() {
+  return state.workflow.inFlight || state.workflow.preparedReplyPending;
+}
+
+function beginPreparedHostReply() {
+  state.workflow.preparedReplyRunId += 1;
+  state.workflow.preparedReplyPending = true;
+  state.workflow.activeLabel = "AI 正在判断";
+  state.ui.alert = state.workflow.activeLabel;
+  render();
+  return state.workflow.preparedReplyRunId;
+}
+
+function finishPreparedHostReply(runId) {
+  if (runId !== state.workflow.preparedReplyRunId) return;
+  state.workflow.preparedReplyPending = false;
+  state.workflow.activeLabel = "";
+  window.setTimeout(processNextPendingChat, 0);
+}
+
+function cancelPreparedHostReply() {
+  state.workflow.preparedReplyRunId += 1;
+  state.workflow.preparedReplyPending = false;
+  if (!state.workflow.inFlight) {
+    state.workflow.activeLabel = "";
+  }
 }
 
 function beginWorkflowRequest(input) {
@@ -1387,7 +1572,7 @@ function clearWorkflowTimeout() {
 }
 
 async function processNextPendingChat() {
-  if (state.workflow.inFlight || state.workflow.pendingChats.length === 0) return;
+  if (isHostBusy() || state.workflow.pendingChats.length === 0) return;
   if (state.game.status === "paused") return;
 
   const nextChat = state.workflow.pendingChats.shift();
@@ -1408,7 +1593,7 @@ function getWorkflowPendingLabel(input) {
 }
 
 function canStartWorkflowAction(message) {
-  if (!state.workflow.inFlight) return true;
+  if (!isHostBusy()) return true;
   state.ui.alert = message;
   render();
   return false;
@@ -1447,6 +1632,51 @@ function getPassengerPersona(seat) {
   return getPassengerPersonas()[getPersonaSeatKey(seat)] || null;
 }
 
+function getCurrentRoundTimelineTemplate() {
+  return (
+    ROUND_GOLDEN_TIMELINES.find(
+      (timeline) => timeline.id === state.timeline.roundTimelineId,
+    ) || null
+  );
+}
+
+function buildRoundQuestionPlanRequest(event) {
+  if (event?.type !== "start_game") return null;
+
+  const timeline = getCurrentRoundTimelineTemplate();
+  const passengerSlots = (timeline?.steps || []).filter(
+    (step) => step.type === "passenger_question",
+  );
+  const personaAgeGroups = [
+    ...new Set(
+      ["driver", "rearLeft", "rearRight"]
+        .map((seat) => getPassengerPersona(seat)?.age_group)
+        .filter(Boolean),
+    ),
+  ];
+
+  return {
+    enabled: true,
+    step_count: passengerSlots.length + ROUND_PLAN_EXTRA_STEPS,
+    reasoning_stages: ["category", "location", "function", "feature", "near_answer"],
+    persona_age_groups: personaAgeGroups,
+    generate_question_variants: true,
+    generate_host_replies: true,
+    passenger_slots: passengerSlots.map((step, index) => ({
+      slot: index + 1,
+      delay_ms: step.delay,
+      label: step.label,
+    })),
+    rules: [
+      "问题之间必须形成逐步缩小范围的逻辑链",
+      "每个问题必须可以用是或否回答",
+      "不要在前两个步骤直接说出或猜中谜底",
+      "为不同年龄人群提供自然的措辞变体",
+      "每一步同时生成可即时播放的主持人回答",
+    ],
+  };
+}
+
 function buildWorkflowInput(triggerType, event, playerInput) {
   const selectedSeat = state.passengers.selectedSeat;
   const personas = getPassengerPersonas();
@@ -1467,6 +1697,7 @@ function buildWorkflowInput(triggerType, event, playerInput) {
     : null;
   const currentTimelineEventType =
     event?.type || (triggerType === "event" ? state.timeline.currentEventType : "");
+  const roundQuestionPlanRequest = buildRoundQuestionPlanRequest(event);
 
   return {
     trigger_type: triggerType,
@@ -1491,6 +1722,7 @@ function buildWorkflowInput(triggerType, event, playerInput) {
       personas,
     },
     perception,
+    round_question_plan_request: roundQuestionPlanRequest,
     timeline: {
       id: state.timeline.id,
       name: state.timeline.name,
@@ -1518,6 +1750,7 @@ function buildWorkflowInput(triggerType, event, playerInput) {
       hint: getCurrentRiddle().hint,
       progress: perception.game_progress,
       asked_questions: getAskedQuestions(),
+      covered_fact_keys: state.game.coveredFactKeys,
     },
     interaction: {
       user_seat: "front",
@@ -1744,7 +1977,15 @@ function normalizeWorkflowPayload(payload) {
         continue;
       }
     }
-    if (typeof candidate === "object" && candidate.ai_reply_text) {
+    if (
+      typeof candidate === "object"
+      && (
+        candidate.ai_reply_text
+        || candidate.round_question_plan
+        || candidate.round_content?.round_question_plan
+        || candidate.round_content?.question_plan
+      )
+    ) {
       return normalizeWorkflowOutput(candidate);
     }
   }
@@ -1785,6 +2026,137 @@ function normalizeWorkflowOutput(output) {
   }
 
   return normalized;
+}
+
+function parseJsonValue(value) {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeRoundQuestionPlan(rawPlan) {
+  const parsedPlan = parseJsonValue(rawPlan);
+  if (!parsedPlan || typeof parsedPlan !== "object") return null;
+
+  const rawSteps =
+    parsedPlan.steps
+    || parsedPlan.question_steps
+    || parsedPlan.questions
+    || [];
+  if (!Array.isArray(rawSteps)) return null;
+
+  const steps = rawSteps
+    .map((rawStep, index) => normalizeRoundQuestionStep(rawStep, index))
+    .filter(Boolean)
+    .sort((stepA, stepB) => stepA.order - stepB.order);
+  if (steps.length < 2) return null;
+
+  const reasoningPath =
+    parsedPlan.reasoning_path
+    || parsedPlan.reasoningPath
+    || steps.map((step) => step.factKey);
+
+  return {
+    id:
+      parsedPlan.plan_id
+      || parsedPlan.id
+      || `${state.timeline.roundTimelineId || "round"}-${state.game.roundIndex}`,
+    source: "workflow",
+    reasoningPath: Array.isArray(reasoningPath) ? reasoningPath.filter(Boolean) : [],
+    steps,
+  };
+}
+
+function normalizeRoundQuestionStep(rawStep, index) {
+  const parsedStep = parseJsonValue(rawStep);
+  if (!parsedStep || typeof parsedStep !== "object") return null;
+
+  const rawVariants =
+    parsedStep.variants
+    || parsedStep.question_variants
+    || parsedStep.questionVariants
+    || {};
+  const variants =
+    rawVariants && typeof rawVariants === "object" && !Array.isArray(rawVariants)
+      ? Object.fromEntries(
+          Object.entries(rawVariants)
+            .map(([key, value]) => [key, String(value || "").trim()])
+            .filter(([, value]) => value),
+        )
+      : {};
+  const defaultQuestion = String(
+    parsedStep.question_text
+      || parsedStep.question
+      || parsedStep.text
+      || "",
+  ).trim();
+  if (defaultQuestion && !variants.default) {
+    variants.default = defaultQuestion;
+  }
+
+  const hostReplyText = String(
+    parsedStep.host_reply_text
+      || parsedStep.host_reply
+      || parsedStep.reply_text
+      || "",
+  ).trim();
+  if (!Object.keys(variants).length || !hostReplyText) return null;
+
+  const factKey = String(
+    parsedStep.fact_key
+      || parsedStep.factKey
+      || parsedStep.intent
+      || `step_${index + 1}`,
+  ).trim();
+  const dependsOnRaw = parsedStep.depends_on || parsedStep.dependsOn || [];
+  const personaTagsRaw = parsedStep.persona_tags || parsedStep.personaTags || [];
+
+  return {
+    id: String(parsedStep.id || parsedStep.step_id || `step_${index + 1}`),
+    order: Number(parsedStep.order) || index + 1,
+    factKey,
+    dependsOn: Array.isArray(dependsOnRaw) ? dependsOnRaw.filter(Boolean) : [],
+    stage: String(parsedStep.stage || ""),
+    expectedAnswer: String(
+      parsedStep.expected_answer || parsedStep.expectedAnswer || "",
+    ),
+    variants,
+    personaTags: Array.isArray(personaTagsRaw) ? personaTagsRaw.filter(Boolean) : [],
+    hostReplyText,
+    hostEmotion: String(
+      parsedStep.host_emotion || parsedStep.hostEmotion || "thinking",
+    ),
+  };
+}
+
+function applyRoundQuestionPlanFromOutput(output, input) {
+  if (input.event?.type !== "start_game") return;
+
+  const rawPlan =
+    output.round_question_plan
+    || output.round_content?.round_question_plan
+    || output.round_content?.question_plan
+    || output.ui_change?.round_question_plan
+    || output.debug?.round_question_plan;
+  state.game.roundQuestionPlan = normalizeRoundQuestionPlan(rawPlan);
+  state.game.usedRoundQuestionStepIds = [];
+  state.game.coveredFactKeys = [];
+}
+
+function mergeCoveredFactKeysFromOutput(output) {
+  const factKeys =
+    output.covered_fact_keys
+    || output.game_progress?.covered_fact_keys
+    || output.debug?.covered_fact_keys
+    || [];
+  if (!Array.isArray(factKeys)) return;
+
+  const merged = new Set(state.game.coveredFactKeys);
+  factKeys.filter(Boolean).forEach((key) => merged.add(String(key)));
+  state.game.coveredFactKeys = [...merged];
 }
 
 function normalizeThemeSelectionCopy(text) {
@@ -2069,6 +2441,8 @@ function applyWorkflowOutput(output, input) {
   const isHardBrakeOutput = input.event?.type === "hard_brake";
   const eventType = input.event?.type;
   const keepRealUserFocus = shouldKeepRealUserFocus(input, output);
+  applyRoundQuestionPlanFromOutput(output, input);
+  mergeCoveredFactKeysFromOutput(output);
   if (!isVictoryOutput) {
     clearPassengerActivities();
   }
@@ -2491,6 +2865,9 @@ function advanceAfterVictory(completedRound) {
   state.game.roundIndex = completedRound + 1;
   state.game.currentRiddleIndex = (state.game.currentRiddleIndex + 1) % RIDDLES.length;
   state.game.questionCount = 0;
+  state.game.roundQuestionPlan = null;
+  state.game.usedRoundQuestionStepIds = [];
+  state.game.coveredFactKeys = [];
   state.game.status = "idle";
   state.ui.cabinMode = "normal";
   state.ui.showAnswer = false;
@@ -2681,9 +3058,10 @@ function normalizeTargetSeat(seat) {
 function render() {
   const riddle = getCurrentRiddle();
   const screenMode = getGameScreenMode();
+  const hostBusy = isHostBusy();
   document.body.classList.toggle("is-paused", state.game.status === "paused");
   document.body.classList.toggle("is-victory", state.game.status === "victory");
-  document.body.classList.toggle("is-working", state.workflow.inFlight);
+  document.body.classList.toggle("is-working", hostBusy);
   els.gameScreen.className = `game-screen screen-${screenMode} ${getScreenEnvironmentClass(screenMode)}`;
   renderHostMedia(screenMode);
 
@@ -2707,29 +3085,29 @@ function render() {
   els.summaryTotal.textContent = state.game.totalRounds;
   els.summarySolved.textContent = getSummarySolvedCount();
   els.summaryMvp.textContent = SEATS[getSummaryMvpSeat()] || "副驾";
-  const hostBubbleText = state.workflow.inFlight ? "" : String(state.host.text || "");
+  const hostBubbleText = hostBusy ? "" : String(state.host.text || "");
   const hostBubbleLength = Array.from(hostBubbleText).length;
   const hostBubbleVariant =
     hostBubbleLength > 46 ? "long-text" : hostBubbleLength > 28 ? "medium-text" : "";
-  els.hostBubble.classList.toggle("thinking", state.workflow.inFlight);
+  els.hostBubble.classList.toggle("thinking", hostBusy);
   els.hostBubble.classList.toggle(
     "medium-text",
-    !state.workflow.inFlight && hostBubbleVariant === "medium-text",
+    !hostBusy && hostBubbleVariant === "medium-text",
   );
   els.hostBubble.classList.toggle(
     "long-text",
-    !state.workflow.inFlight && hostBubbleVariant === "long-text",
+    !hostBusy && hostBubbleVariant === "long-text",
   );
-  els.hostBubble.setAttribute("aria-busy", state.workflow.inFlight ? "true" : "false");
+  els.hostBubble.setAttribute("aria-busy", hostBusy ? "true" : "false");
   const hostBubbleTextElement = setHostBubbleText(hostBubbleText);
-  if (!state.workflow.inFlight && hostBubbleVariant) {
+  if (!hostBusy && hostBubbleVariant) {
     scheduleTextClamp(
       hostBubbleTextElement,
       hostBubbleText,
       hostBubbleVariant === "long-text" ? 4 : 3,
     );
   }
-  els.hostAvatar.classList.toggle("thinking", state.workflow.inFlight);
+  els.hostAvatar.classList.toggle("thinking", hostBusy);
   els.hostAvatar.dataset.avatarState = state.host.avatarState || HOST_AVATAR_DEFAULT_STATE;
   els.timelineName.textContent = state.timeline.name;
   els.decisionPerception.textContent = formatDecisionText(
@@ -2935,7 +3313,7 @@ function renderControls() {
   setActive(els.speedChips, "speed", String(state.car.speed));
   setActive(els.environmentChips, "environment", state.car.environment);
 
-  const isBusy = state.workflow.inFlight;
+  const isBusy = isHostBusy();
   const isTimelinePaused = state.timeline.status === "paused";
   const hasStarted = state.timeline.status !== "idle" || state.game.status !== "idle";
 
