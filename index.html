@@ -7,7 +7,7 @@
     <link rel="preload" as="image" href="./assets/screen-background.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-env-sunset.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-    <link rel="stylesheet" href="./styles.css?v=20260725-cabin-stability-3" />
+    <link rel="stylesheet" href="./styles.css?v=20260725-dynamic-round-progress" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -111,25 +111,16 @@
               <img src="./assets/game-icon.png" alt="" />
             </div>
             <div class="pencil-title" aria-hidden="true">旅途猜谜</div>
-            <div class="pencil-progress-rail" aria-hidden="true">
+            <div class="pencil-progress-rail" id="pencilProgressRail" aria-hidden="true">
               <span class="pencil-rail-base"></span>
-              <span class="pencil-rail-fill"></span>
-              <i class="dot dot-light dot-light-one"></i>
-              <i class="dot dot-light dot-light-two"></i>
-              <i class="dot dot-light dot-light-three"></i>
-              <i class="dot dot-pink"></i>
-              <i class="dot dot-purple dot-one"></i>
-              <i class="dot dot-purple dot-two"></i>
-              <i class="dot dot-purple dot-three"></i>
-              <i class="dot dot-purple dot-four"></i>
-              <i class="dot dot-purple dot-five"></i>
-              <i class="dot dot-purple dot-six"></i>
+              <span class="pencil-rail-fill" id="pencilRailFill"></span>
+              <span class="pencil-progress-dots" id="pencilProgressDots"></span>
             </div>
             <div class="question-counter">
               <span class="ticket-mark" aria-hidden="true">
                 <img src="./assets/question-icon.svg" alt="" />
               </span>
-              <span class="question-copy"><strong id="questionProgress">0 / 15</strong> 题</span>
+              <span class="question-copy"><strong id="questionProgress">1 / 10</strong> 题</span>
             </div>
 
             <span class="round-pill" aria-hidden="true">进度 <b id="roundProgress">1/10</b></span>
@@ -272,6 +263,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260725-cabin-stability"></script>
+    <script src="./app.js?v=20260725-dynamic-round-progress-3"></script>
   </body>
 </html>

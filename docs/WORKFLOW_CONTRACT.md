@@ -98,6 +98,12 @@ V1.x 固定为：
   "relationship": "父母+小孩",
   "selected_seat": "front",
   "selected_seat_label": "副驾",
+  "selected_persona": {
+    "name": "副驾真实用户",
+    "role": "家长",
+    "age_group": "adult",
+    "is_real_user": true
+  },
   "user_seat": "front",
   "states": {
     "driver": "普通",
@@ -136,6 +142,20 @@ V1.x 支持：
 | `front` | 副驾 |
 | `rearLeft` | 左后 |
 | `rearRight` | 右后 |
+
+### selected_persona
+
+当前发言座位对应的人设快照。前端在真实用户提问和时间轴模拟乘客提问时都会填写，Workflow 不需要再根据座位猜测对方是小朋友、年轻人还是长辈。
+
+常用字段：
+
+- `name`
+- `role`
+- `age_group`
+- `persona`
+- `style`
+- `can_guess`
+- `is_real_user`
 
 ### user_seat
 
@@ -198,6 +218,9 @@ V1.2 的收敛后感知状态。这里传递的是时间轴或前端状态中心
 {
   "id": "family_highway_disney",
   "name": "高速亲子出行",
+  "round_timeline_id": "round_collaborative",
+  "round_timeline_name": "轮流破题",
+  "round_index": 2,
   "status": "running",
   "elapsed_seconds": 32,
   "current_event": {
@@ -212,6 +235,9 @@ V1.2 的收敛后感知状态。这里传递的是时间轴或前端状态中心
 | --- | --- | --- | --- |
 | `id` | string | 否 | 当前时间轴 ID |
 | `name` | string | 否 | 当前时间轴名称 |
+| `round_timeline_id` | string | 否 | 本题随机抽中的单题时间轴 ID |
+| `round_timeline_name` | string | 否 | 本题随机抽中的单题时间轴名称 |
+| `round_index` | number | 否 | 单题时间轴对应的题号 |
 | `status` | string | 否 | `idle` / `running` / `paused` / `finished` |
 | `elapsed_seconds` | number | 否 | 时间轴已运行秒数 |
 | `current_event` | object | 否 | 当前触发的时间轴事件 |
@@ -273,7 +299,13 @@ V1.x 支持：
 ```json
 {
   "current_speaker": "front",
-  "last_speaker": "rearLeft",
+  "current_speaker_label": "副驾",
+  "current_speaker_persona": {
+    "role": "家长",
+    "age_group": "adult",
+    "is_real_user": true
+  },
+  "speaker_source": "real_user",
   "user_seat": "front",
   "recent_messages": [
     {
@@ -286,25 +318,23 @@ V1.x 支持：
       "text": "是，和出行场景关系很近。"
     }
   ],
-  "simulation_request": {
-    "enabled": true,
-    "exclude_seats": ["front", "driver"],
-    "reason": "轮到模拟乘客参与"
-  }
+  "suppress_passenger_action": false
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `current_speaker` | string | 否 | 当前发言座位 |
-| `last_speaker` | string | 否 | 上一位发言座位 |
+| `current_speaker_label` | string | 否 | 当前发言座位中文名 |
+| `current_speaker_persona` | object/null | 否 | 当前发言者的人物身份快照 |
+| `speaker_source` | string | 否 | `real_user` / `timeline_simulation` / `system_event` |
 | `user_seat` | string | 否 | 真实用户座位 |
 | `recent_messages` | array | 否 | 近期对话记录 |
-| `simulation_request` | object | 否 | 是否请求模拟乘客动作 |
+| `suppress_passenger_action` | boolean | 否 | 前端已生成模拟发言时为 `true`，避免 Workflow 再生成一位乘客 |
 
 ## player_input
 
-当 `trigger_type = chat` 时，表示真实用户输入内容。
+当 `trigger_type = chat` 时，表示当前发言者输入内容。发言者可能是副驾真实用户，也可能是前端时间轴选中的模拟乘客，需结合 `interaction.speaker_source` 和 `passengers.selected_persona` 判断。
 
 可能是：
 
@@ -618,13 +648,16 @@ V1.x 支持：
 
 ### 模拟乘客发言
 
+当前推荐路径由前端时间轴先决定“什么时候有乘客提问”，再从 `driver`、`rearLeft`、`rearRight` 中随机选择一个合规座位。`front` 固定为真实用户，不参与随机。前端选好问题后，以 `chat` 请求把发言座位、问题和人物身份一起传给 Workflow。
+
 输入：
 
 ```json
 {
-  "trigger_type": "simulation",
+  "trigger_type": "chat",
   "plugin_id": "riddle",
-  "player_input": "",
+  "player_input": "它能保护我们吗？",
+  "player_seat": "右后",
   "car": {
     "speed": 80,
     "destination": "迪士尼",
@@ -632,12 +665,30 @@ V1.x 支持：
   },
   "passengers": {
     "relationship": "父母+小孩",
+    "selected_seat": "rearRight",
+    "selected_seat_label": "右后",
+    "selected_persona": {
+      "name": "后排小朋友",
+      "role": "小朋友",
+      "age_group": "child",
+      "persona": "好奇、兴奋、喜欢动画和食物",
+      "style": "短句、直接、偶尔跳脱",
+      "is_real_user": false
+    },
     "user_seat": "front",
     "states": {
       "driver": "普通",
       "front": "普通",
       "rear_left": "普通",
       "rear_right": "普通"
+    },
+    "personas": {
+      "rear_right": {
+        "name": "后排小朋友",
+        "role": "小朋友",
+        "age_group": "child",
+        "is_real_user": false
+      }
     }
   },
   "game": {
@@ -646,12 +697,33 @@ V1.x 支持：
     "current_answer": "安全带",
     "asked_questions": ["它是车上的东西吗？"]
   },
-  "interaction": {
-    "simulation_request": {
-      "enabled": true,
-      "exclude_seats": ["front", "driver"],
-      "reason": "轮到模拟乘客参与"
+  "event": {
+    "type": "passenger_question",
+    "source": "timeline",
+    "seat": "rearRight",
+    "seat_label": "右后"
+  },
+  "timeline": {
+    "id": "family_highway_disney",
+    "name": "高速亲子出行",
+    "round_timeline_id": "round_collaborative",
+    "round_timeline_name": "轮流破题",
+    "round_index": 2,
+    "current_event": {
+      "type": "passenger_question",
+      "description": "乘客开始提问"
     }
+  },
+  "interaction": {
+    "user_seat": "front",
+    "current_speaker": "rearRight",
+    "current_speaker_label": "右后",
+    "current_speaker_persona": {
+      "role": "小朋友",
+      "age_group": "child"
+    },
+    "speaker_source": "timeline_simulation",
+    "suppress_passenger_action": true
   }
 }
 ```
@@ -660,12 +732,7 @@ V1.x 支持：
 
 ```json
 {
-  "passenger_action": {
-    "seat": "rearRight",
-    "text": "它能保护我们吗？",
-    "mood": "普通",
-    "intent": "ask_attribute"
-  },
+  "passenger_action": null,
   "ai_reply_text": "是，非常接近。这个问题一下把范围缩小了。",
   "game_status": "playing",
   "is_correct": false,
@@ -679,6 +746,8 @@ V1.x 支持：
   }
 }
 ```
+
+此路径中前端已经显示了乘客气泡，Workflow 不应再次返回 `passenger_action`，否则会造成重复发言或切换到错误座位。旧的 `trigger_type=simulation + request_passenger_action` 路径仅作为兼容能力保留，不再是单题黄金时间轴的主路径。
 
 ### 时间轴急刹打断
 

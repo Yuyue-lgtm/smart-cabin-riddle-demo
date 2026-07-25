@@ -10,6 +10,10 @@ const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
 const MIN_BUBBLE_DISPLAY_MS = 3000;
 const PASSENGER_BUBBLE_MS = 8000;
 const CORRECT_LIGHT_MS = 5000;
+const NEXT_ROUND_DELAY_MS = 5000;
+const PAUSED_ROUND_POLL_MS = 300;
+const PROGRESS_DOT_STEP_PX = 46;
+const PROGRESS_RAIL_EDGE_PX = 20;
 const STAGE_WIDTH = 1940;
 const STAGE_HEIGHT = 1100;
 const DEFAULT_DEPLOY_STATUS = "版本检查中";
@@ -168,6 +172,191 @@ const RIDDLES = [
   },
 ];
 
+const PASSENGER_QUESTION_BANK = {
+  雨伞: ["它是不是下雨时更常用？", "它能不能被人拿在手里？", "它平时可以折起来吗？"],
+  安全带: ["它是不是每个人坐车都要用？", "它和安全有直接关系吗？", "它是不是就在座位旁边？"],
+  斧头: ["它是不是一种工具？", "它通常是用金属做的吗？", "它能用来砍东西吗？"],
+  米老鼠: ["它是不是一个卡通角色？", "小朋友大多认识它吗？", "它和迪士尼有关吗？"],
+  火锅: ["它是不是可以吃的？", "它适合很多人一起分享吗？", "它通常是热的吗？"],
+  雪人: ["它是不是冬天更常见？", "它是用雪做出来的吗？", "太阳出来后它会消失吗？"],
+  红绿灯: ["它是不是在马路上常见？", "它会不会变换颜色？", "司机需要听它指挥吗？"],
+  书包: ["它是不是经常被背在身上？", "学生会经常用到它吗？", "它能装很多东西吗？"],
+  方向盘: ["它是不是在主驾附近？", "开车时需要用手操作它吗？", "它能控制车辆方向吗？"],
+  草原: ["它是不是在户外？", "它看起来很开阔吗？", "那里通常有很多植物吗？"],
+};
+
+const GENERIC_PASSENGER_QUESTIONS = [
+  "它是生活中常见的东西吗？",
+  "它是人造的吗？",
+  "它通常会出现在室内吗？",
+  "它和出行有关吗？",
+  "它能被人拿起来吗？",
+];
+
+const PASSENGER_PERSONAS_BY_RELATIONSHIP = {
+  "父母+小孩": {
+    driver: {
+      name: "主驾家长",
+      role: "家长",
+      age_group: "middle_aged",
+      persona: "稳重、关注安全、熟悉家庭出行",
+      style: "短句、克制，安全条件允许时偶尔参与",
+      can_guess: true,
+      is_real_user: false,
+    },
+    front: {
+      name: "副驾真实用户",
+      role: "家长",
+      age_group: "adult",
+      persona: "主要玩家，负责关键提问和猜答案",
+      style: "由真实用户决定",
+      can_guess: true,
+      is_real_user: true,
+    },
+    rear_left: {
+      name: "后排家庭成员",
+      role: "青少年",
+      age_group: "teen",
+      persona: "稳健、愿意补充线索",
+      style: "简短、先缩小类别再猜",
+      can_guess: true,
+      is_real_user: false,
+    },
+    rear_right: {
+      name: "后排小朋友",
+      role: "小朋友",
+      age_group: "child",
+      persona: "好奇、兴奋、喜欢动画和食物",
+      style: "短句、直接、偶尔跳脱",
+      can_guess: true,
+      is_real_user: false,
+    },
+  },
+  年轻朋友: {
+    driver: {
+      name: "主驾朋友",
+      role: "年轻朋友",
+      age_group: "young_adult",
+      persona: "专注驾驶、偶尔接梗",
+      style: "短句、轻松，安全优先",
+      can_guess: true,
+      is_real_user: false,
+    },
+    front: {
+      name: "副驾真实用户",
+      role: "年轻朋友",
+      age_group: "young_adult",
+      persona: "主要玩家，负责关键提问和猜答案",
+      style: "由真实用户决定",
+      can_guess: true,
+      is_real_user: true,
+    },
+    rear_left: {
+      name: "后排左朋友",
+      role: "年轻朋友",
+      age_group: "young_adult",
+      persona: "脑洞大、喜欢玩梗",
+      style: "轻松、直接、偶尔吐槽",
+      can_guess: true,
+      is_real_user: false,
+    },
+    rear_right: {
+      name: "后排右朋友",
+      role: "年轻朋友",
+      age_group: "young_adult",
+      persona: "观察细、擅长补关键问题",
+      style: "简短、有策略",
+      can_guess: true,
+      is_real_user: false,
+    },
+  },
+  "中老年+儿女": {
+    driver: {
+      name: "主驾儿女",
+      role: "成年儿女",
+      age_group: "middle_aged",
+      persona: "稳重、照顾家人、重视安全",
+      style: "短句、克制，安全条件允许时参与",
+      can_guess: true,
+      is_real_user: false,
+    },
+    front: {
+      name: "副驾真实用户",
+      role: "成年儿女",
+      age_group: "adult",
+      persona: "主要玩家，负责关键提问和猜答案",
+      style: "由真实用户决定",
+      can_guess: true,
+      is_real_user: true,
+    },
+    rear_left: {
+      name: "后排长辈",
+      role: "长辈",
+      age_group: "elder",
+      persona: "沉稳、有生活经验",
+      style: "语气平和、问题务实",
+      can_guess: true,
+      is_real_user: false,
+    },
+    rear_right: {
+      name: "后排家人",
+      role: "长辈",
+      age_group: "elder",
+      persona: "耐心、善于从生活经验判断",
+      style: "稳健、不过度抢话",
+      can_guess: true,
+      is_real_user: false,
+    },
+  },
+};
+
+const ROUND_GOLDEN_TIMELINES = [
+  {
+    id: "round_collaborative",
+    name: "轮流破题",
+    steps: [
+      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 14000, type: "passenger_question", label: "另一位乘客接力提问" },
+      { delay: 23000, type: "cue_real_user", label: "邀请副驾真实用户推进" },
+      { delay: 32000, type: "passenger_question", label: "乘客继续缩小范围" },
+      { delay: 44000, type: "passenger_question", label: "乘客补充关键一问" },
+    ],
+  },
+  {
+    id: "round_cabin_mood",
+    name: "轻松玩梗",
+    steps: [
+      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 12000, type: "cabin_laughing", label: "舱内出现轻松笑声" },
+      { delay: 20000, type: "passenger_question", label: "乘客顺势接力提问" },
+      { delay: 30000, type: "passenger_question", label: "乘客换个方向提问" },
+      { delay: 40000, type: "cue_real_user", label: "邀请副驾真实用户收束" },
+    ],
+  },
+  {
+    id: "round_safety_interrupt",
+    name: "安全控场",
+    steps: [
+      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 13000, type: "driver_tired", label: "检测到主驾疲惫" },
+      { delay: 21000, type: "passenger_question", label: "安全座位接力提问" },
+      { delay: 30000, type: "hard_brake", label: "突发急刹打断" },
+      { delay: 41000, type: "passenger_question", label: "恢复后乘客继续提问" },
+    ],
+  },
+  {
+    id: "round_quiet_care",
+    name: "安静照顾",
+    steps: [
+      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 13000, type: "passenger_sleep", label: "检测到有乘客睡着" },
+      { delay: 22000, type: "passenger_question", label: "清醒乘客继续提问" },
+      { delay: 31000, type: "passenger_inactive", label: "检测到乘客长时间未参与" },
+      { delay: 40000, type: "passenger_question", label: "乘客补充关键一问" },
+    ],
+  },
+];
+
 const GOLDEN_TIMELINES = [
   {
     id: "family_highway_disney",
@@ -184,58 +373,6 @@ const GOLDEN_TIMELINES = [
       strategyId: "V1.2-A",
       priority: "P3",
     },
-    steps: [
-      {
-        delay: 0,
-        label: "初始化高速亲子出行",
-        run: () => applyGoldenLineDefaults(),
-      },
-      {
-        delay: 1500,
-        label: "AI 主持开局",
-        run: () => startGame(),
-      },
-      {
-        delay: 9000,
-        label: "后排小朋友尝试提问",
-        run: () => runScriptedQuestion("rearRight", "它是不是像超人一样保护我们？"),
-      },
-      {
-        delay: 15000,
-        label: "副驾真实用户接手",
-        run: () => cueRealUser("副驾，这一问交给你。可以从安全、车内物品这些方向试试。"),
-      },
-      {
-        delay: 18000,
-        label: "车速升至高速阈值",
-        run: () => runScriptedSpeed(100),
-      },
-      {
-        delay: 22000,
-        label: "检测到主驾疲惫",
-        run: () => runScriptedEvent("driver_tired", "主驾疲惫"),
-      },
-      {
-        delay: 30000,
-        label: "突发急刹打断",
-        run: () => runScriptedEvent("hard_brake", "急刹打断"),
-      },
-      {
-        delay: 42000,
-        label: "检测到后排左长时间未参与",
-        run: () => runScriptedEvent("passenger_inactive", "后排左长时间未参与", "rearLeft"),
-      },
-      {
-        delay: 52000,
-        label: "小朋友继续跳脱提问",
-        run: () => runScriptedQuestion("rearRight", "它是不是每个人坐车都要用？"),
-      },
-      {
-        delay: 65000,
-        label: "等待副驾猜答案",
-        run: () => cueRealUser("线索已经很近了，副驾可以直接猜答案。"),
-      },
-    ],
   },
   {
     id: "rainy_city_hotpot_friends",
@@ -252,43 +389,6 @@ const GOLDEN_TIMELINES = [
       strategyId: "V1.2-B",
       priority: "P3",
     },
-    steps: [
-      {
-        delay: 0,
-        label: "初始化雨天朋友聚会",
-        run: () => applyGoldenLineDefaults(),
-      },
-      {
-        delay: 1500,
-        label: "AI 主持开局",
-        run: () => startGame(),
-      },
-      {
-        delay: 9000,
-        label: "后排朋友玩梗",
-        run: () => runScriptedQuestion("rearLeft", "它是不是火锅店门口最容易被忘的东西？"),
-      },
-      {
-        delay: 17000,
-        label: "天气切换为雨天",
-        run: () => runScriptedEnvironment("城区雨天白天"),
-      },
-      {
-        delay: 24000,
-        label: "检测到舱内持续大笑",
-        run: () => runScriptedEvent("cabin_laughing", "舱内持续大笑", "rearLeft"),
-      },
-      {
-        delay: 32000,
-        label: "多轮提问仍无进展",
-        run: () => runScriptedEvent("game_stuck", "游戏卡住"),
-      },
-      {
-        delay: 40000,
-        label: "副驾真实用户推进",
-        run: () => cueRealUser("雨已经下起来了，副驾可以顺着天气继续问。"),
-      },
-    ],
   },
   {
     id: "scenic_snow_family",
@@ -305,43 +405,6 @@ const GOLDEN_TIMELINES = [
       strategyId: "V1.2-C",
       priority: "P3",
     },
-    steps: [
-      {
-        delay: 0,
-        label: "初始化风景区雪景家庭",
-        run: () => applyGoldenLineDefaults(),
-      },
-      {
-        delay: 1500,
-        label: "AI 主持开局",
-        run: () => startGame(),
-      },
-      {
-        delay: 9000,
-        label: "后排家人稳健提问",
-        run: () => runScriptedQuestion("rearLeft", "它是不是和雪景有关？"),
-      },
-      {
-        delay: 17000,
-        label: "检测到后排右睡着",
-        run: () => runScriptedEvent("passenger_sleep", "有人睡着", "rearRight"),
-      },
-      {
-        delay: 25000,
-        label: "玩家已经接近答案",
-        run: () => runScriptedEvent("near_answer", "接近答案"),
-      },
-      {
-        delay: 32000,
-        label: "快到目的地",
-        run: () => runScriptedEvent("near_destination", "快到目的地"),
-      },
-      {
-        delay: 40000,
-        label: "副驾真实用户收尾",
-        run: () => cueRealUser("快到目的地了，副驾来决定这一题要不要直接猜。"),
-      },
-    ],
   },
 ];
 
@@ -370,7 +433,7 @@ const DEFAULT_STATE = {
   game: {
     status: "idle",
     roundIndex: 1,
-    totalRounds: 10,
+    totalRounds: RIDDLES.length,
     questionCount: 0,
     maxQuestions: 15,
     currentRiddleIndex: 1,
@@ -393,6 +456,12 @@ const DEFAULT_STATE = {
   timeline: {
     id: GOLDEN_TIMELINES[0].id,
     name: GOLDEN_TIMELINES[0].name,
+    roundTimelineId: "",
+    roundTimelineName: "",
+    lastRoundTimelineId: "",
+    roundTimelineHistory: [],
+    lastPassengerSeat: "",
+    currentEventType: "",
     status: "idle",
     runId: 0,
     startedAt: 0,
@@ -419,6 +488,7 @@ const DEFAULT_STATE = {
     recoveryTimer: null,
     activityTimer: null,
     correctLightTimer: null,
+    nextRoundTimer: null,
     hostAvatarTimer: null,
     pendingChats: [],
   },
@@ -454,6 +524,9 @@ function cacheElements() {
     "gameScreen",
     "roundProgress",
     "questionProgress",
+    "pencilProgressRail",
+    "pencilRailFill",
+    "pencilProgressDots",
     "stageLabel",
     "riddleTitle",
     "riddleHint",
@@ -614,52 +687,134 @@ function resetCurrentGoldenLine() {
 }
 
 async function startGoldenTimeline() {
-  if (state.timeline.status === "running") {
+  if (state.timeline.status === "running" || state.timeline.status === "paused") {
     state.ui.alert = "模拟正在进行中";
     render();
     return;
   }
 
+  applyGoldenLineDefaults(getActiveGoldenLine(), false);
+  await startRoundGoldenTimeline();
+}
+
+async function startRoundGoldenTimeline() {
+  const roundTimeline = pickRoundGoldenTimeline();
   const runId = state.timeline.runId + 1;
-  const timeline = getActiveGoldenLine();
   state.timeline.runId = runId;
-  state.timeline.id = timeline.id;
-  state.timeline.name = timeline.name;
+  state.timeline.roundTimelineId = roundTimeline.id;
+  state.timeline.roundTimelineName = roundTimeline.name;
+  state.timeline.lastRoundTimelineId = roundTimeline.id;
+  state.timeline.roundTimelineHistory.push({
+    round: state.game.roundIndex,
+    id: roundTimeline.id,
+    name: roundTimeline.name,
+  });
   state.timeline.status = "running";
   state.timeline.startedAt = Date.now();
   state.timeline.elapsedSeconds = 0;
-  state.timeline.currentEvent = `${timeline.name}启动中`;
-  applyGoldenLineDefaults(timeline, false);
+  state.timeline.currentEventType = "start_game";
+  state.timeline.currentEvent = `第 ${state.game.roundIndex} 题 · ${roundTimeline.name}`;
   render();
 
-  let previousDelay = 0;
-  for (const step of timeline.steps) {
+  await startGame();
+  if (state.timeline.runId !== runId || state.game.status === "victory") return;
+
+  state.timeline.startedAt = Date.now();
+  for (const step of roundTimeline.steps) {
     if (state.timeline.runId !== runId) return;
-    await sleep(Math.max(0, step.delay - previousDelay));
-    previousDelay = step.delay;
-    await waitWhileTimelinePaused(runId);
+    const waitMs = state.timeline.startedAt + step.delay - Date.now();
+    await sleep(Math.max(0, waitMs));
+    await waitUntilRoundTimelineReady(runId);
     if (state.timeline.runId !== runId) return;
-    await waitForWorkflowIdle(runId);
-    if (state.timeline.runId !== runId) return;
+    if (["victory", "summary", "failed"].includes(state.game.status)) return;
     state.timeline.elapsedSeconds = Math.round((Date.now() - state.timeline.startedAt) / 1000);
+    state.timeline.currentEventType = step.type;
     state.timeline.currentEvent = step.label;
     render();
-    await step.run();
+    await runRoundTimelineStep(step);
   }
 
   if (state.timeline.runId === runId) {
-    state.timeline.status = "finished";
-    state.timeline.currentEvent = `${timeline.name}已完成`;
-    state.game.status = "summary";
-    state.ui.cabinMode = "summary";
-    state.ui.showAnswer = false;
-    state.ui.correctSeat = getSummaryMvpSeat();
-    state.host.text = makeSummaryHostText();
-    state.host.emotion = "celebrating";
-    state.host.targetSeat = null;
-    state.ui.alert = "模拟完成";
+    state.timeline.currentEventType = "awaiting_player";
+    state.timeline.currentEvent = `${roundTimeline.name}已完成，等待本题继续`;
     render();
   }
+}
+
+function pickRoundGoldenTimeline() {
+  const candidates = ROUND_GOLDEN_TIMELINES.length > 1
+    ? ROUND_GOLDEN_TIMELINES.filter(
+        (timeline) => timeline.id !== state.timeline.lastRoundTimelineId,
+      )
+    : ROUND_GOLDEN_TIMELINES;
+  return candidates[Math.floor(Math.random() * candidates.length)] || ROUND_GOLDEN_TIMELINES[0];
+}
+
+async function runRoundTimelineStep(step) {
+  if (step.type === "passenger_question") {
+    await runRandomTimelinePassengerQuestion();
+    return;
+  }
+  if (step.type === "cue_real_user") {
+    cueRealUser("副驾也可以随时接上，试着从类别、用途或所在位置继续缩小范围。");
+    return;
+  }
+
+  if (["passenger_sleep", "passenger_inactive", "cabin_laughing"].includes(step.type)) {
+    const rearSeat = selectRandomSimulatedSeat({ rearOnly: true });
+    if (!rearSeat) return;
+    await runScriptedEvent(step.type, step.label, rearSeat);
+    return;
+  }
+  await runScriptedEvent(step.type, step.label, "driver");
+}
+
+async function runRandomTimelinePassengerQuestion() {
+  if (state.game.questionCount >= state.game.maxQuestions) return;
+  const seat = selectRandomSimulatedSeat();
+  if (!seat) {
+    cueRealUser("其他乘客暂时不适合发言，副驾可以继续这一问。");
+    return;
+  }
+  const question = pickTimelinePassengerQuestion();
+  await runScriptedQuestion(seat, question);
+}
+
+function selectRandomSimulatedSeat({ rearOnly = false } = {}) {
+  const sleepingSeats = new Set(getSleepingSeats());
+  const driverUnavailable =
+    state.car.speed >= 100
+    || state.perception.driverState === "fatigued"
+    || ["疲惫", "睡着"].includes(state.passengers.seats.driver.mood)
+    || ["safety_pause", "driver_focus"].includes(state.ui.cabinMode);
+  const baseSeats = rearOnly ? ["rearLeft", "rearRight"] : ["driver", "rearLeft", "rearRight"];
+  let candidates = baseSeats.filter(
+    (seat) => !sleepingSeats.has(seat) && (seat !== "driver" || !driverUnavailable),
+  );
+  if (candidates.length > 1 && state.timeline.lastPassengerSeat) {
+    candidates = candidates.filter((seat) => seat !== state.timeline.lastPassengerSeat);
+  }
+  if (!candidates.length) return "";
+
+  const seat = candidates[Math.floor(Math.random() * candidates.length)];
+  state.timeline.lastPassengerSeat = seat;
+  return seat;
+}
+
+function pickTimelinePassengerQuestion() {
+  const riddle = getCurrentRiddle();
+  const specificQuestions = PASSENGER_QUESTION_BANK[riddle.answer] || [];
+  const askedQuestions = new Set(getAskedQuestions());
+  const availableSpecific = specificQuestions.filter((question) => !askedQuestions.has(question));
+  const availableGeneric = GENERIC_PASSENGER_QUESTIONS.filter(
+    (question) => !askedQuestions.has(question),
+  );
+  const candidates = availableSpecific.length
+    ? availableSpecific
+    : availableGeneric.length
+      ? availableGeneric
+      : [...specificQuestions, ...GENERIC_PASSENGER_QUESTIONS];
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function toggleTimelinePause() {
@@ -671,7 +826,7 @@ function toggleTimelinePause() {
     state.timeline.status = "running";
     state.timeline.currentEvent = "模拟继续";
     state.ui.alert = "模拟继续";
-  } else if (["opening", "playing"].includes(state.game.status)) {
+  } else if (["opening", "playing", "victory"].includes(state.game.status)) {
     state.timeline.status = "paused";
     state.timeline.currentEvent = "模拟已暂停";
     state.ui.alert = "模拟已暂停";
@@ -689,6 +844,7 @@ function stopTimeline(message) {
   }
   state.timeline.status = "idle";
   state.timeline.elapsedSeconds = 0;
+  state.timeline.currentEventType = "";
   state.timeline.currentEvent =
     message || "准备好后点击开始模拟，系统会按时间轴触发座舱事件。";
 }
@@ -698,7 +854,8 @@ function finishTimelineSilently() {
     state.timeline.runId += 1;
   }
   state.timeline.status = "finished";
-  state.timeline.currentEvent = `${state.timeline.name}已完成`;
+  state.timeline.currentEventType = "round_finished";
+  state.timeline.currentEvent = `${state.timeline.roundTimelineName || state.timeline.name}已完成`;
 }
 
 function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = false) {
@@ -707,11 +864,20 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
     state.workflow.activityTimer = null;
   }
   clearCorrectLightTimer();
+  clearNextRoundTimer();
   clearHostAvatarTimer();
   const index = GOLDEN_TIMELINES.findIndex((item) => item.id === timeline.id);
   state.scenarioIndex = index >= 0 ? index : 0;
   state.timeline.id = timeline.id;
   state.timeline.name = timeline.name;
+  state.timeline.roundTimelineId = "";
+  state.timeline.roundTimelineName = "";
+  state.timeline.lastRoundTimelineId = "";
+  state.timeline.roundTimelineHistory = [];
+  state.timeline.lastPassengerSeat = "";
+  state.timeline.currentEventType = "";
+  state.timeline.status = "idle";
+  state.timeline.elapsedSeconds = 0;
   state.car.speed = timeline.speed;
   state.car.destination = timeline.destination;
   state.car.environment = timeline.environment;
@@ -719,6 +885,8 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.passengers.selectedSeat = "front";
   state.game.currentRiddleIndex = timeline.riddleIndex;
   state.game.status = "idle";
+  state.game.roundIndex = 1;
+  state.game.totalRounds = RIDDLES.length;
   state.game.questionCount = 0;
   state.game.history = [];
   state.ui.showAnswer = false;
@@ -731,6 +899,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.host.avatarState = HOST_AVATAR_DEFAULT_STATE;
   state.host.targetSeat = "front";
   state.workflow.lastPassengerActionKey = "";
+  state.workflow.pendingChats = [];
   state.perception.driverState = "normal";
   state.perception.gameProgress = "normal";
   clearPassengerBubbles();
@@ -753,26 +922,29 @@ function getPrestartHostText(timeline) {
 }
 
 async function runScriptedQuestion(seat, text) {
-  if (seat === "front") {
-    cueRealUser(text);
-    return;
-  }
+  if (seat === "front") return;
   if (state.game.status === "paused") return;
   state.passengers.selectedSeat = seat;
   showPassengerBubble(seat, text);
   state.host.targetSeat = seat;
-  state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
+  state.game.status = ["idle", "opening"].includes(state.game.status) ? "playing" : state.game.status;
   state.game.questionCount += 1;
   state.ui.alert = `${SEATS[seat]}：${text}`;
+  const persona = getPassengerPersona(seat);
+  const isChild = persona?.age_group === "child";
   updateDecisionTrace({
     perception: `${SEATS[seat]}参与提问`,
-    decision: seat === "rearRight" ? "允许后排小朋友短句参与" : "允许模拟乘客补充提问",
+    decision: isChild ? "允许小朋友用短句参与" : "允许模拟乘客补充提问",
     execution: "显示乘客气泡，并交给 AI 主持人回答",
-    strategyId: seat === "rearRight" ? "S12" : "S00",
+    strategyId: isChild ? "S12" : "S00",
     priority: "P3",
   });
   render();
-  await dispatchWorkflow("chat", null, text);
+  await dispatchWorkflow(
+    "chat",
+    { type: "passenger_question", source: "timeline", seat },
+    text,
+  );
   ensureScriptedVictory(seat, text);
   restoreRealUserSeat();
 }
@@ -803,6 +975,7 @@ function ensureScriptedVictory(seat, text) {
   if (!text.includes(riddle.answer) || state.game.status === "victory") return;
 
   state.game.status = "victory";
+  finishTimelineSilently();
   state.ui.cabinMode = "victory";
   state.ui.showAnswer = true;
   state.ui.correctSeat = seat;
@@ -818,6 +991,7 @@ function ensureScriptedVictory(seat, text) {
     strategyId: "S14",
     priority: "P3",
   });
+  scheduleNextRound();
   render();
 }
 
@@ -867,7 +1041,7 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
   }
   state.timeline.currentEvent = label;
   scheduleEventRecovery(type);
-  await dispatchWorkflow("event", { type, seat });
+  await dispatchWorkflow("event", { type, seat, source: "timeline" });
   scheduleEventRecovery(type);
 }
 
@@ -875,7 +1049,7 @@ async function runScriptedSpeed(speed) {
   state.car.speed = speed;
   state.ui.alert = `车速已更新为 ${speed} km/h`;
   render();
-  await dispatchWorkflow("event", { type: "speed_change", value: speed });
+  await dispatchWorkflow("event", { type: "speed_change", value: speed, source: "timeline" });
 }
 
 async function runScriptedEnvironment(environment) {
@@ -887,7 +1061,10 @@ async function runScriptedEnvironment(environment) {
     strategyId: "S07",
     priority: "P2",
   });
-  await dispatchWorkflow("event", { type: "environment_change", value: environment });
+  await dispatchWorkflow(
+    "event",
+    { type: "environment_change", value: environment, source: "timeline" },
+  );
 }
 
 function sleep(ms) {
@@ -925,15 +1102,17 @@ function playVictorySound() {
   });
 }
 
-async function waitWhileTimelinePaused(runId) {
-  while (state.timeline.runId === runId && state.timeline.status === "paused") {
-    await sleep(300);
-  }
-}
-
-async function waitForWorkflowIdle(runId) {
-  while (state.timeline.runId === runId && state.workflow.inFlight) {
-    await sleep(300);
+async function waitUntilRoundTimelineReady(runId) {
+  while (
+    state.timeline.runId === runId
+    && (
+      state.timeline.status === "paused"
+      || state.game.status === "paused"
+      || state.workflow.inFlight
+      || state.workflow.pendingChats.length > 0
+    )
+  ) {
+    await sleep(PAUSED_ROUND_POLL_MS);
   }
 }
 
@@ -953,7 +1132,7 @@ async function startGame() {
   state.ui.correctSeat = null;
   state.host.text = "各位侦探请就位，我要开始出题了。";
   render();
-  await dispatchWorkflow("event", { type: "start_game" });
+  await dispatchWorkflow("event", { type: "start_game", source: "timeline" });
 }
 
 async function sendQuestion() {
@@ -1026,6 +1205,7 @@ function findRiddleForEnvironment(environment) {
 
 function applyImmediateSafetyPause() {
   abortActiveWorkflow();
+  clearNextRoundTimer();
   if (state.workflow.recoveryTimer) {
     clearTimeout(state.workflow.recoveryTimer);
     state.workflow.recoveryTimer = null;
@@ -1246,15 +1426,47 @@ function canResumeGame() {
   return true;
 }
 
+function getPersonaSeatKey(seat) {
+  const seatKeys = {
+    driver: "driver",
+    front: "front",
+    rearLeft: "rear_left",
+    rearRight: "rear_right",
+  };
+  return seatKeys[seat] || seat;
+}
+
+function getPassengerPersonas() {
+  return (
+    PASSENGER_PERSONAS_BY_RELATIONSHIP[state.passengers.relationship]
+    || PASSENGER_PERSONAS_BY_RELATIONSHIP["父母+小孩"]
+  );
+}
+
+function getPassengerPersona(seat) {
+  return getPassengerPersonas()[getPersonaSeatKey(seat)] || null;
+}
+
 function buildWorkflowInput(triggerType, event, playerInput) {
   const selectedSeat = state.passengers.selectedSeat;
+  const personas = getPassengerPersonas();
+  const selectedPersona = getPassengerPersona(selectedSeat);
+  const speakerSource =
+    triggerType !== "chat"
+      ? "system_event"
+      : selectedSeat === "front"
+        ? "real_user"
+        : "timeline_simulation";
   const perception = buildPerceptionSnapshot(event, triggerType, playerInput);
   const normalizedEvent = event
     ? {
         ...event,
+        source: event.source || "manual",
         seat_label: event.seat ? SEATS[event.seat] : undefined,
       }
     : null;
+  const currentTimelineEventType =
+    event?.type || (triggerType === "event" ? state.timeline.currentEventType : "");
 
   return {
     trigger_type: triggerType,
@@ -1268,24 +1480,30 @@ function buildWorkflowInput(triggerType, event, playerInput) {
       relationship: state.passengers.relationship,
       selected_seat: selectedSeat,
       selected_seat_label: SEATS[selectedSeat],
+      selected_persona: selectedPersona,
+      user_seat: "front",
       states: {
         driver: state.passengers.seats.driver.mood,
         front: state.passengers.seats.front.mood,
         rear_left: state.passengers.seats.rearLeft.mood,
         rear_right: state.passengers.seats.rearRight.mood,
       },
+      personas,
     },
     perception,
     timeline: {
       id: state.timeline.id,
       name: state.timeline.name,
+      round_timeline_id: state.timeline.roundTimelineId,
+      round_timeline_name: state.timeline.roundTimelineName,
+      round_index: state.game.roundIndex,
       status: state.timeline.status,
       elapsed_seconds: state.timeline.elapsedSeconds,
-      current_event: event
+      current_event: currentTimelineEventType
         ? {
-            type: event.type,
+            type: currentTimelineEventType,
             description: state.timeline.currentEvent,
-            priority: getEventPriority(event.type),
+            priority: getEventPriority(currentTimelineEventType),
           }
         : null,
     },
@@ -1302,8 +1520,11 @@ function buildWorkflowInput(triggerType, event, playerInput) {
       asked_questions: getAskedQuestions(),
     },
     interaction: {
+      user_seat: "front",
       current_speaker: selectedSeat,
       current_speaker_label: SEATS[selectedSeat],
+      current_speaker_persona: selectedPersona,
+      speaker_source: speakerSource,
       recent_messages: getRecentMessages(),
       last_passenger_action_key: state.workflow.lastPassengerActionKey,
       suppress_passenger_action: shouldSuppressPassengerAction(triggerType, event),
@@ -1459,9 +1680,9 @@ function getRecentMessages() {
 }
 
 function shouldSuppressPassengerAction(triggerType, event) {
-  if (triggerType !== "event") return false;
-  return ["hard_brake", "resume_game", "passenger_sleep", "driver_tired", "near_destination"].includes(
-    event?.type,
+  return !(
+    triggerType === "simulation"
+    && event?.type === "request_passenger_action"
   );
 }
 
@@ -1941,6 +2162,10 @@ function applyWorkflowOutput(output, input) {
     input,
     output,
   });
+
+  if (isVictoryOutput) {
+    scheduleNextRound();
+  }
 }
 
 function createDecisionTraceFromOutput(output, input) {
@@ -2236,6 +2461,83 @@ function clearCorrectLightTimer() {
   state.workflow.correctLightTimer = null;
 }
 
+function scheduleNextRound() {
+  clearNextRoundTimer();
+  const completedRound = state.game.roundIndex;
+  state.workflow.nextRoundTimer = setTimeout(
+    () => advanceAfterVictory(completedRound),
+    NEXT_ROUND_DELAY_MS,
+  );
+}
+
+function advanceAfterVictory(completedRound) {
+  state.workflow.nextRoundTimer = null;
+  if (state.game.status !== "victory" || state.game.roundIndex !== completedRound) return;
+
+  if (state.timeline.status === "paused") {
+    state.workflow.nextRoundTimer = setTimeout(
+      () => advanceAfterVictory(completedRound),
+      PAUSED_ROUND_POLL_MS,
+    );
+    return;
+  }
+
+  if (completedRound >= state.game.totalRounds) {
+    finishGameSeries();
+    render();
+    return;
+  }
+
+  state.game.roundIndex = completedRound + 1;
+  state.game.currentRiddleIndex = (state.game.currentRiddleIndex + 1) % RIDDLES.length;
+  state.game.questionCount = 0;
+  state.game.status = "idle";
+  state.ui.cabinMode = "normal";
+  state.ui.showAnswer = false;
+  state.ui.correctSeat = null;
+  state.ui.correctLightSeat = null;
+  state.ui.animation = "idle";
+  state.passengers.selectedSeat = "front";
+  clearPassengerActivities();
+  clearPassengerBubbles();
+  clearCorrectLightTimer();
+  setHostAvatarState(HOST_AVATAR_DEFAULT_STATE);
+  state.host.targetSeat = null;
+  state.host.emotion = "normal";
+  state.host.text = `第 ${state.game.roundIndex} 题准备好了。`;
+  state.ui.alert = `进入第 ${state.game.roundIndex} 题`;
+  updateDecisionTrace({
+    perception: `第 ${completedRound} 题已答对`,
+    decision: "保留揭晓反馈后继续下一题",
+    execution: `切换第 ${state.game.roundIndex} 题并重新开场`,
+    strategyId: "S06",
+    priority: "P3",
+  });
+  render();
+  void startRoundGoldenTimeline();
+}
+
+function finishGameSeries() {
+  clearNextRoundTimer();
+  finishTimelineSilently();
+  state.game.status = "summary";
+  state.ui.cabinMode = "summary";
+  state.ui.showAnswer = false;
+  state.ui.correctLightSeat = null;
+  state.ui.animation = "summary";
+  state.host.text = makeSummaryHostText();
+  state.host.emotion = "celebrating";
+  state.host.targetSeat = null;
+  setHostAvatarState("excited", { transient: false });
+  state.ui.alert = "本轮游戏已完成";
+}
+
+function clearNextRoundTimer() {
+  if (!state.workflow.nextRoundTimer) return;
+  clearTimeout(state.workflow.nextRoundTimer);
+  state.workflow.nextRoundTimer = null;
+}
+
 function clearPassengerActivities() {
   Object.values(state.passengers.seats).forEach((seatState) => {
     seatState.activity = "idle";
@@ -2392,8 +2694,7 @@ function render() {
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
-  els.roundProgress.textContent = `${state.game.roundIndex}/${state.game.totalRounds}`;
-  els.questionProgress.textContent = `${getScreenProgressValue()} / ${state.game.totalRounds}`;
+  renderGameProgress();
   els.stageLabel.textContent = getStageLabel();
   els.riddleTitle.textContent = getRiddleTitle(riddle);
   els.riddleHint.textContent = getRiddleSupportText(riddle);
@@ -2500,6 +2801,28 @@ function getScreenProgressValue() {
     return Math.max(1, Math.min(state.game.totalRounds, state.game.roundIndex));
   }
   return Math.max(1, Math.min(state.game.totalRounds, state.game.roundIndex));
+}
+
+function renderGameProgress() {
+  const total = Math.max(1, Number(state.game.totalRounds) || RIDDLES.length);
+  const current = Math.max(1, Math.min(total, getScreenProgressValue()));
+  const currentIndex = current - 1;
+
+  els.roundProgress.textContent = `${current}/${total}`;
+  els.questionProgress.textContent = `${current} / ${total}`;
+  els.pencilProgressRail.style.width = `${PROGRESS_RAIL_EDGE_PX * 2 + (total - 1) * PROGRESS_DOT_STEP_PX}px`;
+  els.pencilRailFill.style.width = `${PROGRESS_RAIL_EDGE_PX + currentIndex * PROGRESS_DOT_STEP_PX}px`;
+
+  els.pencilProgressDots.replaceChildren(
+    ...Array.from({ length: total }, (_, index) => {
+      const dot = document.createElement("i");
+      dot.className = "dot";
+      dot.style.left = `${PROGRESS_RAIL_EDGE_PX + index * PROGRESS_DOT_STEP_PX}px`;
+      if (index < currentIndex) dot.classList.add("dot-complete");
+      if (index === currentIndex) dot.classList.add("dot-current");
+      return dot;
+    }),
+  );
 }
 
 function getSummaryStatsText() {

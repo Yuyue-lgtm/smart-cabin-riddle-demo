@@ -575,22 +575,21 @@ select:disabled {
   left: 485px;
   top: 51px;
   z-index: 1;
-  width: 472px;
+  width: 454px;
   height: 26px;
 }
 
 .pencil-rail-base,
-.pencil-rail-fill,
-.pencil-progress-rail .dot {
+.pencil-rail-fill {
   position: absolute;
   display: block;
   border-radius: 9999px;
 }
 
 .pencil-rail-base {
-  left: 20px;
+  left: 0;
   top: 8px;
-  width: 442px;
+  width: 100%;
   height: 10px;
   background: rgba(10, 10, 10, 0.3);
 }
@@ -598,71 +597,42 @@ select:disabled {
 .pencil-rail-fill {
   left: 0;
   top: 8px;
-  width: 166px;
+  width: 20px;
   height: 10px;
   background: linear-gradient(90deg, #ffe175 0%, #ff95c6 33.333%, #a155d9 66.667%, #5d33a1 100%);
 }
 
-.dot-light {
+.pencil-progress-dots {
+  position: absolute;
+  inset: 0;
+}
+
+.pencil-progress-rail .dot {
+  position: absolute;
+  left: 20px;
+  top: 5px;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  transform: translateX(-50%);
+  background: #6d30bd;
+}
+
+.pencil-progress-rail .dot-complete {
+  top: 3px;
   width: 21px;
   height: 21px;
   background: #ffbfbf;
   box-shadow: 0 0 8.75px rgba(255, 255, 255, 0.8);
 }
 
-.dot-light-one {
-  left: 30px;
-  top: 3px;
-}
-
-.dot-light-two {
-  left: 73px;
-  top: 3px;
-}
-
-.dot-light-three {
-  left: 119px;
-  top: 3px;
-}
-
-.dot-pink {
-  left: 163px;
+.pencil-progress-rail .dot-current {
   top: 0;
   width: 26px;
-  height: 28px;
+  height: 26px;
   background: #ff95c6;
   box-shadow: 0 0 8.75px rgba(255, 149, 198, 0.8);
-}
-
-.dot-purple {
-  top: 5px;
-  width: 16px;
-  height: 16px;
-  background: #6d30bd;
-}
-
-.dot-one {
-  left: 218px;
-}
-
-.dot-two {
-  left: 263px;
-}
-
-.dot-three {
-  left: 308px;
-}
-
-.dot-four {
-  left: 355px;
-}
-
-.dot-five {
-  left: 402px;
-}
-
-.dot-six {
-  left: 454px;
 }
 
 .question-counter {

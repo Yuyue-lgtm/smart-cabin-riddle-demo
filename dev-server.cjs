@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = Number(process.env.PORT || 4173);
+const HOST = process.env.HOST || "127.0.0.1";
 const ROOT = __dirname;
 const TIMEOUT_MS = 60000;
 const RELEASE_INFO_PATH = path.join(ROOT, "release-info.json");
@@ -43,8 +44,8 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`Smart cabin demo running at http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Smart cabin demo running at http://${HOST}:${PORT}`);
 });
 
 function loadEnvFile(filePath) {
