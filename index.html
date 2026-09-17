@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智能座舱 AI 猜谜 Demo</title>
-    <link rel="preload" as="image" href="./assets/screen-background.png" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/cabin-env-sunset.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/screen-default.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-env-scenic-sunset.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/host-normal.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-    <link rel="stylesheet" href="./styles.css?v=20260725-dynamic-round-progress" />
+    <link rel="stylesheet" href="./styles.css?v=20260916-host-video-playback" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -17,7 +18,7 @@
         <div class="environment-backdrop" id="environmentBackdrop">
           <img
             class="environment-backdrop-image"
-            src="./assets/cabin-env-sunset.png"
+            src="./assets/cabin-env-scenic-sunset.png"
             alt=""
             aria-hidden="true"
             decoding="sync"
@@ -58,7 +59,7 @@
             <button class="seat seat-rear-left" data-seat="rearLeft" type="button">
               <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="rearLeft"></span>
-              <img class="passenger-figure" data-avatar="rearLeft" src="./assets/passenger-male.png" alt="" />
+              <img class="passenger-figure" data-avatar="rearLeft" src="./assets/passenger-boy-normal.png" alt="" />
               <span class="seat-info">
                 <strong>后排左</strong>
                 <small data-seat-status="rearLeft">普通</small>
@@ -67,7 +68,7 @@
             <button class="seat seat-rear-right" data-seat="rearRight" type="button">
               <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="rearRight"></span>
-              <img class="passenger-figure" data-avatar="rearRight" src="./assets/passenger-female.png" alt="" />
+              <img class="passenger-figure" data-avatar="rearRight" src="./assets/passenger-girl-normal.png" alt="" />
               <span class="seat-info">
                 <strong>后排右</strong>
                 <small data-seat-status="rearRight">普通</small>
@@ -76,7 +77,7 @@
             <button class="seat seat-front" data-seat="front" type="button">
               <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="front"></span>
-              <img class="passenger-figure" data-avatar="front" src="./assets/passenger-female.png" alt="" />
+              <img class="passenger-figure" data-avatar="front" src="./assets/passenger-mom-normal.png" alt="" />
               <span class="seat-info">
                 <strong>副驾</strong>
                 <small data-seat-status="front">普通</small>
@@ -85,7 +86,7 @@
             <button class="seat seat-driver" data-seat="driver" type="button">
               <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="driver"></span>
-              <img class="passenger-figure" data-avatar="driver" src="./assets/passenger-male.png" alt="" />
+              <img class="passenger-figure" data-avatar="driver" src="./assets/passenger-dad-normal.png" alt="" />
               <span class="seat-info">
                 <strong>主驾</strong>
                 <small data-seat-status="driver">普通</small>
@@ -101,7 +102,7 @@
           <div class="game-screen" id="gameScreen">
             <img
               class="game-screen-background"
-              src="./assets/screen-background.png"
+              src="./assets/screen-default.png"
               alt=""
               aria-hidden="true"
               decoding="sync"
@@ -183,8 +184,10 @@
 
             <div class="host-avatar" id="hostAvatar">
               <div class="host-media" id="hostMedia">
-                <video id="hostVideo" muted playsinline preload="none" poster="./assets/host-default.png" aria-hidden="true"></video>
-                <img id="hostImage" src="./assets/host-default.png" alt="AI 主持人" decoding="async" fetchpriority="high" />
+                <video id="hostVideo" playsinline autoplay preload="auto" aria-hidden="true">
+                  <source id="hostVideoSource" type="video/webm" />
+                </video>
+                <img id="hostImage" src="./assets/host-normal.png" alt="AI 主持人" decoding="async" fetchpriority="high" />
               </div>
             </div>
             <div class="host-bubble" id="hostBubble">

@@ -19,9 +19,12 @@ const MIME_TYPES = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
 };
+const MEDIA_EXTENSIONS = new Set([".mp4", ".webm"]);
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -134,19 +137,65 @@ function serveStatic(req, res) {
     return;
   }
 
-  fs.readFile(filePath, (error, data) => {
-    if (error) {
+  fs.stat(filePath, (error, stats) => {
+    if (error || !stats.isFile()) {
       res.writeHead(404);
       res.end("Not Found");
       return;
     }
 
     const ext = path.extname(filePath);
+    const contentType = MIME_TYPES[ext] || "application/octet-stream";
+    const isMedia = MEDIA_EXTENSIONS.has(ext);
+    const range = isMedia ? parseByteRange(req.headers.range, stats.size) : null;
+
+    if (req.headers.range && isMedia && !range) {
+      res.writeHead(416, {
+        "Content-Range": `bytes */${stats.size}`,
+      });
+      res.end();
+      return;
+    }
+
+    if (range) {
+      const { start, end } = range;
+      res.writeHead(206, {
+        "Accept-Ranges": "bytes",
+        "Content-Length": end - start + 1,
+        "Content-Range": `bytes ${start}-${end}/${stats.size}`,
+        "Content-Type": contentType,
+      });
+      fs.createReadStream(filePath, { start, end }).pipe(res);
+      return;
+    }
+
     res.writeHead(200, {
-      "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
+      "Accept-Ranges": isMedia ? "bytes" : "none",
+      "Content-Length": stats.size,
+      "Content-Type": contentType,
     });
-    res.end(data);
+    fs.createReadStream(filePath).pipe(res);
   });
+}
+
+function parseByteRange(rangeHeader, size) {
+  if (!rangeHeader) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+  if (!match) return null;
+
+  const requestedStart = match[1] ? Number(match[1]) : null;
+  const requestedEnd = match[2] ? Number(match[2]) : null;
+  if (requestedStart === null && requestedEnd === null) return null;
+
+  if (requestedStart === null) {
+    const suffixLength = Math.min(requestedEnd, size);
+    return { start: size - suffixLength, end: size - 1 };
+  }
+
+  if (requestedStart >= size) return null;
+  const end = requestedEnd === null ? size - 1 : Math.min(requestedEnd, size - 1);
+  if (end < requestedStart) return null;
+  return { start: requestedStart, end };
 }
 
 function readJsonBody(req) {

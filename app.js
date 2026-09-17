@@ -22,13 +22,106 @@ const DEFAULT_DEPLOY_STATUS = "版本检查中";
 const HOST_AVATAR_DEFAULT_STATE = "normal";
 const HOST_AVATAR_TRANSIENT_MS = 4000;
 
-// The host renderer is intentionally media-agnostic. Replace a mode with a
-// video source later without changing layout, workflow fields, or state logic.
-const HOST_MEDIA_SOURCES = {
-  ready: { kind: "image", src: "./assets/host-default.png" },
-  playing: { kind: "image", src: "./assets/host-default.png" },
-  reveal: { kind: "image", src: "./assets/host-default.png" },
-  summary: { kind: "image", src: "./assets/host-default.png" },
+// Keep visual asset selection in one place. Runtime state stores semantic
+// values such as "大笑" and "城区晴天白天"; renderers resolve them here.
+const RESOURCE_CONFIG = {
+  host: {
+    normal: { kind: "image", src: "./assets/host-normal.png" },
+    smile: { kind: "image", src: "./assets/host-heart.png" },
+    awkward: { kind: "image", src: "./assets/host-puzzled.png" },
+    excited: {
+      kind: "video",
+      src: "./assets/host-yes.webm",
+      poster: "./assets/host-yes.png",
+      fallback: "./assets/host-yes.png",
+    },
+    celebration: { kind: "image", src: "./assets/host-cheer.png" },
+    greeting: { kind: "image", src: "./assets/host-wave.png" },
+  },
+  screenBackgrounds: {
+    default: "./assets/screen-default.png",
+    cityDay: "./assets/screen-city-day.png",
+    cityNight: "./assets/screen-city-night.png",
+    scenicDay: "./assets/screen-scenic-day.png",
+    scenicSunset: "./assets/screen-scenic-sunset.png",
+    snowDay: "./assets/screen-snow-day.png",
+    deepNight: "./assets/screen-deep-night.png",
+  },
+  cabinEnvironments: {
+    default: "./assets/cabin-env-scenic-sunset.png",
+    scenicDay: "./assets/cabin-env-scenic-day.png",
+    snowDay: "./assets/cabin-env-snow-day.png",
+    cityDay: "./assets/cabin-env-city-day.png",
+    cityNight: "./assets/cabin-env-city-night.png",
+    scenicSunset: "./assets/cabin-env-scenic-sunset.png",
+    deepNight: "./assets/cabin-env-deep-night.png",
+  },
+  passengers: {
+    girl: {
+      normal: "./assets/passenger-girl-normal.png",
+      laugh: "./assets/passenger-girl-laugh.png",
+      sleep: "./assets/passenger-girl-sleep.png",
+    },
+    boy: {
+      normal: "./assets/passenger-boy-normal.png",
+      laugh: "./assets/passenger-boy-laugh.png",
+      sleep: "./assets/passenger-boy-sleep.png",
+    },
+    femaleYoung: {
+      normal: "./assets/passenger-female-young-normal.png",
+      laugh: "./assets/passenger-female-young-laugh.png",
+      tired: "./assets/passenger-female-young-tired.png",
+      sleep: "./assets/passenger-female-young-sleep.png",
+    },
+    maleYoung: {
+      normal: "./assets/passenger-male-young-normal.png",
+      laugh: "./assets/passenger-male-young-laugh.png",
+      tired: "./assets/passenger-male-young-tired.png",
+      sleep: "./assets/passenger-male-young-sleep.png",
+    },
+    mom: {
+      normal: "./assets/passenger-mom-normal.png",
+      laugh: "./assets/passenger-mom-laugh.png",
+      tired: "./assets/passenger-mom-tired.png",
+      sleep: "./assets/passenger-mom-sleep.png",
+    },
+    dad: {
+      normal: "./assets/passenger-dad-normal.png",
+      laugh: "./assets/passenger-dad-laugh.png",
+      tired: "./assets/passenger-dad-tired.png",
+      sleep: "./assets/passenger-dad-sleep.png",
+    },
+    grandpa: {
+      normal: "./assets/passenger-grandpa-normal.png",
+      laugh: "./assets/passenger-grandpa-laugh.png",
+      sleep: "./assets/passenger-grandpa-sleep.png",
+    },
+    grandma: {
+      normal: "./assets/passenger-grandma-normal.png",
+      laugh: "./assets/passenger-grandma-laugh.png",
+      sleep: "./assets/passenger-grandma-sleep.png",
+    },
+    baby: {
+      normal: "./assets/passenger-baby-normal.png",
+      laugh: "./assets/passenger-baby-laugh.png",
+      sleep: "./assets/passenger-baby-sleep.png",
+    },
+  },
+  relationshipSeats: {
+    "年轻朋友": { driver: "maleYoung", front: "femaleYoung", rearLeft: "maleYoung", rearRight: "femaleYoung" },
+    "父母+小孩": { driver: "dad", front: "mom", rearLeft: "boy", rearRight: "girl" },
+    "中老年+儿女": { driver: "maleYoung", front: "femaleYoung", rearLeft: "grandpa", rearRight: "grandma" },
+  },
+  environments: {
+    高速路晴天白天: { screen: "scenicDay", cabin: "scenicDay", screenClass: "screen-sunny", cabinClass: "env-highway-day" },
+    高速路晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-highway-night" },
+    高速路雨天白天: { screen: "scenicSunset", cabin: "scenicSunset", screenClass: "screen-rain", cabinClass: "env-highway-rain" },
+    城区晴天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-sunny", cabinClass: "env-city-day" },
+    城区雨天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-rain", cabinClass: "env-city-rain" },
+    风景区晴天白天: { screen: "scenicDay", cabin: "scenicDay", screenClass: "screen-sunny", cabinClass: "env-scenic-day" },
+    风景区雪景白天: { screen: "snowDay", cabin: "snowDay", screenClass: "screen-snow", cabinClass: "env-snow-day" },
+    风景区晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-scenic-night" },
+  },
 };
 
 const PASSENGER_ACTIVITY_LABELS = {
@@ -64,26 +157,6 @@ const LOCAL_TRACE_EVENT_TYPES = new Set([
   "passenger_sleep",
   "near_destination",
 ]);
-
-const ENVIRONMENT_CLASS = {
-  高速路晴天白天: "env-highway-day",
-  高速路晴天深夜: "env-highway-night",
-  高速路雨天白天: "env-highway-rain",
-  城区晴天白天: "env-city-day",
-  城区雨天白天: "env-city-rain",
-  风景区晴天白天: "env-scenic-day",
-  风景区雪景白天: "env-snow-day",
-};
-
-const SCREEN_BACKGROUND_CLASS = {
-  高速路晴天白天: "screen-sunny",
-  高速路晴天深夜: "screen-night",
-  高速路雨天白天: "screen-rain",
-  城区晴天白天: "screen-sunny",
-  城区雨天白天: "screen-rain",
-  风景区晴天白天: "screen-sunny",
-  风景区雪景白天: "screen-snow",
-};
 
 const HOST_EMOTION_AVATAR_STATE = {
   normal: "normal",
@@ -546,6 +619,7 @@ function cacheElements() {
     "hostMedia",
     "hostImage",
     "hostVideo",
+    "hostVideoSource",
     "summaryStats",
     "summaryTotal",
     "summarySolved",
@@ -575,7 +649,10 @@ function cacheElements() {
 
 function bindEvents() {
   window.addEventListener("resize", resizeStage);
-  document.addEventListener("pointerdown", prepareAudioContext, { once: true });
+  document.addEventListener("pointerdown", () => {
+    prepareAudioContext();
+    requestHostVideoPlayback();
+  });
   els.switchScenario.addEventListener("click", nextGoldenLine);
   els.resetScenario.addEventListener("click", resetCurrentGoldenLine);
   els.summaryContinue.addEventListener("click", resetCurrentGoldenLine);
@@ -583,6 +660,28 @@ function bindEvents() {
   els.startTimeline.addEventListener("click", startGoldenTimeline);
   els.pauseTimeline.addEventListener("click", toggleTimelinePause);
   els.sendQuestion.addEventListener("click", sendQuestion);
+  els.hostVideo.addEventListener("canplay", requestHostVideoPlayback);
+  els.hostVideo.addEventListener("playing", () => {
+    els.hostVideo.dataset.mediaStatus = "playing";
+  });
+  els.hostVideo.addEventListener("ended", () => {
+    els.hostVideo.pause();
+    els.hostVideo.dataset.mediaStatus = "ended";
+  });
+  els.hostVideo.addEventListener("error", () => {
+    const fallbackSrc = els.hostVideo.dataset.fallbackSrc || "";
+    if (!fallbackSrc) return;
+    els.hostVideo.dataset.mediaStatus = "error";
+    els.hostVideo.pause();
+    els.hostVideo.hidden = true;
+    els.hostVideoSource.removeAttribute("src");
+    els.hostVideo.removeAttribute("src");
+    els.hostVideo.removeAttribute("data-media-src");
+    els.hostVideo.removeAttribute("data-fallback-src");
+    els.hostVideo.load();
+    els.hostImage.src = fallbackSrc;
+    els.hostImage.hidden = false;
+  });
   els.playerInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       sendQuestion();
@@ -1134,6 +1233,7 @@ function ensureScriptedVictory(seat, text) {
   state.ui.cabinMode = "victory";
   state.ui.showAnswer = true;
   state.ui.correctSeat = seat;
+  state.passengers.seats[seat].mood = "大笑";
   showCorrectSeatLight(seat);
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
@@ -2521,6 +2621,9 @@ function applyWorkflowOutput(output, input) {
     state.ui.cabinMode = "victory";
     state.ui.showAnswer = true;
     state.ui.correctSeat = correctSeat;
+    if (state.passengers.seats[correctSeat]) {
+      state.passengers.seats[correctSeat].mood = "大笑";
+    }
     showCorrectSeatLight(correctSeat);
     state.game.status = "victory";
     state.host.text = makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer);
@@ -2825,6 +2928,12 @@ function showCorrectSeatLight(seat) {
   state.workflow.correctLightTimer = setTimeout(() => {
     state.workflow.correctLightTimer = null;
     state.ui.correctLightSeat = null;
+    const seatState = state.passengers.seats[seat];
+    if (seatState) {
+      seatState.mood = "普通";
+      seatState.activity = "idle";
+      seatState.activityLabel = "";
+    }
     render();
   }, CORRECT_LIGHT_MS);
 }
@@ -3059,6 +3168,14 @@ function render() {
   const riddle = getCurrentRiddle();
   const screenMode = getGameScreenMode();
   const hostBusy = isHostBusy();
+  const environmentAssets = resolveEnvironmentAssets(state.car.environment);
+  const environmentMapping =
+    getEnvironmentMapping(state.car.environment)
+    || RESOURCE_CONFIG.environments["高速路晴天白天"];
+  const screenBackground =
+    screenMode === "ready"
+      ? RESOURCE_CONFIG.screenBackgrounds.default
+      : environmentAssets.screen;
   document.body.classList.toggle("is-paused", state.game.status === "paused");
   document.body.classList.toggle("is-victory", state.game.status === "victory");
   document.body.classList.toggle("is-working", hostBusy);
@@ -3066,8 +3183,11 @@ function render() {
   renderHostMedia(screenMode);
 
   els.environmentBackdrop.className = `environment-backdrop ${
-    ENVIRONMENT_CLASS[state.car.environment] || "env-highway-day"
+    environmentMapping.cabinClass
   }`;
+  els.environmentBackdrop.querySelector(".environment-backdrop-image").src =
+    environmentAssets.cabin;
+  els.gameScreen.querySelector(".game-screen-background").src = screenBackground;
   els.environmentLabel.textContent = `车外环境：${state.car.environment}`;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
@@ -3125,8 +3245,25 @@ function render() {
 }
 
 function getScreenEnvironmentClass(screenMode) {
-  if (screenMode !== "playing") return "screen-default";
-  return SCREEN_BACKGROUND_CLASS[state.car.environment] || "screen-default";
+  if (screenMode === "ready") return "screen-default";
+  const mapping = getEnvironmentMapping(state.car.environment);
+  return mapping ? mapping.screenClass : "screen-default";
+}
+
+function getEnvironmentMapping(environment) {
+  return RESOURCE_CONFIG.environments[environment] || null;
+}
+
+function resolveEnvironmentAssets(environment) {
+  const mapping = getEnvironmentMapping(environment);
+  return {
+    screen: mapping
+      ? RESOURCE_CONFIG.screenBackgrounds[mapping.screen] || RESOURCE_CONFIG.screenBackgrounds.default
+      : RESOURCE_CONFIG.screenBackgrounds.default,
+    cabin: mapping
+      ? RESOURCE_CONFIG.cabinEnvironments[mapping.cabin] || RESOURCE_CONFIG.cabinEnvironments.default
+      : RESOURCE_CONFIG.cabinEnvironments.default,
+  };
 }
 
 function getGameScreenMode() {
@@ -3142,24 +3279,36 @@ function renderHostMedia(screenMode) {
 
   if (isVideo) {
     const currentSrc = els.hostVideo.dataset.mediaSrc || "";
+    const sourceChanged = currentSrc !== media.src;
     els.hostImage.hidden = true;
     els.hostVideo.hidden = false;
-    els.hostVideo.poster = media.poster || HOST_MEDIA_SOURCES.playing.src;
-    if (currentSrc !== media.src) {
+    els.hostVideo.removeAttribute("poster");
+    els.hostVideo.autoplay = true;
+    els.hostVideo.defaultMuted = false;
+    els.hostVideo.muted = false;
+    els.hostVideo.volume = 1;
+    els.hostVideo.playsInline = true;
+    els.hostVideo.dataset.fallbackSrc = media.fallback || "";
+    els.hostVideo.loop = false;
+    if (sourceChanged) {
       els.hostVideo.pause();
-      els.hostVideo.src = media.src;
+      if (currentSrc) els.hostVideo.currentTime = 0;
+      els.hostVideoSource.src = media.src;
       els.hostVideo.dataset.mediaSrc = media.src;
+      els.hostVideo.dataset.mediaStatus = "loading";
       els.hostVideo.load();
     }
-    const playRequest = els.hostVideo.play();
-    if (playRequest) playRequest.catch(() => {});
+    requestHostVideoPlayback();
     return;
   }
 
   if (els.hostVideo.dataset.mediaSrc) {
     els.hostVideo.pause();
+    els.hostVideoSource.removeAttribute("src");
     els.hostVideo.removeAttribute("src");
     els.hostVideo.removeAttribute("data-media-src");
+    els.hostVideo.removeAttribute("data-fallback-src");
+    els.hostVideo.removeAttribute("data-media-status");
     els.hostVideo.load();
   }
   els.hostVideo.hidden = true;
@@ -3167,10 +3316,28 @@ function renderHostMedia(screenMode) {
   els.hostImage.src = media.src;
 }
 
+function requestHostVideoPlayback() {
+  const video = els.hostVideo;
+  if (
+    video.hidden
+    || !video.dataset.mediaSrc
+    || video.error
+    || video.ended
+    || video.dataset.mediaStatus === "ended"
+    || !video.paused
+  ) return;
+  if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  const playRequest = video.play();
+  if (playRequest) {
+    playRequest.catch(() => {
+      video.dataset.mediaStatus = "play-rejected";
+    });
+  }
+}
+
 function resolveHostMedia(screenMode, avatarState) {
   const stateKey = normalizeHostAvatarState(avatarState);
-  const explicitStateKey = `${screenMode}:${stateKey}`;
-  return HOST_MEDIA_SOURCES[explicitStateKey] || HOST_MEDIA_SOURCES[screenMode] || HOST_MEDIA_SOURCES.playing;
+  return RESOURCE_CONFIG.host[stateKey] || RESOURCE_CONFIG.host.normal;
 }
 
 function getScreenProgressValue() {
@@ -3306,7 +3473,24 @@ function renderSeats() {
     avatar.className = "passenger-figure";
     avatar.dataset.mood = seatState.mood;
     avatar.dataset.activity = effectiveActivity || "idle";
+    avatar.src = resolvePassengerAsset(seat, seatState, effectiveActivity);
   });
+}
+
+function resolvePassengerAsset(seat, seatState, activity) {
+  const relationshipSeats =
+    RESOURCE_CONFIG.relationshipSeats[state.passengers.relationship]
+    || RESOURCE_CONFIG.relationshipSeats["父母+小孩"];
+  const personaKey = relationshipSeats[seat] || "maleYoung";
+  const personaAssets = RESOURCE_CONFIG.passengers[personaKey] || RESOURCE_CONFIG.passengers.maleYoung;
+  const stateKey = activity === "celebrating" || seatState.mood === "大笑"
+    ? "laugh"
+    : seatState.mood === "睡着"
+      ? "sleep"
+      : seatState.mood === "疲惫"
+        ? "tired"
+        : "normal";
+  return personaAssets[stateKey] || personaAssets.normal;
 }
 
 function renderControls() {

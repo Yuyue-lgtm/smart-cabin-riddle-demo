@@ -487,7 +487,7 @@ select:disabled {
   border-radius: 0;
   background:
     linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
-    url("./assets/screen-background.png") center / cover no-repeat;
+    url("./assets/screen-default.png") center / cover no-repeat;
   box-shadow: 0 25px 43.75px -12px rgba(0, 0, 0, 0.25);
   transform: scale(0.7708333333);
   transform-origin: left top;
@@ -513,7 +513,7 @@ select:disabled {
 .game-screen.screen-snow {
   background:
     linear-gradient(180deg, rgba(13, 10, 23, 0.08), rgba(13, 10, 23, 0.08)),
-    url("./assets/screen-background.png") center / cover no-repeat;
+    url("./assets/screen-default.png") center / cover no-repeat;
   box-shadow: 0 25px 43.75px -12px rgba(0, 0, 0, 0.25);
 }
 
@@ -712,7 +712,7 @@ select:disabled {
   content: "";
   border-radius: 24px;
   opacity: 0.18;
-  background: url("./assets/screen-background.png") center / cover no-repeat;
+  background: url("./assets/screen-default.png") center / cover no-repeat;
   filter: saturate(0.78) brightness(1.18);
   pointer-events: none;
 }
@@ -1772,13 +1772,13 @@ body.has-started .prestart-panel {
 
 /* Figma Page 1 fidelity layer: all coordinates use the 1440 x 810 game canvas. */
 .game-screen {
-  background-image: url("./assets/screen-background.png");
+  background-image: url("./assets/screen-default.png");
   background-position: center;
   background-size: cover;
 }
 
 .screen-reveal {
-  background-image: url("./assets/screen-background.png");
+  background-image: url("./assets/screen-default.png");
 }
 
 .screen-reveal .pencil-game-icon img {
@@ -1798,7 +1798,7 @@ body.has-started .prestart-panel {
 }
 
 .screen-summary {
-  background-image: url("./assets/screen-background.png");
+  background-image: url("./assets/screen-default.png");
 }
 
 .screen-summary .host-bubble-tail {
@@ -2210,7 +2210,7 @@ body.has-started .prestart-panel {
 }
 
 .screen-ready {
-  background-image: url("./assets/screen-background.png");
+  background-image: url("./assets/screen-default.png");
 }
 
 .screen-ready::before {
@@ -2374,7 +2374,7 @@ body.has-started .prestart-panel {
 
 /* Final Figma adjustments for the preparation page and shared host bubbles. */
 .screen-ready::before {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .ready-beam-right {
@@ -2444,7 +2444,7 @@ body.has-started .prestart-panel {
 .cabin-region .environment-backdrop {
   position: absolute;
   inset: 0;
-  background: url("./assets/cabin-env-sunset.png") center top / 811px 800px no-repeat;
+  background: url("./assets/cabin-env-scenic-sunset.png") center top / 810px 651px no-repeat;
   filter: none;
   transition: none;
 }
@@ -2454,8 +2454,8 @@ body.has-started .prestart-panel {
   left: 0;
   top: 0;
   display: block;
-  width: 811px;
-  height: 800px;
+  width: 810px;
+  height: 651px;
   object-fit: fill;
   object-position: center top;
   backface-visibility: hidden;
@@ -2874,4 +2874,95 @@ body.has-started .prestart-panel {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Final Figma geometry: character files already contain their transparent canvas. */
+.game-screen .host-avatar {
+  left: 876px;
+  top: 237px;
+  z-index: 5;
+  width: 564px;
+  height: 572px;
+  overflow: visible;
+}
+
+.game-screen.screen-ready .host-avatar,
+.game-screen.screen-summary .host-avatar {
+  z-index: 7;
+}
+
+.game-screen .host-avatar img,
+.game-screen .host-avatar video {
+  left: 0;
+  top: 0;
+  width: 564px;
+  height: 572px;
+  object-fit: fill;
+  object-position: center;
+}
+
+/* Transparent WebM must stay on a clean compositing layer. Image-state
+   filters can flatten the alpha edge of a video in some browser engines. */
+.game-screen .host-avatar video {
+  background: transparent;
+  filter: none;
+  mix-blend-mode: normal;
+  transform: none;
+}
+
+.game-screen .host-avatar .host-media {
+  width: 564px;
+  height: 572px;
+  overflow: visible;
+}
+
+.game-screen .host-bubble {
+  z-index: 8;
+}
+
+/* Cabin state is represented by the selected asset only; do not tint or animate it. */
+.cabin-region .seat,
+.cabin-region .seat.sleeping,
+.cabin-region .seat.seat-laughing,
+.cabin-region .seat.activity-thinking,
+.cabin-region .seat.activity-answering,
+.cabin-region .seat.activity-asking,
+.cabin-region .seat.activity-listening,
+.cabin-region .seat.activity-acting,
+.cabin-region .seat.activity-celebrating {
+  filter: none;
+  opacity: 1;
+  animation: none !important;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cabin-region .seat-rear-left .passenger-figure {
+  left: 109px;
+  top: 93px;
+  width: 210px;
+  height: 240px;
+}
+
+.cabin-region .seat-rear-right .passenger-figure {
+  left: 94px;
+  top: 93px;
+  width: 210px;
+  height: 240px;
+}
+
+.cabin-region .seat-front .passenger-figure,
+.cabin-region .seat-driver .passenger-figure {
+  top: 72px;
+  width: 286px;
+  height: 328px;
+}
+
+.cabin-region .seat-front .passenger-figure {
+  left: 98px;
+}
+
+.cabin-region .seat-driver .passenger-figure {
+  left: 90px;
 }
