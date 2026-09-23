@@ -12,6 +12,13 @@ const PASSENGER_BUBBLE_MS = 8000;
 const CORRECT_LIGHT_MS = 5000;
 const NEXT_ROUND_DELAY_MS = 5000;
 const PAUSED_ROUND_POLL_MS = 300;
+const QUESTION_DURATION_MS = 90_000;
+const ANSWER_LENGTH_HINT_DELAY_MS = 10_000;
+const QUESTION_INTRO_DURATION_MS = 3_000;
+const QUESTION_TIMER_TICK_MS = 100;
+const QUESTION_TIMER_SIZE_PX = 46;
+const QUESTION_TIMER_RADIUS_PX = 19;
+const QUESTION_TIMER_STROKE_PX = 8;
 const PREPARED_REPLY_DELAY_MS = 3000;
 const ROUND_PLAN_EXTRA_STEPS = 2;
 const PROGRESS_DOT_STEP_PX = 46;
@@ -21,19 +28,54 @@ const STAGE_HEIGHT = 1100;
 const DEFAULT_DEPLOY_STATUS = "版本检查中";
 const HOST_AVATAR_DEFAULT_STATE = "normal";
 const HOST_AVATAR_TRANSIENT_MS = 4000;
+const HOST_SPRITE_FRAME_WIDTH = 720;
+const HOST_SPRITE_FRAME_HEIGHT = 720;
+const HOST_SPRITE_COLUMNS = 6;
+const HOST_SPRITE_FRAME_DURATION_MS = 100;
 
 // Keep visual asset selection in one place. Runtime state stores semantic
 // values such as "大笑" and "城区晴天白天"; renderers resolve them here.
 const RESOURCE_CONFIG = {
   host: {
-    normal: { kind: "image", src: "./assets/host-normal.png" },
-    smile: { kind: "image", src: "./assets/host-heart.png" },
+    normal: {
+      kind: "sprite",
+      meta: "./assets/host-normal.json",
+      src: "./assets/host-normal.webp",
+      fallback: "./assets/host-normal.png",
+      loop: true,
+      frameCount: 32,
+    },
+    thinking: {
+      kind: "sprite",
+      meta: "./assets/host-thinking.json?v=20260921-drop-empty-final-frame",
+      src: "./assets/host-thinking.webp",
+      fallback: "./assets/host-thinking.png",
+      loop: false,
+      playVictorySound: false,
+      frameCount: 40,
+    },
+    smile: {
+      kind: "sprite",
+      meta: "./assets/host-heart.json?v=20260919-skip-empty-final-frame",
+      src: "./assets/host-heart.webp",
+      fallback: "./assets/host-heart.png",
+      loop: false,
+      playVictorySound: false,
+      frameCount: 27,
+    },
     awkward: { kind: "image", src: "./assets/host-puzzled.png" },
     excited: {
-      kind: "video",
-      src: "./assets/host-yes.webm",
-      poster: "./assets/host-yes.png",
+      kind: "sprite",
+      meta: "./assets/host-yes.json",
+      src: "./assets/host-yes.webp",
       fallback: "./assets/host-yes.png",
+      audio: {
+        src: "./assets/host-yes.mp3",
+        delayMs: 180,
+        trimStartMs: 0,
+        volume: 0.85,
+      },
+      frameCount: 40,
     },
     celebration: { kind: "image", src: "./assets/host-cheer.png" },
     greeting: { kind: "image", src: "./assets/host-wave.png" },
@@ -117,8 +159,10 @@ const RESOURCE_CONFIG = {
     高速路晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-highway-night" },
     高速路雨天白天: { screen: "scenicSunset", cabin: "scenicSunset", screenClass: "screen-rain", cabinClass: "env-highway-rain" },
     城区晴天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-sunny", cabinClass: "env-city-day" },
+    城区夜晚: { screen: "cityNight", cabin: "cityNight", screenClass: "screen-night", cabinClass: "env-city-night" },
     城区雨天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-rain", cabinClass: "env-city-rain" },
     风景区晴天白天: { screen: "scenicDay", cabin: "scenicDay", screenClass: "screen-sunny", cabinClass: "env-scenic-day" },
+    风景区傍晚: { screen: "scenicSunset", cabin: "scenicSunset", screenClass: "screen-sunny", cabinClass: "env-scenic-sunset" },
     风景区雪景白天: { screen: "snowDay", cabin: "snowDay", screenClass: "screen-snow", cabinClass: "env-snow-day" },
     风景区晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-scenic-night" },
   },
@@ -161,7 +205,7 @@ const LOCAL_TRACE_EVENT_TYPES = new Set([
 const HOST_EMOTION_AVATAR_STATE = {
   normal: "normal",
   neutral: "normal",
-  thinking: "normal",
+  thinking: "thinking",
   serious: "normal",
   care: "normal",
   comfort: "smile",
@@ -178,6 +222,8 @@ const HOST_EMOTION_AVATAR_STATE = {
   celebrating: "excited",
   victory: "excited",
   普通: "normal",
+  思考: "thinking",
+  思考中: "thinking",
   笑: "smile",
   微笑: "smile",
   尴尬: "awkward",
@@ -481,6 +527,54 @@ const GOLDEN_TIMELINES = [
       priority: "P3",
     },
   },
+  {
+    id: "city_night_friends",
+    name: "城区夜景朋友出行",
+    speed: 50,
+    destination: "夜市",
+    relationship: "年轻朋友",
+    environment: "城区夜晚",
+    riddleIndex: 6,
+    trace: {
+      perception: "载入城区夜景朋友出行场景",
+      decision: "朋友局采用轻松节奏，结合夜间城市环境出题",
+      execution: "切换城市夜景、目的地夜市、谜底红绿灯",
+      strategyId: "V1.2-D",
+      priority: "P3",
+    },
+  },
+  {
+    id: "scenic_sunset_family",
+    name: "风景区傍晚家庭出行",
+    speed: 50,
+    destination: "草原",
+    relationship: "中老年+儿女",
+    environment: "风景区傍晚",
+    riddleIndex: 9,
+    trace: {
+      perception: "载入风景区傍晚家庭出行场景",
+      decision: "以轻松节奏融入风景与家庭出行氛围",
+      execution: "切换风景晚霞、目的地草原、谜底草原",
+      strategyId: "V1.2-E",
+      priority: "P3",
+    },
+  },
+  {
+    id: "scenic_deep_night_family",
+    name: "风景区深夜家庭出行",
+    speed: 50,
+    destination: "观星营地",
+    relationship: "中老年+儿女",
+    environment: "风景区晴天深夜",
+    riddleIndex: 8,
+    trace: {
+      perception: "载入风景区深夜家庭出行场景",
+      decision: "保持夜间出行节奏，优先照顾主驾注意力",
+      execution: "切换风景区深夜、目的地观星营地、谜底方向盘",
+      strategyId: "V1.2-F",
+      priority: "P2",
+    },
+  },
 ];
 
 const DEFAULT_STATE = {
@@ -584,6 +678,40 @@ const DEFAULT_STATE = {
 const state = structuredClone(DEFAULT_STATE);
 const els = {};
 let audioContext = null;
+const questionClock = {
+  intervalId: 0,
+  startedAt: 0,
+  pausedAt: 0,
+  pausedDurationMs: 0,
+  roundIndex: 0,
+  active: false,
+  expired: false,
+};
+const questionIntro = {
+  timerId: 0,
+  roundIndex: 0,
+  active: false,
+};
+const hostSprite = {
+  source: "",
+  frames: [],
+  image: null,
+  frameIndex: 0,
+  elapsedMs: 0,
+  totalDurationMs: 0,
+  audio: null,
+  audioSource: null,
+  audioGain: null,
+  audioElement: null,
+  lastTimestamp: 0,
+  animationFrameId: 0,
+  loading: false,
+  playing: false,
+  completed: false,
+  loop: false,
+  fallback: false,
+  loadId: 0,
+};
 
 function boot() {
   cacheElements();
@@ -608,18 +736,21 @@ function cacheElements() {
     "pencilRailFill",
     "pencilProgressDots",
     "stageLabel",
+    "questionTimer",
+    "questionTimerProgress",
+    "answerLengthHint",
     "riddleTitle",
     "riddleHint",
     "answerReveal",
     "revealAnswerText",
     "revealSeatLabel",
+    "revealOutcomeLabel",
     "remainingQuestions",
     "hostBubble",
     "hostAvatar",
     "hostMedia",
     "hostImage",
-    "hostVideo",
-    "hostVideoSource",
+    "hostCanvas",
     "summaryStats",
     "summaryTotal",
     "summarySolved",
@@ -651,7 +782,6 @@ function bindEvents() {
   window.addEventListener("resize", resizeStage);
   document.addEventListener("pointerdown", () => {
     prepareAudioContext();
-    requestHostVideoPlayback();
   });
   els.switchScenario.addEventListener("click", nextGoldenLine);
   els.resetScenario.addEventListener("click", resetCurrentGoldenLine);
@@ -660,28 +790,6 @@ function bindEvents() {
   els.startTimeline.addEventListener("click", startGoldenTimeline);
   els.pauseTimeline.addEventListener("click", toggleTimelinePause);
   els.sendQuestion.addEventListener("click", sendQuestion);
-  els.hostVideo.addEventListener("canplay", requestHostVideoPlayback);
-  els.hostVideo.addEventListener("playing", () => {
-    els.hostVideo.dataset.mediaStatus = "playing";
-  });
-  els.hostVideo.addEventListener("ended", () => {
-    els.hostVideo.pause();
-    els.hostVideo.dataset.mediaStatus = "ended";
-  });
-  els.hostVideo.addEventListener("error", () => {
-    const fallbackSrc = els.hostVideo.dataset.fallbackSrc || "";
-    if (!fallbackSrc) return;
-    els.hostVideo.dataset.mediaStatus = "error";
-    els.hostVideo.pause();
-    els.hostVideo.hidden = true;
-    els.hostVideoSource.removeAttribute("src");
-    els.hostVideo.removeAttribute("src");
-    els.hostVideo.removeAttribute("data-media-src");
-    els.hostVideo.removeAttribute("data-fallback-src");
-    els.hostVideo.load();
-    els.hostImage.src = fallbackSrc;
-    els.hostImage.hidden = false;
-  });
   els.playerInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       sendQuestion();
@@ -820,6 +928,8 @@ async function startRoundGoldenTimeline() {
   state.timeline.elapsedSeconds = 0;
   state.timeline.currentEventType = "start_game";
   state.timeline.currentEvent = `第 ${state.game.roundIndex} 题 · ${roundTimeline.name}`;
+  startQuestionClock();
+  startQuestionIntro();
   render();
 
   await startGame();
@@ -977,14 +1087,17 @@ function pickQuestionVariantForSeat(step, seat) {
 function toggleTimelinePause() {
   if (state.timeline.status === "running") {
     state.timeline.status = "paused";
+    pauseQuestionClock();
     state.timeline.currentEvent = "模拟已暂停";
     state.ui.alert = "模拟已暂停";
   } else if (state.timeline.status === "paused") {
     state.timeline.status = "running";
+    resumeQuestionClock();
     state.timeline.currentEvent = "模拟继续";
     state.ui.alert = "模拟继续";
   } else if (["opening", "playing", "victory"].includes(state.game.status)) {
     state.timeline.status = "paused";
+    pauseQuestionClock();
     state.timeline.currentEvent = "模拟已暂停";
     state.ui.alert = "模拟已暂停";
   } else if (state.game.status !== "idle") {
@@ -1017,6 +1130,7 @@ function finishTimelineSilently() {
 }
 
 function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = false) {
+  clearQuestionClock();
   if (state.workflow.activityTimer) {
     clearTimeout(state.workflow.activityTimer);
     state.workflow.activityTimer = null;
@@ -1086,6 +1200,7 @@ function getPrestartHostText(timeline) {
 async function runScriptedQuestion(seat, text, preparedStep = null) {
   if (seat === "front") return;
   if (state.game.status === "paused") return;
+  const questionRoundIndex = state.game.roundIndex;
   state.passengers.selectedSeat = seat;
   showPassengerBubble(seat, text);
   state.host.targetSeat = seat;
@@ -1111,6 +1226,7 @@ async function runScriptedQuestion(seat, text, preparedStep = null) {
       text,
     );
   }
+  if (state.game.roundIndex !== questionRoundIndex || state.game.status === "failed") return;
   ensureScriptedVictory(seat, text);
   restoreRealUserSeat();
 }
@@ -1228,6 +1344,7 @@ function ensureScriptedVictory(seat, text) {
   const riddle = getCurrentRiddle();
   if (!text.includes(riddle.answer) || state.game.status === "victory") return;
 
+  clearQuestionClock();
   state.game.status = "victory";
   finishTimelineSilently();
   state.ui.cabinMode = "victory";
@@ -1238,7 +1355,6 @@ function ensureScriptedVictory(seat, text) {
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
   state.host.text = `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`;
-  playVictorySound();
   updateDecisionTrace({
     perception: `${SEATS[seat]}猜中谜底`,
     decision: "进入胜利收尾，给足情绪价值",
@@ -1279,6 +1395,7 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
   }
   if (type === "resume_game") {
     if (!canResumeGame()) return;
+    resumeQuestionClock();
     state.game.status = "playing";
     state.ui.cabinMode = "normal";
     state.ui.alert = "正在确认安全状态";
@@ -1328,13 +1445,14 @@ function sleep(ms) {
 
 function prepareAudioContext() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
+  if (!AudioContextClass) return null;
   if (!audioContext) {
     audioContext = new AudioContextClass();
   }
   if (audioContext.state === "suspended") {
     audioContext.resume().catch(() => {});
   }
+  return audioContext;
 }
 
 function playVictorySound() {
@@ -1355,6 +1473,34 @@ function playVictorySound() {
     oscillator.start(startAt);
     oscillator.stop(startAt + 0.24);
   });
+}
+
+function playPassengerBubbleSound() {
+  const context = prepareAudioContext();
+  if (!context) return;
+
+  const play = () => {
+    if (context.state !== "running") return;
+    const startAt = context.currentTime;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(560, startAt);
+    oscillator.frequency.exponentialRampToValueAtTime(820, startAt + 0.075);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(0.35, startAt + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.12);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + 0.13);
+  };
+
+  if (context.state === "running") {
+    play();
+  } else {
+    context.resume().then(play).catch(() => {});
+  }
 }
 
 async function waitUntilRoundTimelineReady(runId) {
@@ -1461,6 +1607,7 @@ function findRiddleForEnvironment(environment) {
 function applyImmediateSafetyPause() {
   abortActiveWorkflow();
   cancelPreparedHostReply();
+  pauseQuestionClock();
   clearNextRoundTimer();
   if (state.workflow.recoveryTimer) {
     clearTimeout(state.workflow.recoveryTimer);
@@ -1619,6 +1766,7 @@ function finishPreparedHostReply(runId) {
   state.workflow.preparedReplyPending = false;
   state.workflow.activeLabel = "";
   window.setTimeout(processNextPendingChat, 0);
+  window.setTimeout(resolveExpiredQuestion, 0);
 }
 
 function cancelPreparedHostReply() {
@@ -1652,6 +1800,7 @@ function finishWorkflowRequest(requestId) {
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
   window.setTimeout(processNextPendingChat, 0);
+  window.setTimeout(resolveExpiredQuestion, 0);
 }
 
 function abortActiveWorkflow() {
@@ -2582,6 +2731,7 @@ function applyWorkflowOutput(output, input) {
 
   if (isHardBrakeOutput) {
     state.game.status = "paused";
+    pauseQuestionClock();
     state.ui.cabinMode = "safety_pause";
     state.ui.animation = "pause";
     state.host.emotion = "serious";
@@ -2615,6 +2765,7 @@ function applyWorkflowOutput(output, input) {
   }
 
   if (isVictoryOutput) {
+    clearQuestionClock();
     const correctSeat = input.passengers?.selected_seat || state.passengers.selectedSeat;
     finishTimelineSilently();
     clearPassengerActivities();
@@ -2629,7 +2780,6 @@ function applyWorkflowOutput(output, input) {
     state.host.text = makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer);
     setHostAvatarState("excited", { transient: false });
     state.host.targetSeat = correctSeat;
-    playVictorySound();
   }
 
   updateDecisionTrace(normalizeDecisionTrace(output, input));
@@ -3004,6 +3154,7 @@ function advanceAfterVictory(completedRound) {
 }
 
 function finishGameSeries() {
+  clearQuestionClock();
   clearNextRoundTimer();
   finishTimelineSilently();
   state.game.status = "summary";
@@ -3104,6 +3255,7 @@ function showPassengerBubble(seat, text) {
   clearPassengerBubbles(seat);
   state.passengers.seats[seat].bubble = text;
   state.workflow.lastBubbleShownAt = Date.now();
+  playPassengerBubbleSound();
   scheduleBubbleClear();
 }
 
@@ -3168,6 +3320,17 @@ function render() {
   const riddle = getCurrentRiddle();
   const screenMode = getGameScreenMode();
   const hostBusy = isHostBusy();
+  const requestedHostState = normalizeHostAvatarState(state.host.avatarState);
+  const hostThinking = hostBusy || requestedHostState === "thinking";
+  const noWinnerReveal = state.game.status === "failed" && state.ui.showAnswer;
+  const thinkingAnimationComplete =
+    hostSprite.source === RESOURCE_CONFIG.host.thinking.src && hostSprite.completed;
+  const renderedHostState =
+    hostThinking && !thinkingAnimationComplete
+      ? "thinking"
+      : requestedHostState === "thinking"
+        ? HOST_AVATAR_DEFAULT_STATE
+        : requestedHostState;
   const environmentAssets = resolveEnvironmentAssets(state.car.environment);
   const environmentMapping =
     getEnvironmentMapping(state.car.environment)
@@ -3180,7 +3343,8 @@ function render() {
   document.body.classList.toggle("is-victory", state.game.status === "victory");
   document.body.classList.toggle("is-working", hostBusy);
   els.gameScreen.className = `game-screen screen-${screenMode} ${getScreenEnvironmentClass(screenMode)}`;
-  renderHostMedia(screenMode);
+  els.gameScreen.classList.toggle("screen-reveal-no-winner", noWinnerReveal);
+  renderHostMedia(screenMode, renderedHostState);
 
   els.environmentBackdrop.className = `environment-backdrop ${
     environmentMapping.cabinClass
@@ -3195,40 +3359,48 @@ function render() {
   renderGameProgress();
   els.stageLabel.textContent = getStageLabel();
   els.riddleTitle.textContent = getRiddleTitle(riddle);
+  const questionIntroVisible = isQuestionIntroVisible();
+  els.riddleTitle.classList.toggle("question-intro", questionIntroVisible);
   els.riddleHint.textContent = getRiddleSupportText(riddle);
+  els.remainingQuestions.parentElement.classList.toggle("hidden", questionIntroVisible);
+  renderQuestionClock();
   els.riddleHint.classList.toggle("hidden", state.game.status === "idle" && !state.ui.showAnswer);
-  els.remainingQuestions.textContent = Math.max(0, state.game.maxQuestions - state.game.questionCount);
+  renderRemainingQuestions();
   els.answerReveal.textContent = `谜底：${riddle.answer}`;
   els.answerReveal.classList.toggle("visible", state.ui.showAnswer);
   els.revealAnswerText.textContent = riddle.answer;
-  els.revealSeatLabel.textContent = SEATS[state.ui.correctSeat] || "副驾";
+  els.revealSeatLabel.textContent = noWinnerReveal
+    ? "无人答对"
+    : SEATS[state.ui.correctSeat] || "副驾";
+  els.revealOutcomeLabel.textContent = noWinnerReveal ? "" : "答对了！";
   els.summaryTotal.textContent = state.game.totalRounds;
   els.summarySolved.textContent = getSummarySolvedCount();
   els.summaryMvp.textContent = SEATS[getSummaryMvpSeat()] || "副驾";
-  const hostBubbleText = hostBusy ? "" : String(state.host.text || "");
+  const hostBubbleText = hostThinking ? "" : String(state.host.text || "");
   const hostBubbleLength = Array.from(hostBubbleText).length;
   const hostBubbleVariant =
     hostBubbleLength > 46 ? "long-text" : hostBubbleLength > 28 ? "medium-text" : "";
-  els.hostBubble.classList.toggle("thinking", hostBusy);
+  els.hostBubble.classList.remove("thinking");
+  els.hostBubble.classList.toggle("hidden", hostThinking);
   els.hostBubble.classList.toggle(
     "medium-text",
-    !hostBusy && hostBubbleVariant === "medium-text",
+    !hostThinking && hostBubbleVariant === "medium-text",
   );
   els.hostBubble.classList.toggle(
     "long-text",
-    !hostBusy && hostBubbleVariant === "long-text",
+    !hostThinking && hostBubbleVariant === "long-text",
   );
   els.hostBubble.setAttribute("aria-busy", hostBusy ? "true" : "false");
   const hostBubbleTextElement = setHostBubbleText(hostBubbleText);
-  if (!hostBusy && hostBubbleVariant) {
+  if (!hostThinking && hostBubbleVariant) {
     scheduleTextClamp(
       hostBubbleTextElement,
       hostBubbleText,
       hostBubbleVariant === "long-text" ? 4 : 3,
     );
   }
-  els.hostAvatar.classList.toggle("thinking", hostBusy);
-  els.hostAvatar.dataset.avatarState = state.host.avatarState || HOST_AVATAR_DEFAULT_STATE;
+  els.hostAvatar.classList.toggle("thinking", hostThinking);
+  els.hostAvatar.dataset.avatarState = renderedHostState;
   els.timelineName.textContent = state.timeline.name;
   els.decisionPerception.textContent = formatDecisionText(
     state.decisionTrace.perception,
@@ -3273,71 +3445,546 @@ function getGameScreenMode() {
   return "playing";
 }
 
-function renderHostMedia(screenMode) {
-  const media = resolveHostMedia(screenMode, state.host.avatarState);
-  const isVideo = media.kind === "video" && media.src;
+function renderHostMedia(screenMode, avatarState = state.host.avatarState) {
+  const media = resolveHostMedia(screenMode, avatarState);
+  const isSprite = media.kind === "sprite" && media.src && media.frameCount;
 
-  if (isVideo) {
-    const currentSrc = els.hostVideo.dataset.mediaSrc || "";
-    const sourceChanged = currentSrc !== media.src;
-    els.hostImage.hidden = true;
-    els.hostVideo.hidden = false;
-    els.hostVideo.removeAttribute("poster");
-    els.hostVideo.autoplay = true;
-    els.hostVideo.defaultMuted = false;
-    els.hostVideo.muted = false;
-    els.hostVideo.volume = 1;
-    els.hostVideo.playsInline = true;
-    els.hostVideo.dataset.fallbackSrc = media.fallback || "";
-    els.hostVideo.loop = false;
-    if (sourceChanged) {
-      els.hostVideo.pause();
-      if (currentSrc) els.hostVideo.currentTime = 0;
-      els.hostVideoSource.src = media.src;
-      els.hostVideo.dataset.mediaSrc = media.src;
-      els.hostVideo.dataset.mediaStatus = "loading";
-      els.hostVideo.load();
+  if (isSprite) {
+    if (hostSprite.fallback && hostSprite.source === media.src) {
+      els.hostCanvas.hidden = true;
+      els.hostImage.hidden = false;
+      els.hostImage.src = media.fallback || RESOURCE_CONFIG.host.normal.src;
+      return;
     }
-    requestHostVideoPlayback();
+    els.hostImage.hidden = true;
+    els.hostCanvas.hidden = false;
+    if (hostSprite.source !== media.src) {
+      loadHostSprite(media);
+    }
     return;
   }
 
-  if (els.hostVideo.dataset.mediaSrc) {
-    els.hostVideo.pause();
-    els.hostVideoSource.removeAttribute("src");
-    els.hostVideo.removeAttribute("src");
-    els.hostVideo.removeAttribute("data-media-src");
-    els.hostVideo.removeAttribute("data-fallback-src");
-    els.hostVideo.removeAttribute("data-media-status");
-    els.hostVideo.load();
-  }
-  els.hostVideo.hidden = true;
+  resetHostSprite();
+  els.hostCanvas.hidden = true;
   els.hostImage.hidden = false;
   els.hostImage.src = media.src;
 }
 
-function requestHostVideoPlayback() {
-  const video = els.hostVideo;
-  if (
-    video.hidden
-    || !video.dataset.mediaSrc
-    || video.error
-    || video.ended
-    || video.dataset.mediaStatus === "ended"
-    || !video.paused
-  ) return;
-  if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-  const playRequest = video.play();
-  if (playRequest) {
-    playRequest.catch(() => {
-      video.dataset.mediaStatus = "play-rejected";
-    });
+async function loadHostSprite(media) {
+  resetHostSprite();
+  hostSprite.source = media.src;
+  hostSprite.loading = true;
+  const loadId = ++hostSprite.loadId;
+
+  try {
+    const image = await loadHostSpriteImage(media.src);
+    if (loadId !== hostSprite.loadId || hostSprite.source !== media.src) return;
+
+    hostSprite.frames = createHostSpriteFrames(media);
+    hostSprite.image = image;
+    hostSprite.totalDurationMs = hostSprite.frames.reduce(
+      (total, frame) => total + Math.max(1, Number(frame.duration) || 100),
+      0,
+    );
+    const audio = media.loop || !media.audio ? null : { ...media.audio };
+    hostSprite.audio = audio;
+    hostSprite.loop = Boolean(media.loop);
+    hostSprite.loading = false;
+    hostSprite.fallback = false;
+    configureHostCanvas();
+    drawHostSpriteFrame(0);
+    void startHostSprite(loadId, media);
+  } catch (error) {
+    if (loadId !== hostSprite.loadId || hostSprite.source !== media.src) return;
+    hostSprite.loading = false;
+    hostSprite.fallback = true;
+    els.hostCanvas.hidden = true;
+    els.hostImage.hidden = false;
+    els.hostImage.src = media.fallback || RESOURCE_CONFIG.host.normal.src;
+    if (!media.loop) playHostSpriteAudio(media.audio).catch(() => {});
+    console.warn("Host sprite could not be loaded; using static fallback.", error);
   }
+}
+
+function createHostSpriteFrames(media) {
+  const frameCount = Math.max(1, Number(media.frameCount) || 1);
+  return Array.from({ length: frameCount }, (_, index) => ({
+    frame: {
+      x: (index % HOST_SPRITE_COLUMNS) * HOST_SPRITE_FRAME_WIDTH,
+      y: Math.floor(index / HOST_SPRITE_COLUMNS) * HOST_SPRITE_FRAME_HEIGHT,
+      w: HOST_SPRITE_FRAME_WIDTH,
+      h: HOST_SPRITE_FRAME_HEIGHT,
+    },
+    duration: HOST_SPRITE_FRAME_DURATION_MS,
+  }));
+}
+
+function loadHostSpriteImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Sprite image request failed: ${src}`));
+    image.src = src;
+  });
+}
+
+function configureHostCanvas() {
+  const canvas = els.hostCanvas;
+  canvas.width = 564;
+  canvas.height = 572;
+  canvas.dataset.frameCount = String(hostSprite.frames.length);
+  canvas.getContext("2d").imageSmoothingEnabled = true;
+}
+
+function drawHostSpriteFrame(frameIndex) {
+  if (!hostSprite.image || !hostSprite.frames.length) return;
+  const frame = hostSprite.frames[frameIndex];
+  const source = frame.frame;
+  const context = els.hostCanvas.getContext("2d");
+  context.clearRect(0, 0, els.hostCanvas.width, els.hostCanvas.height);
+  context.drawImage(
+    hostSprite.image,
+    source.x,
+    source.y,
+    source.w,
+    source.h,
+    0,
+    0,
+    els.hostCanvas.width,
+    els.hostCanvas.height,
+  );
+  hostSprite.frameIndex = frameIndex;
+}
+
+async function startHostSprite(loadId, media) {
+  if (hostSprite.playing || hostSprite.completed || hostSprite.loading) return;
+  if (loadId !== hostSprite.loadId || !hostSprite.image || !hostSprite.frames.length) return;
+
+  if (hostSprite.audio) {
+    void playHostSpriteAudio(hostSprite.audio)
+      .then((audioReady) => {
+        if (
+          loadId === hostSprite.loadId &&
+          media.playVictorySound !== false &&
+          !audioReady
+        ) {
+          playVictorySound();
+        }
+      })
+      .catch(() => {
+        if (loadId === hostSprite.loadId && media.playVictorySound !== false) {
+          playVictorySound();
+        }
+      });
+  } else if (media.playVictorySound !== false && !hostSprite.loop) {
+    playVictorySound();
+  }
+
+  hostSprite.playing = true;
+  hostSprite.completed = false;
+  hostSprite.elapsedMs = 0;
+  hostSprite.lastTimestamp = 0;
+  cancelAnimationFrame(hostSprite.animationFrameId);
+  hostSprite.animationFrameId = requestAnimationFrame(stepHostSprite);
+}
+
+function stepHostSprite(timestamp) {
+  if (!hostSprite.playing) return;
+  if (!hostSprite.lastTimestamp) hostSprite.lastTimestamp = timestamp;
+  hostSprite.elapsedMs += Math.min(100, timestamp - hostSprite.lastTimestamp);
+  hostSprite.lastTimestamp = timestamp;
+
+  if (hostSprite.elapsedMs >= hostSprite.totalDurationMs) {
+    if (hostSprite.loop) {
+      hostSprite.elapsedMs %= hostSprite.totalDurationMs;
+      hostSprite.lastTimestamp = timestamp;
+      drawHostSpriteFrame(0);
+      hostSprite.animationFrameId = requestAnimationFrame(stepHostSprite);
+      return;
+    }
+    drawHostSpriteFrame(hostSprite.frames.length - 1);
+    hostSprite.playing = false;
+    hostSprite.completed = true;
+    hostSprite.animationFrameId = 0;
+    if (hostSprite.source === RESOURCE_CONFIG.host.thinking.src) render();
+    return;
+  }
+
+  let elapsed = hostSprite.elapsedMs;
+  let frameIndex = 0;
+  for (const frame of hostSprite.frames) {
+    elapsed -= Math.max(1, Number(frame.duration) || 100);
+    if (elapsed < 0) break;
+    frameIndex += 1;
+  }
+  drawHostSpriteFrame(Math.min(frameIndex, hostSprite.frames.length - 1));
+  hostSprite.animationFrameId = requestAnimationFrame(stepHostSprite);
+}
+
+function resetHostSprite() {
+  hostSprite.loadId += 1;
+  cancelAnimationFrame(hostSprite.animationFrameId);
+  stopHostSpriteAudio();
+  hostSprite.source = "";
+  hostSprite.frames = [];
+  hostSprite.image = null;
+  hostSprite.frameIndex = 0;
+  hostSprite.elapsedMs = 0;
+  hostSprite.totalDurationMs = 0;
+  hostSprite.audio = null;
+  hostSprite.loop = false;
+  hostSprite.lastTimestamp = 0;
+  hostSprite.animationFrameId = 0;
+  hostSprite.loading = false;
+  hostSprite.playing = false;
+  hostSprite.completed = false;
+  hostSprite.fallback = false;
+}
+
+const hostAudioCache = new Map();
+
+async function playHostSpriteAudio(audioMeta) {
+  if (!audioMeta?.src) return false;
+  const context = prepareAudioContext();
+  if (!context) return playHostSpriteAudioElement(audioMeta);
+  if (context.state === "suspended") {
+    await context.resume().catch(() => {});
+  }
+  if (context.state !== "running") return playHostSpriteAudioElement(audioMeta);
+
+  try {
+    const sourceUrl = new URL(audioMeta.src, document.baseURI).href;
+    let bufferPromise = hostAudioCache.get(sourceUrl);
+    if (!bufferPromise) {
+      bufferPromise = fetch(sourceUrl, { cache: "force-cache" })
+        .then((response) => {
+          if (!response.ok) throw new Error(`Audio request failed: ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then((arrayBuffer) => context.decodeAudioData(arrayBuffer));
+      hostAudioCache.set(sourceUrl, bufferPromise);
+    }
+
+    const buffer = await bufferPromise;
+    if (hostSprite.audioSource) stopHostSpriteAudio();
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    const trimStartSeconds = Math.max(0, Number(audioMeta.trimStartMs) || 0) / 1000;
+    const delaySeconds = Math.max(0, Number(audioMeta.delayMs) || 0) / 1000;
+    const volume = Math.min(1, Math.max(0, Number(audioMeta.volume) || 0.85));
+    const startAt = context.currentTime + delaySeconds;
+    const availableDuration = Math.max(0, buffer.duration - trimStartSeconds);
+
+    source.buffer = buffer;
+    gain.gain.setValueAtTime(volume, startAt);
+    source.connect(gain);
+    gain.connect(context.destination);
+    source.start(startAt, trimStartSeconds, availableDuration || undefined);
+    source.addEventListener("ended", () => {
+      if (hostSprite.audioSource !== source) return;
+      hostSprite.audioSource = null;
+      hostSprite.audioGain = null;
+      source.disconnect();
+      gain.disconnect();
+    }, { once: true });
+    hostSprite.audioSource = source;
+    hostSprite.audioGain = gain;
+    return true;
+  } catch (error) {
+    console.warn("Host sprite audio could not use Web Audio; using media fallback.", error);
+    return playHostSpriteAudioElement(audioMeta);
+  }
+}
+
+function playHostSpriteAudioElement(audioMeta) {
+  const audio = new Audio(new URL(audioMeta.src, document.baseURI).href);
+  audio.preload = "auto";
+  audio.volume = Math.min(1, Math.max(0, Number(audioMeta.volume) || 0.85));
+  hostSprite.audioElement?.pause();
+  hostSprite.audioElement = audio;
+  const start = () => {
+    audio.currentTime = Math.max(0, Number(audioMeta.trimStartMs) || 0) / 1000;
+    audio.play().catch(() => {});
+  };
+  window.setTimeout(start, Math.max(0, Number(audioMeta.delayMs) || 0));
+  audio.addEventListener("ended", () => {
+    if (hostSprite.audioElement === audio) hostSprite.audioElement = null;
+  }, { once: true });
+  return true;
+}
+
+function stopHostSpriteAudio() {
+  if (hostSprite.audioSource) {
+    try {
+      hostSprite.audioSource.stop();
+    } catch {}
+    hostSprite.audioSource.disconnect();
+    hostSprite.audioGain?.disconnect();
+    hostSprite.audioSource = null;
+    hostSprite.audioGain = null;
+  }
+  hostSprite.audioElement?.pause();
+  hostSprite.audioElement = null;
 }
 
 function resolveHostMedia(screenMode, avatarState) {
   const stateKey = normalizeHostAvatarState(avatarState);
   return RESOURCE_CONFIG.host[stateKey] || RESOURCE_CONFIG.host.normal;
+}
+
+function startQuestionClock() {
+  clearQuestionClock();
+  questionClock.active = true;
+  questionClock.expired = false;
+  questionClock.startedAt = Date.now();
+  questionClock.roundIndex = state.game.roundIndex;
+  questionClock.intervalId = window.setInterval(tickQuestionClock, QUESTION_TIMER_TICK_MS);
+  renderQuestionClock(0);
+}
+
+function clearQuestionClock() {
+  if (questionClock.intervalId) window.clearInterval(questionClock.intervalId);
+  questionClock.intervalId = 0;
+  questionClock.startedAt = 0;
+  questionClock.pausedAt = 0;
+  questionClock.pausedDurationMs = 0;
+  questionClock.roundIndex = 0;
+  questionClock.active = false;
+  questionClock.expired = false;
+  clearQuestionIntro();
+  if (els.gameScreen) els.gameScreen.classList.remove("is-time-critical");
+  if (els.questionTimer) els.questionTimer.hidden = true;
+  if (els.questionTimer) els.questionTimer.classList.remove("is-urgent", "is-paused");
+  if (els.answerLengthHint) els.answerLengthHint.hidden = true;
+}
+
+function startQuestionIntro() {
+  clearQuestionIntro();
+  questionIntro.roundIndex = state.game.roundIndex;
+  questionIntro.active = true;
+  questionIntro.timerId = window.setTimeout(() => {
+    questionIntro.timerId = 0;
+    if (questionIntro.roundIndex !== state.game.roundIndex) return;
+    questionIntro.active = false;
+    render();
+  }, QUESTION_INTRO_DURATION_MS);
+}
+
+function clearQuestionIntro() {
+  if (questionIntro.timerId) window.clearTimeout(questionIntro.timerId);
+  questionIntro.timerId = 0;
+  questionIntro.roundIndex = 0;
+  questionIntro.active = false;
+}
+
+function isQuestionIntroVisible() {
+  return questionIntro.active
+    && questionIntro.roundIndex === state.game.roundIndex
+    && !state.ui.showAnswer
+    && !["victory", "summary"].includes(state.game.status);
+}
+
+function pauseQuestionClock() {
+  if (!questionClock.active || questionClock.pausedAt) return;
+  questionClock.pausedAt = Date.now();
+  renderQuestionClock(getQuestionElapsedMs(questionClock.pausedAt));
+}
+
+function resumeQuestionClock() {
+  if (!questionClock.active || !questionClock.pausedAt) return;
+  const resumedAt = Date.now();
+  questionClock.pausedDurationMs += resumedAt - questionClock.pausedAt;
+  questionClock.pausedAt = 0;
+  renderQuestionClock(getQuestionElapsedMs(resumedAt));
+}
+
+function getQuestionElapsedMs(now = Date.now()) {
+  if (!questionClock.active) return 0;
+  const endAt = questionClock.pausedAt || now;
+  return Math.max(0, endAt - questionClock.startedAt - questionClock.pausedDurationMs);
+}
+
+function tickQuestionClock() {
+  if (!questionClock.active) return;
+  if (questionClock.roundIndex !== state.game.roundIndex) {
+    clearQuestionClock();
+    return;
+  }
+  if (state.timeline.status === "paused" || state.game.status === "paused") {
+    pauseQuestionClock();
+    return;
+  }
+  if (questionClock.pausedAt) resumeQuestionClock();
+
+  const elapsedMs = getQuestionElapsedMs();
+  renderQuestionClock(elapsedMs);
+  if (elapsedMs >= QUESTION_DURATION_MS) {
+    questionClock.expired = true;
+    resolveExpiredQuestion();
+  }
+}
+
+function renderQuestionClock(elapsedMs = getQuestionElapsedMs()) {
+  if (!els.questionTimer || !els.questionTimerProgress) return;
+  const isVisible = questionClock.active && !["victory", "summary"].includes(state.game.status);
+  els.questionTimer.hidden = !isVisible || isQuestionIntroVisible();
+  if (!isVisible) {
+    els.answerLengthHint.hidden = true;
+    els.gameScreen.classList.remove("is-time-critical");
+    return;
+  }
+
+  const remainingMs = Math.max(0, QUESTION_DURATION_MS - elapsedMs);
+  const remainingSeconds = Math.ceil(remainingMs / 1000);
+  const remainingRatio = remainingMs / QUESTION_DURATION_MS;
+  const isUrgent = remainingSeconds <= 10;
+  const answer = String(getCurrentRiddle()?.answer || "").replace(/\s/g, "");
+  renderQuestionTimerRing(remainingRatio, Boolean(questionClock.pausedAt), isUrgent);
+  els.questionTimer.classList.toggle("is-urgent", isUrgent);
+  els.questionTimer.classList.toggle("is-paused", Boolean(questionClock.pausedAt));
+  els.gameScreen.classList.toggle("is-time-critical", isUrgent && !questionClock.pausedAt);
+  els.questionTimer.setAttribute("aria-label", `本题剩余${remainingSeconds}秒`);
+  els.answerLengthHint.textContent = `${Array.from(answer).length}个字`;
+  els.answerLengthHint.hidden = elapsedMs < ANSWER_LENGTH_HINT_DELAY_MS || state.ui.showAnswer;
+}
+
+function renderQuestionTimerRing(remainingRatio, paused, urgent) {
+  const canvas = els.questionTimerProgress;
+  const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+  const size = Math.ceil(QUESTION_TIMER_SIZE_PX * pixelRatio);
+  if (canvas.width !== size || canvas.height !== size) {
+    canvas.width = size;
+    canvas.height = size;
+  }
+  const context = canvas.getContext("2d");
+  context.setTransform(
+    size / QUESTION_TIMER_SIZE_PX,
+    0,
+    0,
+    size / QUESTION_TIMER_SIZE_PX,
+    0,
+    0,
+  );
+  context.clearRect(0, 0, QUESTION_TIMER_SIZE_PX, QUESTION_TIMER_SIZE_PX);
+  context.lineWidth = QUESTION_TIMER_STROKE_PX;
+  context.lineCap = "round";
+  context.strokeStyle = "rgba(102, 64, 156, 0.22)";
+  context.beginPath();
+  context.arc(
+    QUESTION_TIMER_SIZE_PX / 2,
+    QUESTION_TIMER_SIZE_PX / 2,
+    QUESTION_TIMER_RADIUS_PX,
+    0,
+    Math.PI * 2,
+  );
+  context.stroke();
+
+  const remaining = Math.max(0, Math.min(1, remainingRatio));
+  if (remaining === 0) return;
+  // The erased edge advances clockwise from 12 o'clock; the far end stays at 12.
+  const startAngle = -Math.PI / 2 + (1 - remaining) * Math.PI * 2;
+  context.strokeStyle = urgent ? "#cf3345" : paused ? "#8993a4" : "#66409c";
+  context.beginPath();
+  context.arc(
+    QUESTION_TIMER_SIZE_PX / 2,
+    QUESTION_TIMER_SIZE_PX / 2,
+    QUESTION_TIMER_RADIUS_PX,
+    startAngle,
+    Math.PI * 1.5,
+    false,
+  );
+  context.stroke();
+}
+
+function renderRemainingQuestions() {
+  const nextValue = String(Math.max(0, state.game.maxQuestions - state.game.questionCount));
+  if (els.remainingQuestions.textContent === nextValue) return;
+
+  els.remainingQuestions.textContent = nextValue;
+  els.remainingQuestions.classList.remove("count-roll");
+  void els.remainingQuestions.offsetWidth;
+  els.remainingQuestions.classList.add("count-roll");
+}
+
+function handleQuestionTimeout(completedRound) {
+  if (
+    !questionClock.active
+    || questionClock.roundIndex !== completedRound
+    || state.game.roundIndex !== completedRound
+    || ["victory", "summary", "paused"].includes(state.game.status)
+  ) return;
+  if (isHostBusy() || state.workflow.pendingChats.length > 0) return;
+
+  clearQuestionClock();
+  abortActiveWorkflow();
+  cancelPreparedHostReply();
+  clearNextRoundTimer();
+  state.workflow.pendingChats = [];
+  state.game.status = "failed";
+  state.ui.showAnswer = true;
+  state.ui.correctSeat = null;
+  state.ui.correctLightSeat = null;
+  state.ui.cabinMode = "reveal";
+  state.ui.animation = "reveal";
+  state.host.emotion = "normal";
+  state.host.targetSeat = null;
+  setHostAvatarState(HOST_AVATAR_DEFAULT_STATE, { transient: false });
+  state.host.text = `时间到啦，这题没有人答对，答案是“${getCurrentRiddle().answer}”。`;
+  state.ui.alert = "本题无人答对，公布谜底";
+  finishTimelineSilently();
+  render();
+  state.workflow.nextRoundTimer = setTimeout(
+    () => advanceAfterTimeout(completedRound),
+    NEXT_ROUND_DELAY_MS,
+  );
+}
+
+function resolveExpiredQuestion() {
+  if (!questionClock.active || !questionClock.expired) return;
+  if (getQuestionElapsedMs() < QUESTION_DURATION_MS) return;
+  if (isHostBusy() || state.workflow.pendingChats.length > 0) return;
+  handleQuestionTimeout(questionClock.roundIndex);
+}
+
+function advanceAfterTimeout(completedRound) {
+  state.workflow.nextRoundTimer = null;
+  if (state.game.status !== "failed" || state.game.roundIndex !== completedRound) return;
+  if (completedRound >= state.game.totalRounds) {
+    finishGameSeries();
+    render();
+    return;
+  }
+
+  state.game.roundIndex = completedRound + 1;
+  state.game.currentRiddleIndex = (state.game.currentRiddleIndex + 1) % RIDDLES.length;
+  state.game.questionCount = 0;
+  state.game.roundQuestionPlan = null;
+  state.game.usedRoundQuestionStepIds = [];
+  state.game.coveredFactKeys = [];
+  state.game.status = "idle";
+  state.ui.cabinMode = "normal";
+  state.ui.showAnswer = false;
+  state.ui.correctSeat = null;
+  state.ui.correctLightSeat = null;
+  state.ui.animation = "idle";
+  state.passengers.selectedSeat = "front";
+  clearPassengerActivities();
+  clearPassengerBubbles();
+  clearCorrectLightTimer();
+  setHostAvatarState(HOST_AVATAR_DEFAULT_STATE);
+  state.host.targetSeat = null;
+  state.host.emotion = "normal";
+  state.ui.alert = `时间到，进入第 ${state.game.roundIndex} 题`;
+  state.host.text = `上一题时间到，第 ${state.game.roundIndex} 题准备好了。`;
+  updateDecisionTrace({
+    perception: `第 ${completedRound} 题时间结束，未猜中答案`,
+    decision: "结束当前题目，保留整局进度并自动继续",
+    execution: `切换第 ${state.game.roundIndex} 题并重新开场`,
+    strategyId: "S06",
+    priority: "P3",
+  });
+  render();
+  void startRoundGoldenTimeline();
 }
 
 function getScreenProgressValue() {
@@ -3535,11 +4182,12 @@ function setActive(buttons, key, value) {
 function getStageLabel() {
   if (state.ui.showAnswer || state.game.status === "victory") return "公布答案";
   if (state.game.status === "idle") return "准备开局";
-  return "提示时间";
+  return "提示";
 }
 
 function getRiddleTitle(riddle) {
   if (state.ui.showAnswer) return riddle.answer;
+  if (isQuestionIntroVisible()) return `第 ${state.game.roundIndex} 题`;
   if (state.game.status === "idle") return "游戏待开始";
   return riddle.hint;
 }

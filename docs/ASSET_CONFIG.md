@@ -19,13 +19,13 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 
 | asset_key | 类型 | Figma 页面 | Figma 节点 | Figma 图层名 | 推荐文件名 | 适用状态 | fallback_asset |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `host_yes` | AI_HOST | Assets / AI Host | `214:1920` | 主持人 yes！静态切片 | `host-yes.png` | 猜对、答对反馈、正向确认；视频 fallback | `host-normal.png` |
+| `host_yes` | AI_HOST | Assets / AI Host | `214:1920` | 主持人 yes！静态切片 | `host-yes.png` | Sprite Sheet 加载失败时的静态 fallback | `host-normal.png` |
 | `host_cheer` | AI_HOST | Assets / AI Host | `214:1919` | 主持人 欢呼 | `host-cheer.png` | 结算、胜利总结、高情绪价值夸奖 | `host-yes.png` |
 | `host_puzzled` | AI_HOST | Assets / AI Host | `214:1915` | 主持人 疑惑 | `host-puzzled.png` | 思考、尴尬、玩家方向偏离 | `host-normal.png` |
 | `host_heart` | AI_HOST | Assets / AI Host | `214:1916` | 主持人 比心 | `host-heart.png` | 鼓励、安抚、亲和表达 | `host-normal.png` |
 | `host_wave` | AI_HOST | Assets / AI Host | `214:1917` | 主持人 打招呼 | `host-wave.png` | 开场、恢复游戏、欢迎回来 | `host-normal.png` |
-| `host_normal` | AI_HOST | Assets / AI Host | `214:1918` | 主持人 默认 | `host-normal.png` | 默认主持状态 | `host-normal.png` |
-| `host_yes_video` | AI_HOST_VIDEO | Assets / AI Host | `227:2` | 主持人 yes！视频 | `host-yes.webm` | 猜对、答对反馈，优先于 `host_yes` 静态切片 | `host-yes.png` |
+| `host_normal` | AI_HOST_SPRITE | Assets / AI Host | `214:1918` | 主持人 默认待机序列动画 | `host-normal.json` + `host-normal.webp` | 默认状态，Canvas 循环播放，不播放音频 | `host-normal.png` |
+| `host_yes_sprite` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 yes！40 帧透明序列动画与同步音频 | `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | 猜对、答对反馈，Canvas 按 JSON 帧时长播放一次，音频按 JSON 时间轴同步 | `host-yes.png` |
 
 ### Host State Mapping
 
@@ -35,7 +35,7 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 | `greeting` | `host_wave` | 4s 后回默认 | 开局或恢复 |
 | `smile` | `host_heart` | 4s 后回默认 | 亲和、鼓励 |
 | `awkward` | `host_puzzled` | 4s 后回默认 | 尴尬、疑惑、冷场兜底 |
-| `excited` | `host_yes` | 4s 后回默认 | 答对题目 |
+| `excited` | `host_yes_sprite` | 40 帧约 4s，播放一次后停留最后一帧 | 答对题目，进入下一轮或重置时恢复默认 |
 | `celebration` | `host_cheer` | 4s 后回默认 | 揭晓、结算、MVP |
 
 ## Passengers
@@ -123,8 +123,10 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 | 高速路晴天深夜 | `screen_deep_night` | `cabin_deep_night` | 夜间氛围 |
 | 高速路雨天白天 | `screen_scenic_sunset` | `cabin_scenic_sunset` | 当前暂无雨天图，先用晚霞/暗色氛围占位 |
 | 城区晴天白天 | `screen_city_day` | `cabin_city_day` | 城市白天 |
+| 城区夜晚 | `screen_city_night` | `cabin_city_night` | 城市夜景 |
 | 城区雨天白天 | `screen_city_day` | `cabin_city_day` | 当前暂无雨天图，先用城市白天 |
 | 风景区晴天白天 | `screen_scenic_day` | `cabin_scenic_day` | 风景白天 |
+| 风景区傍晚 | `screen_scenic_sunset` | `cabin_scenic_sunset` | 风景晚霞 |
 | 风景区雪景白天 | `screen_snow_day` | `cabin_snow_day` | 雪景白天 |
 | 风景区晴天深夜 | `screen_deep_night` | `cabin_deep_night` | 深夜氛围 |
 

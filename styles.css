@@ -778,6 +778,28 @@ select:disabled {
   white-space: pre-line;
 }
 
+.riddle-panel h1.question-intro {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 70px;
+  line-height: 80px;
+  animation: question-number-pop 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes question-number-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.68);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .riddle-panel p,
 .clue-tags,
 .hint-credit,
@@ -1018,21 +1040,19 @@ select:disabled {
   height: 100%;
 }
 
-.host-avatar video {
+.host-avatar canvas {
   position: absolute;
   left: 0;
   top: 0;
   width: 440px;
   height: 605px;
   max-width: none;
-  object-fit: cover;
-  object-position: center top;
-  filter: none;
-  transition: filter 220ms ease, transform 220ms ease, opacity 220ms ease;
+  display: block;
+  background: transparent;
 }
 
 .host-avatar img[hidden],
-.host-avatar video[hidden] {
+.host-avatar canvas[hidden] {
   display: none;
 }
 
@@ -1040,28 +1060,20 @@ select:disabled {
   animation: passenger-thinking 800ms ease-in-out infinite alternate;
 }
 
-.host-avatar.thinking video {
-  animation: none;
-}
-
-.host-avatar[data-avatar-state="smile"] img,
-.host-avatar[data-avatar-state="smile"] video {
+.host-avatar[data-avatar-state="smile"] img {
   filter: brightness(1.04) saturate(1.06) drop-shadow(0 0 18px rgba(255, 237, 165, 0.18));
 }
 
-.host-avatar[data-avatar-state="awkward"] img,
-.host-avatar[data-avatar-state="awkward"] video {
+.host-avatar[data-avatar-state="awkward"] img {
   filter: saturate(0.92) hue-rotate(-4deg) drop-shadow(0 0 14px rgba(255, 189, 189, 0.14));
 }
 
-.host-avatar[data-avatar-state="excited"] img,
-.host-avatar[data-avatar-state="excited"] video {
+.host-avatar[data-avatar-state="excited"] img {
   transform: translateY(-3px) scale(1.015);
   filter: brightness(1.03) saturate(1.08) drop-shadow(0 0 22px rgba(255, 234, 127, 0.28));
 }
 
-.host-avatar.thinking[data-avatar-state] img,
-.host-avatar.thinking[data-avatar-state] video {
+.host-avatar.thinking[data-avatar-state] img {
   transform: none;
   filter: none;
 }
@@ -1979,7 +1991,6 @@ body.has-started .prestart-panel {
   top: -435px;
   width: 1064px;
   height: 1064px;
-  object-fit: fill;
 }
 
 .summary-beam-left {
@@ -1987,7 +1998,18 @@ body.has-started .prestart-panel {
   top: -284px;
   width: 942px;
   height: 942px;
+}
+
+.summary-beam-right img,
+.summary-beam-left img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: fill;
+}
+
+.summary-beam-right img {
+  transform: scaleX(-1);
 }
 
 .summary-mosaic {
@@ -2240,6 +2262,7 @@ body.has-started .prestart-panel {
 }
 
 .ready-stage > img,
+.ready-stage > span,
 .ready-stage > button {
   position: absolute;
 }
@@ -2249,7 +2272,6 @@ body.has-started .prestart-panel {
   top: -435px;
   width: 1064px;
   height: 1064px;
-  object-fit: fill;
 }
 
 .ready-ring-mosaic {
@@ -2274,7 +2296,18 @@ body.has-started .prestart-panel {
   top: -284px;
   width: 942px;
   height: 942px;
+}
+
+.ready-beam-right img,
+.ready-beam-left img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: fill;
+}
+
+.ready-beam-right img {
+  transform: scaleX(-1);
 }
 
 .ready-logo {
@@ -2377,9 +2410,38 @@ body.has-started .prestart-panel {
   background: rgba(0, 0, 0, 0.7);
 }
 
-.ready-beam-right {
-  transform: rotate(180deg) scaleY(-1);
-  transform-origin: center;
+.screen-ready .ready-beam-left {
+  transform-origin: 505px 284px;
+  will-change: transform;
+  animation: ready-beam-sway-left 2.5s ease-in-out infinite alternate;
+}
+
+.screen-ready .ready-beam-right {
+  transform-origin: 503px 435px;
+  will-change: transform;
+  animation: ready-beam-sway-right 2.5s ease-in-out infinite alternate;
+}
+
+.screen-summary .summary-beam-left {
+  transform-origin: 505px 284px;
+  will-change: transform;
+  animation: ready-beam-sway-left 2.5s ease-in-out infinite alternate;
+}
+
+.screen-summary .summary-beam-right {
+  transform-origin: 503px 435px;
+  will-change: transform;
+  animation: ready-beam-sway-right 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes ready-beam-sway-left {
+  from { transform: rotate(-10deg); }
+  to { transform: rotate(10deg); }
+}
+
+@keyframes ready-beam-sway-right {
+  from { transform: rotate(10deg); }
+  to { transform: rotate(-10deg); }
 }
 
 .ready-panel-mosaic {
@@ -2756,8 +2818,8 @@ body.has-started .prestart-panel {
 }
 
 .cabin-region .seat.sleeping .passenger-figure {
-  opacity: 0.78;
-  filter: grayscale(0.35) brightness(0.75);
+  opacity: 1;
+  filter: none;
 }
 
 .cabin-region .seat-info {
@@ -2892,7 +2954,7 @@ body.has-started .prestart-panel {
 }
 
 .game-screen .host-avatar img,
-.game-screen .host-avatar video {
+.game-screen .host-avatar canvas {
   left: 0;
   top: 0;
   width: 564px;
@@ -2901,9 +2963,8 @@ body.has-started .prestart-panel {
   object-position: center;
 }
 
-/* Transparent WebM must stay on a clean compositing layer. Image-state
-   filters can flatten the alpha edge of a video in some browser engines. */
-.game-screen .host-avatar video {
+/* Keep the sequence-frame canvas on a clean transparent compositing layer. */
+.game-screen .host-avatar canvas {
   background: transparent;
   filter: none;
   mix-blend-mode: normal;
@@ -2965,4 +3026,156 @@ body.has-started .prestart-panel {
 
 .cabin-region .seat-driver .passenger-figure {
   left: 90px;
+}
+
+/* The host character should overlap the speech bubble where their bounds meet. */
+.game-screen .host-avatar,
+.game-screen.screen-ready .host-avatar,
+.game-screen.screen-summary .host-avatar {
+  z-index: 9;
+}
+
+.game-screen .host-bubble {
+  z-index: 8;
+}
+
+/* Center the ribbon label against the full purple banner height. */
+.riddle-ribbon span {
+  top: 5px;
+  height: 114px;
+  align-items: center;
+}
+
+.question-timer[hidden],
+.answer-length-hint[hidden] {
+  display: none;
+}
+
+.question-timer {
+  position: absolute;
+  top: 31px;
+  right: 29px;
+  z-index: 5;
+  display: grid;
+  width: 60px;
+  height: 60px;
+  place-items: center;
+  color: #633b99;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.question-timer-ring {
+  position: absolute;
+  top: -1px;
+  left: 15px;
+  display: block;
+  width: 46px;
+  height: 46px;
+}
+
+.question-timer.is-urgent {
+  color: #cf3345;
+}
+
+.remaining-questions strong {
+  display: inline-block;
+  transform-origin: center;
+}
+
+.remaining-questions strong.count-roll {
+  animation: remaining-count-roll 420ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@keyframes remaining-count-roll {
+  from {
+    opacity: 0;
+    transform: translateY(-65%) scale(0.88);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(9%) scale(1.05);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.screen-reveal-no-winner .reveal-seat-line strong {
+  color: rgba(0, 0, 0, 0.7);
+  font-weight: 500;
+  text-shadow: none;
+}
+
+.screen-reveal-no-winner .reveal-seat-line span {
+  display: none;
+}
+
+.game-screen.is-time-critical::after {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  border: 8px solid rgba(255, 45, 61, 0.94);
+  box-shadow:
+    inset 0 0 24px 4px rgba(255, 32, 48, 0.82),
+    inset 0 0 68px rgba(255, 32, 48, 0.36);
+  content: "";
+  animation: screen-edge-red-flash 640ms ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes screen-edge-red-flash {
+  from {
+    opacity: 0.38;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.answer-length-hint {
+  position: absolute;
+  top: 345px;
+  left: 50%;
+  z-index: 4;
+  display: grid;
+  min-width: 136px;
+  height: 48px;
+  padding: 0 22px;
+  place-items: center;
+  transform: translateX(-50%);
+  animation: answer-hint-pop 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  border-radius: 999px;
+  color: rgba(112, 71, 180, 0.74);
+  background: rgba(255, 255, 255, 0.5);
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 23px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@keyframes answer-hint-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.72);
+  }
+  72% {
+    opacity: 1;
+    transform: translateX(-50%) scale(2);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answer-length-hint,
+  .remaining-questions strong.count-roll,
+  .riddle-panel h1.question-intro,
+  .game-screen.is-time-critical::after {
+    animation: none;
+  }
 }

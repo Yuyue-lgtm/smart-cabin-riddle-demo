@@ -6,9 +6,9 @@
     <title>智能座舱 AI 猜谜 Demo</title>
     <link rel="preload" as="image" href="./assets/screen-default.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-env-scenic-sunset.png" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/host-normal.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/host-normal.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-    <link rel="stylesheet" href="./styles.css?v=20260916-host-video-playback" />
+  <link rel="stylesheet" href="./styles.css?v=20260923-figma-clockwise-ring-8px" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -132,8 +132,12 @@
                 <img src="./assets/figma-playing-ribbon.svg" alt="" />
                 <span id="stageLabel">准备开局</span>
               </div>
+              <div class="question-timer" id="questionTimer" role="timer" aria-label="本题剩余90秒" hidden>
+                <canvas class="question-timer-ring" id="questionTimerProgress" width="92" height="92" aria-hidden="true"></canvas>
+              </div>
               <h1 id="riddleTitle">游戏待开始</h1>
               <p id="riddleHint"></p>
+              <div class="answer-length-hint" id="answerLengthHint" aria-live="polite" hidden></div>
               <div class="answer-reveal" id="answerReveal">谜底：雨伞</div>
               <div class="reveal-stage" aria-live="polite">
                 <img class="reveal-ring" src="./assets/figma-reveal-light-ring.png" alt="" aria-hidden="true" />
@@ -141,15 +145,15 @@
                 <div class="reveal-kicker">答案是</div>
                 <div class="reveal-answer-text" id="revealAnswerText">雨伞</div>
                 <div class="reveal-seat-line">
-                  <strong id="revealSeatLabel">副驾</strong><span>答对了！</span>
+                  <strong id="revealSeatLabel">副驾</strong><span id="revealOutcomeLabel">答对了！</span>
                 </div>
               </div>
               <div class="remaining-questions">剩余可提问 <strong id="remainingQuestions">15</strong> 次</div>
             </div>
 
             <div class="summary-stage" aria-live="polite">
-              <img class="summary-beam-right" src="./assets/stage-beam.png" alt="" aria-hidden="true" />
-              <img class="summary-beam-left" src="./assets/stage-beam.png" alt="" aria-hidden="true" />
+              <span class="summary-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
+              <span class="summary-beam-left" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <img class="summary-mosaic" src="./assets/figma-summary-mosaic.png" alt="" aria-hidden="true" />
               <img class="summary-light-ring" src="./assets/figma-summary-light-ring.png" alt="" aria-hidden="true" />
               <img class="summary-light-base" src="./assets/figma-summary-light-base.png" alt="" aria-hidden="true" />
@@ -166,10 +170,10 @@
             </div>
 
             <div class="ready-stage" aria-live="polite">
-              <img class="ready-beam-right" src="./assets/stage-beam.png" alt="" aria-hidden="true" />
+              <span class="ready-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <img class="ready-ring-mosaic" src="./assets/figma-ready-ring-mosaic.png" alt="" aria-hidden="true" />
               <img class="ready-panel-mosaic" src="./assets/figma-ready-panel-mosaic.png" alt="" aria-hidden="true" />
-              <img class="ready-beam-left" src="./assets/stage-beam.png" alt="" aria-hidden="true" />
+              <span class="ready-beam-left" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <img class="ready-logo" src="./assets/figma-ready-logo.png" alt="旅途猜谜" />
               <div class="ready-rules">
                 <p>主持人藏一个谜底，</p>
@@ -184,9 +188,7 @@
 
             <div class="host-avatar" id="hostAvatar">
               <div class="host-media" id="hostMedia">
-                <video id="hostVideo" playsinline autoplay preload="auto" aria-hidden="true">
-                  <source id="hostVideoSource" type="video/webm" />
-                </video>
+                <canvas id="hostCanvas" aria-hidden="true"></canvas>
                 <img id="hostImage" src="./assets/host-normal.png" alt="AI 主持人" decoding="async" fetchpriority="high" />
               </div>
             </div>
@@ -239,9 +241,12 @@
                 <button class="chip" data-environment="高速路晴天深夜" type="button">高速路晴天深夜</button>
                 <button class="chip" data-environment="高速路雨天白天" type="button">高速路雨天白天</button>
                 <button class="chip" data-environment="城区晴天白天" type="button">城区晴天白天</button>
+                <button class="chip" data-environment="城区夜晚" type="button">城区夜晚</button>
                 <button class="chip" data-environment="城区雨天白天" type="button">城区雨天白天</button>
                 <button class="chip" data-environment="风景区晴天白天" type="button">风景区晴天白天</button>
+                <button class="chip" data-environment="风景区傍晚" type="button">风景区傍晚</button>
                 <button class="chip" data-environment="风景区雪景白天" type="button">风景区雪景白天</button>
+                <button class="chip" data-environment="风景区晴天深夜" type="button">风景区晴天深夜</button>
               </div>
             </div>
 
@@ -266,6 +271,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260725-dynamic-round-progress-3"></script>
+  <script src="./app.js?v=20260923-figma-clockwise-ring-8px"></script>
   </body>
 </html>

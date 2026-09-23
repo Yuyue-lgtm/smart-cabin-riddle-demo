@@ -17,14 +17,16 @@ const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
+  ".webp": "image/webp",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
+  ".mp3": "audio/mpeg",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
 };
-const MEDIA_EXTENSIONS = new Set([".mp4", ".webm"]);
+const MEDIA_EXTENSIONS = new Set([".mp4", ".webm", ".mp3"]);
 
 const server = http.createServer(async (req, res) => {
   try {

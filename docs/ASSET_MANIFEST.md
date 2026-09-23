@@ -12,6 +12,8 @@
 | --- | --- | --- |
 | `screen-default.png` | 中控屏默认背景 | `figma-*-background.png` |
 | `host-normal.png` | AI 主持人默认状态 | `figma-*-host.png` |
+| `host-normal.json` + `host-normal.webp` | AI 主持人默认待机透明序列动画，10fps，Canvas 循环播放且无音频 | 用户提供 Sprite Sheet |
+| `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | AI 主持人答对后的 40 帧透明序列动画，10fps，Canvas 播放一次；音频延迟、裁剪和音量由 JSON 配置 | 用户提供 Sprite Sheet 与音频 |
 | `stage-beam.png` | 准备页和结算页光束 | `figma-ready-beam.png`、`figma-summary-beam-right.png` |
 | `game-icon.png` | 游戏图标 | `figma-playing-game-icon.png`、`figma-reveal-game-icon.png` |
 | `question-icon.svg` | 问题计数图标 | `figma-playing-question-icon.svg`、`figma-reveal-question-icon.svg` |
