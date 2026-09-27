@@ -506,6 +506,16 @@ select:disabled {
   pointer-events: none;
 }
 
+.game-confetti-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .game-screen.screen-default,
 .game-screen.screen-sunny,
 .game-screen.screen-night,

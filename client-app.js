@@ -50,6 +50,15 @@ const HOST_SPEECH_PRIORITIES = Object.freeze({
   P4: 1,
 });
 const HOST_SPEECH_DEFAULT_LOCK_MS = 6000;
+const CONFETTI_CONFIG = Object.freeze({
+  count: 72,
+  durationMs: 2400,
+  colors: ["#ff95c6", "#ffdb72", "#63d4ff", "#9b66df", "#ffffff"],
+  launchAngleDeg: 52,
+  spreadDeg: 16,
+  gravity: 0.28,
+  drag: 0.996,
+});
 
 // Keep visual asset selection in one place. Runtime state stores semantic
 // values such as "大笑" and "城区晴天白天"; renderers resolve them here.
@@ -792,6 +801,14 @@ const hostSprite = {
   thinkingCycleId: 0,
 };
 const hostSpriteImageCache = new Map();
+const confettiAnimation = {
+  frameId: 0,
+  lastTimestamp: 0,
+  particles: [],
+  width: 1440,
+  height: 810,
+  dpr: 1,
+};
 
 function boot() {
   cacheElements();
@@ -811,6 +828,7 @@ function cacheElements() {
     "speedLabel",
     "destinationLabel",
     "gameScreen",
+    "confettiCanvas",
     "roundProgress",
     "questionProgress",
     "pencilProgressRail",
@@ -862,7 +880,10 @@ function cacheElements() {
 }
 
 function bindEvents() {
-  window.addEventListener("resize", resizeStage);
+  window.addEventListener("resize", () => {
+    resizeStage();
+    resizeConfettiCanvas();
+  });
   document.addEventListener("pointerdown", () => {
     prepareAudioContext();
   });
@@ -933,6 +954,145 @@ function resizeStage() {
     els.appShell.style.top = `${top}px`;
     els.appShell.style.left = `${left}px`;
   }
+}
+
+function resizeConfettiCanvas() {
+  const canvas = els.confettiCanvas;
+  if (!canvas) return;
+
+  const width = els.gameScreen?.clientWidth || 1440;
+  const height = els.gameScreen?.clientHeight || 810;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const physicalWidth = Math.max(1, Math.round(width * dpr));
+  const physicalHeight = Math.max(1, Math.round(height * dpr));
+
+  if (canvas.width !== physicalWidth || canvas.height !== physicalHeight) {
+    canvas.width = physicalWidth;
+    canvas.height = physicalHeight;
+  }
+
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  confettiAnimation.width = width;
+  confettiAnimation.height = height;
+  confettiAnimation.dpr = dpr;
+}
+
+function createConfettiParticle(side, width, height) {
+  const fromLeft = side === "left";
+  const speed = 13 + Math.random() * 4;
+  const launchAngle = (
+    CONFETTI_CONFIG.launchAngleDeg
+    + (Math.random() - 0.5) * CONFETTI_CONFIG.spreadDeg
+  ) * Math.PI / 180;
+  return {
+    x: fromLeft ? -10 + Math.random() * 28 : width + 10 - Math.random() * 28,
+    y: height - 18 - Math.random() * 18,
+    vx: (fromLeft ? 1 : -1) * Math.cos(launchAngle) * speed,
+    vy: -Math.sin(launchAngle) * speed,
+    width: 9 + Math.random() * 10,
+    height: 4 + Math.random() * 6,
+    rotation: Math.random() * Math.PI,
+    spin: (Math.random() - 0.5) * 0.24,
+    wobble: Math.random() * Math.PI * 2,
+    wobbleSpeed: 0.08 + Math.random() * 0.1,
+    color: CONFETTI_CONFIG.colors[
+      Math.floor(Math.random() * CONFETTI_CONFIG.colors.length)
+    ],
+    age: 0,
+    life: CONFETTI_CONFIG.durationMs * (0.88 + Math.random() * 0.18),
+    gravity: CONFETTI_CONFIG.gravity * (0.88 + Math.random() * 0.24),
+  };
+}
+
+function startConfetti() {
+  clearConfetti();
+  const canvas = els.confettiCanvas;
+  if (!canvas) return;
+
+  canvas.hidden = false;
+  resizeConfettiCanvas();
+  const { width, height } = confettiAnimation;
+  const leftCount = Math.ceil(CONFETTI_CONFIG.count / 2);
+  const rightCount = CONFETTI_CONFIG.count - leftCount;
+  confettiAnimation.particles = [
+    ...Array.from({ length: leftCount }, () => createConfettiParticle("left", width, height)),
+    ...Array.from({ length: rightCount }, () => createConfettiParticle("right", width, height)),
+  ];
+  confettiAnimation.lastTimestamp = performance.now();
+
+  const animate = (timestamp) => {
+    const context = canvas.getContext("2d");
+    if (!context) {
+      clearConfetti();
+      return;
+    }
+
+    const delta = Math.min(34, Math.max(1, timestamp - confettiAnimation.lastTimestamp));
+    const step = delta / 16.667;
+    confettiAnimation.lastTimestamp = timestamp;
+    context.clearRect(0, 0, confettiAnimation.width, confettiAnimation.height);
+
+    const activeParticles = [];
+    for (const particle of confettiAnimation.particles) {
+      particle.age += delta;
+      if (particle.age >= particle.life) continue;
+
+      particle.vx *= Math.pow(CONFETTI_CONFIG.drag, step);
+      particle.vy += particle.gravity * step;
+      particle.x += particle.vx * step;
+      particle.y += particle.vy * step;
+      particle.rotation += particle.spin * step;
+      particle.wobble += particle.wobbleSpeed * step;
+
+      const fadeStart = particle.life - 420;
+      const opacity = particle.age > fadeStart
+        ? Math.max(0, (particle.life - particle.age) / 420)
+        : 1;
+      const flutter = 0.72 + Math.abs(Math.sin(particle.wobble)) * 0.28;
+
+      context.save();
+      context.globalAlpha = opacity;
+      context.translate(particle.x, particle.y);
+      context.rotate(particle.rotation);
+      context.scale(flutter, 1);
+      context.fillStyle = particle.color;
+      context.fillRect(
+        -particle.width / 2,
+        -particle.height / 2,
+        particle.width,
+        particle.height,
+      );
+      context.restore();
+      activeParticles.push(particle);
+    }
+
+    confettiAnimation.particles = activeParticles;
+    if (activeParticles.length) {
+      confettiAnimation.frameId = requestAnimationFrame(animate);
+    } else {
+      clearConfetti();
+    }
+  };
+
+  confettiAnimation.frameId = requestAnimationFrame(animate);
+}
+
+function clearConfetti() {
+  if (confettiAnimation.frameId) {
+    cancelAnimationFrame(confettiAnimation.frameId);
+    confettiAnimation.frameId = 0;
+  }
+  confettiAnimation.particles = [];
+  confettiAnimation.lastTimestamp = 0;
+  const canvas = els.confettiCanvas;
+  if (!canvas) return;
+  const context = canvas.getContext("2d");
+  if (context) {
+    context.clearRect(0, 0, confettiAnimation.width, confettiAnimation.height);
+  }
+  canvas.hidden = true;
 }
 
 async function loadHealthStatus() {
@@ -1235,6 +1395,7 @@ function stopTimeline(message) {
   clearScreenEnvironmentTransition();
   clearEnvironmentAnnouncement();
   clearImportantEvent();
+  clearConfetti();
   clearHostSpeechLock();
   state.timeline.status = "idle";
   state.timeline.elapsedSeconds = 0;
@@ -1266,6 +1427,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
     state.workflow.activityTimer = null;
   }
   clearCorrectLightTimer();
+  clearConfetti();
   clearNextRoundTimer();
   cancelPreparedHostReply();
   clearHostAvatarTimer();
@@ -1505,6 +1667,7 @@ function ensureScriptedVictory(seat, text) {
   state.ui.correctSeat = seat;
   state.passengers.seats[seat].mood = "大笑";
   showCorrectSeatLight(seat);
+  startConfetti();
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
   publishHostLine(
@@ -3315,6 +3478,7 @@ function applyWorkflowOutput(output, input) {
       state.passengers.seats[correctSeat].mood = "大笑";
     }
     showCorrectSeatLight(correctSeat);
+    startConfetti();
     state.game.status = "victory";
     publishHostLine(
       makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer),
@@ -3675,6 +3839,7 @@ function advanceAfterVictory(completedRound) {
   state.ui.correctSeat = null;
   state.ui.correctLightSeat = null;
   state.ui.animation = "idle";
+  clearConfetti();
   state.passengers.selectedSeat = "front";
   clearPassengerActivities();
   clearPassengerBubbles();
@@ -3707,6 +3872,7 @@ function finishGameSeries() {
   finishTimelineSilently();
   state.game.status = "summary";
   state.ui.cabinMode = "summary";
+  clearConfetti();
   state.ui.showAnswer = false;
   state.ui.correctLightSeat = null;
   state.ui.animation = "summary";
@@ -4598,6 +4764,7 @@ function handleQuestionTimeout(completedRound) {
   state.ui.correctLightSeat = null;
   state.ui.cabinMode = "reveal";
   state.ui.animation = "reveal";
+  clearConfetti();
   state.host.emotion = "normal";
   state.host.targetSeat = null;
   setHostAvatarState(HOST_AVATAR_DEFAULT_STATE, { transient: false });
