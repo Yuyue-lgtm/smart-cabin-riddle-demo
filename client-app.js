@@ -53,7 +53,7 @@ const HOST_SPEECH_DEFAULT_LOCK_MS = 6000;
 const CONFETTI_CONFIG = Object.freeze({
   count: 72,
   durationMs: 2800,
-  colors: ["#ff95c6", "#ffdb72", "#63d4ff", "#9b66df", "#ffffff"],
+  colors: ["#DE7357", "#7941CD", "#1FA6F5", "#5DB538", "#E33077"],
   launchAngleDeg: 65,
   spreadDeg: 30,
   gravity: 0.10,
