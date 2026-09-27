@@ -122,7 +122,7 @@ Figma 只负责视觉坐标、尺寸、切片和效果参考；游戏文案、Wo
 
 已通过：
 
-- `node --check app.js`
+- `node --check client-app.js`
 - `git diff --check`
 - 本地 Chrome：倒计时环在 `0s / 22.5s / 45s / 67.5s / 90s` 的方向和坐标检查
 - 资源引用与 HTML 标记检查

@@ -145,6 +145,6 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 
 1. 按本表从 Figma 导出资源到 `tmp/figma-import/`。
 2. 完成哈希去重后，移动到 `assets/` 并使用推荐文件名。
-3. 在 `app.js` 中新增资源配置对象，不再把状态判断散落在渲染逻辑里。
+3. 在 `client-app.js` 中新增资源配置对象，不再把状态判断散落在渲染逻辑里。
 4. 先接入主持人和中控/座舱背景，再接入乘客状态矩阵。
 5. 资源稳定后，再进行 WebP、尺寸压缩、首屏预加载和非首屏懒加载。

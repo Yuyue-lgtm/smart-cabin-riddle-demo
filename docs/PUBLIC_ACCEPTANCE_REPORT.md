@@ -37,7 +37,7 @@
 
 本地检查：
 
-- `node --check app.js` 通过。
+- `node --check client-app.js` 通过。
 - `git diff --check` 通过。
 - Chrome 实际渲染检查通过：0 秒、22.5 秒、45 秒、67.5 秒和 90 秒的环形进度依次经过 12 点、3 点、6 点和 9 点方向，圆心透明区域保持正确。
 - Safari/WebKit 需要在用户设备上用当前本地页面做一次人工视觉复核；代码已经移除 SVG 描边方向依赖，改用 Canvas 绘制。

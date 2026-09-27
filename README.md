@@ -70,7 +70,7 @@ COZE_API_TOKEN=replace_with_your_new_coze_api_token
 /api/workflow
 ```
 
-由服务端代理携带 Token 请求 Coze。不要把 Token 写入 `app.js`、`index.html` 或任何会提交到 Git 的文件。
+由服务端代理携带 Token 请求 Coze。不要把 Token 写入 `client-app.js`、`index.html` 或任何会提交到 Git 的文件。
 
 部署后也可以直接访问：
 
