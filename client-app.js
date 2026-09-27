@@ -1814,6 +1814,9 @@ function showEnvironmentAnnouncement(environment) {
     state.ui.environmentAnnouncementTimer = null;
     state.ui.environmentAnnouncementText = "";
     clearHostSpeechLock("environment");
+    // The environment speech lock timer only releases priority; clear the
+    // rendered text here so the announcement cannot remain on screen.
+    state.host.text = "";
     if (state.ui.environmentAnnouncementBaseText) {
       publishHostLine(state.ui.environmentAnnouncementBaseText, {
         priority: "P2",
