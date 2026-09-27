@@ -11,9 +11,14 @@
 | 项目规范文件 | 当前用途 | 历史 Figma 导出名 |
 | --- | --- | --- |
 | `screen-default.png` | 中控屏默认背景 | `figma-*-background.png` |
-| `host-normal.png` | AI 主持人默认状态 | `figma-*-host.png` |
-| `host-normal.json` + `host-normal.webp` | AI 主持人默认待机透明序列动画，10fps，Canvas 循环播放且无音频 | 用户提供 Sprite Sheet |
-| `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | AI 主持人答对后的 40 帧透明序列动画，10fps，Canvas 播放一次；音频延迟、裁剪和音量由 JSON 配置 | 用户提供 Sprite Sheet 与音频 |
+| `cabin-env-garage.png` | 座舱车库环境背景，实际导出尺寸 807×651 | Figma `Assets / Cabin Environments` / `CE 车库` / `272:322` |
+| `cabin-env-tunnel.png` | 座舱隧道环境背景，实际导出尺寸 807×651 | Figma `Assets / Cabin Environments` / `CE 隧道` / `272:323` |
+| `host-normal.png` | AI 主持人默认状态的静态 fallback | `figma-*-host.png` |
+| `host-normal.json` + `host-normal.webp` | AI 主持人默认待机透明序列动画，32 帧、10fps，Canvas 循环播放且无音频 | 用户提供 Sprite Sheet |
+| `host-speak.json` + `host-speak.webp` | AI 主持人说话透明序列动画，运行时使用大图内有效的 42 帧、10fps，主持人气泡显示期间 Canvas 循环播放；不播放 JSON 中越出大图范围的末尾帧 | 用户提供 Sprite Sheet |
+| `host-thinking.json` + `host-thinking.webp` | AI 主持人思考透明序列动画，40 帧、10fps，Canvas 播放一次，完成后回默认状态 | 用户提供 Sprite Sheet |
+| `host-heart.json` + `host-heart.webp` | AI 主持人比心透明序列动画，27 帧、10fps，Canvas 播放一次 | 用户提供 Sprite Sheet |
+| `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | AI 主持人答对后的 40 帧透明序列动画，10fps，Canvas 播放一次；音频延迟 180ms、音量 0.85 | 用户提供 Sprite Sheet 与音频 |
 | `stage-beam.png` | 准备页和结算页光束 | `figma-ready-beam.png`、`figma-summary-beam-right.png` |
 | `game-icon.png` | 游戏图标 | `figma-playing-game-icon.png`、`figma-reveal-game-icon.png` |
 | `question-icon.svg` | 问题计数图标 | `figma-playing-question-icon.svg`、`figma-reveal-question-icon.svg` |
@@ -22,6 +27,7 @@
 | `cabin-correct-light.png` | 答对座位氛围灯，单次显示 5 秒 | Figma `答对 氛围灯` |
 | `cabin-location-icon.svg` | 座舱目的地状态图标 | Figma `状态胶囊 / 目的地 / 图标` |
 | `cabin-speed-icon.svg` | 座舱车速状态图标 | Figma `状态胶囊 / 车速 / 图标` |
+| `important-event-icon.svg` | 座舱重要事件红色感叹号图标 | Figma `重要事件图标 / 红色感叹号` |
 | `cabin-bubble-tail.svg` | 乘客发言气泡尾部 | Figma 乘客气泡 `Icon` |
 
 ## Import Rules
@@ -29,9 +35,16 @@
 1. 新导出资源先放入 `tmp/figma-import/`，不要直接覆盖 `assets/`。
 2. 通过 SHA-256 判断是否与现有资源内容相同；相同文件直接丢弃。
 3. 只有视觉内容确实变化时才替换规范文件，并保持代码引用不变。
-4. 新增真实状态时使用语义名称，例如 `host-yes.png`、`screen-city-day.png`。当前资源快速迭代阶段先保持 PNG/JPG，后续视觉资源稳定后再统一转换 WebP。
+4. 新增真实状态时使用语义名称，例如 `host-thinking.webp`、`host-yes.mp3`、`screen-city-day.png`。人物动画的 Sprite Sheet 使用 JSON + WebP 配对，静态 PNG 只保留为 fallback。后续视觉资源稳定后再统一做尺寸压缩、首屏预加载和非首屏懒加载。
 5. 提交前检查 HTML、CSS 和 JS 引用，并完成准备、游戏中、揭晓、结算四状态回归。
 
 ## Deployment Source
 
 当前 Vercel 配置通过根目录 `index.html`、`assets/` 和 `api/` 提供页面与接口，不读取 `dist/`。`dist/` 仅作为本地历史构建产物，已从 Git 和 Vercel 上传包中排除。
+
+## Runtime Animation Notes
+
+- `host-normal` 循环播放；`host-speak` 在主持人气泡显示期间循环播放，气泡消失后停止；`host-thinking`、`host-heart` 和 `host-yes` 播放一次。
+- 主持人思考时隐藏主持人说话气泡；思考动画结束后自动回到默认待机动画。
+- `host-yes.mp3` 只在答对动画中播放，音频加载失败时使用答对提示音兜底。
+- 本地代理已声明 `.webp`、`.mp3` 的 MIME 类型，并允许 `.mp3` 作为静态媒体资源返回。

@@ -10,7 +10,13 @@ const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
 const MIN_BUBBLE_DISPLAY_MS = 3000;
 const PASSENGER_BUBBLE_MS = 8000;
 const CORRECT_LIGHT_MS = 5000;
-const NEXT_ROUND_DELAY_MS = 5000;
+const HOST_SPEECH_P0_LOCK_MS = 6000;
+const HOST_SPEECH_P0_GAP_MS = 450;
+const NEXT_ROUND_DELAY_MS = HOST_SPEECH_P0_LOCK_MS + HOST_SPEECH_P0_GAP_MS;
+const HOST_MIN_THINKING_DISPLAY_MS = 700;
+const HOST_SPEECH_MAX_DISPLAY_MS = 6000;
+const HOST_THINKING_WAIT_DELAY_MS = 300;
+const LOCAL_FALLBACK_REPLY_DELAY_MS = 500;
 const PAUSED_ROUND_POLL_MS = 300;
 const QUESTION_DURATION_MS = 90_000;
 const ANSWER_LENGTH_HINT_DELAY_MS = 10_000;
@@ -19,6 +25,10 @@ const QUESTION_TIMER_TICK_MS = 100;
 const QUESTION_TIMER_SIZE_PX = 46;
 const QUESTION_TIMER_RADIUS_PX = 19;
 const QUESTION_TIMER_STROKE_PX = 8;
+const SCREEN_ENVIRONMENT_DELAY_MS = 2000;
+const ENVIRONMENT_ANNOUNCEMENT_MS = 3000;
+const IMPORTANT_EVENT_DISPLAY_MS = 5000;
+const IMPORTANT_EVENT_EXIT_MS = 320;
 const PREPARED_REPLY_DELAY_MS = 3000;
 const ROUND_PLAN_EXTRA_STEPS = 2;
 const PROGRESS_DOT_STEP_PX = 46;
@@ -32,6 +42,14 @@ const HOST_SPRITE_FRAME_WIDTH = 720;
 const HOST_SPRITE_FRAME_HEIGHT = 720;
 const HOST_SPRITE_COLUMNS = 6;
 const HOST_SPRITE_FRAME_DURATION_MS = 100;
+const HOST_SPEECH_PRIORITIES = Object.freeze({
+  P0: 5,
+  P1: 4,
+  P2: 3,
+  P3: 2,
+  P4: 1,
+});
+const HOST_SPEECH_DEFAULT_LOCK_MS = 6000;
 
 // Keep visual asset selection in one place. Runtime state stores semantic
 // values such as "大笑" and "城区晴天白天"; renderers resolve them here.
@@ -44,6 +62,15 @@ const RESOURCE_CONFIG = {
       fallback: "./assets/host-normal.png",
       loop: true,
       frameCount: 32,
+    },
+    speak: {
+      kind: "sprite",
+      meta: "./assets/host-speak.json",
+      src: "./assets/host-speak.webp",
+      fallback: "./assets/host-normal.png",
+      loop: true,
+      playVictorySound: false,
+      frameCount: 42,
     },
     thinking: {
       kind: "sprite",
@@ -81,7 +108,7 @@ const RESOURCE_CONFIG = {
     greeting: { kind: "image", src: "./assets/host-wave.png" },
   },
   screenBackgrounds: {
-    default: "./assets/screen-default.png",
+    default: "./assets/screen-default.png?v=20260927-screen-default-v2",
     cityDay: "./assets/screen-city-day.png",
     cityNight: "./assets/screen-city-night.png",
     scenicDay: "./assets/screen-scenic-day.png",
@@ -90,7 +117,8 @@ const RESOURCE_CONFIG = {
     deepNight: "./assets/screen-deep-night.png",
   },
   cabinEnvironments: {
-    default: "./assets/cabin-env-scenic-sunset.png",
+    garage: "./assets/cabin-env-garage.png",
+    tunnel: "./assets/cabin-env-tunnel.png",
     scenicDay: "./assets/cabin-env-scenic-day.png",
     snowDay: "./assets/cabin-env-snow-day.png",
     cityDay: "./assets/cabin-env-city-day.png",
@@ -161,11 +189,27 @@ const RESOURCE_CONFIG = {
     城区晴天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-sunny", cabinClass: "env-city-day" },
     城区夜晚: { screen: "cityNight", cabin: "cityNight", screenClass: "screen-night", cabinClass: "env-city-night" },
     城区雨天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-rain", cabinClass: "env-city-rain" },
+    车库: { screen: "default", cabin: "garage", screenClass: "screen-default", cabinClass: "env-garage" },
+    隧道: { screen: "default", cabin: "tunnel", screenClass: "screen-default", cabinClass: "env-tunnel" },
     风景区晴天白天: { screen: "scenicDay", cabin: "scenicDay", screenClass: "screen-sunny", cabinClass: "env-scenic-day" },
     风景区傍晚: { screen: "scenicSunset", cabin: "scenicSunset", screenClass: "screen-sunny", cabinClass: "env-scenic-sunset" },
     风景区雪景白天: { screen: "snowDay", cabin: "snowDay", screenClass: "screen-snow", cabinClass: "env-snow-day" },
     风景区晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-scenic-night" },
   },
+};
+
+const ENVIRONMENT_HOST_LINES = {
+  车库: "我们回到车库啦，准备出发。",
+  隧道: "我们进入隧道啦，马上就出来。",
+  高速路晴天白天: "我们上高速啦，阳光正好，大家坐稳哦。",
+  高速路晴天深夜: "我们进入深夜高速啦，大家注意休息。",
+  高速路雨天白天: "我们遇到雨天啦，路上慢一点，大家坐稳。",
+  城区晴天白天: "我们来到市区啦，周围热闹起来了。",
+  城区夜晚: "我们来到夜晚的市区啦，灯光很漂亮。",
+  城区雨天白天: "我们来到下雨的市区啦，路面有点湿滑。",
+  风景区晴天白天: "我们到风景区啦，窗外风景真不错。",
+  风景区傍晚: "我们来到风景区傍晚啦，晚霞真漂亮。",
+  风景区雪景白天: "我们到雪景里啦，窗外白茫茫的。",
 };
 
 const PASSENGER_ACTIVITY_LABELS = {
@@ -204,6 +248,7 @@ const LOCAL_TRACE_EVENT_TYPES = new Set([
 
 const HOST_EMOTION_AVATAR_STATE = {
   normal: "normal",
+  speak: "speak",
   neutral: "normal",
   thinking: "thinking",
   serious: "normal",
@@ -485,45 +530,15 @@ const GOLDEN_TIMELINES = [
     speed: 80,
     destination: "迪士尼",
     relationship: "父母+小孩",
-    environment: "高速路晴天白天",
+    environment: "车库",
+    environmentAfter: "高速路晴天白天",
+    environmentChangeDelay: 20000,
     riddleIndex: 1,
     trace: {
       perception: "载入高速亲子出行场景",
       decision: "默认副驾为真实用户，后排小朋友可自动加入",
       execution: "设置高速晴天、目的地迪士尼、谜底安全带",
       strategyId: "V1.2-A",
-      priority: "P3",
-    },
-  },
-  {
-    id: "rainy_city_hotpot_friends",
-    name: "雨天朋友聚会",
-    speed: 50,
-    destination: "火锅店",
-    relationship: "年轻朋友",
-    environment: "城区晴天白天",
-    riddleIndex: 0,
-    trace: {
-      perception: "载入雨天朋友聚会场景",
-      decision: "朋友局采用轻松玩梗风格，副驾仍为真实用户",
-      execution: "设置城区出行、目的地火锅店、谜底雨伞",
-      strategyId: "V1.2-B",
-      priority: "P3",
-    },
-  },
-  {
-    id: "scenic_snow_family",
-    name: "风景区雪景家庭",
-    speed: 50,
-    destination: "草原",
-    relationship: "中老年+儿女",
-    environment: "风景区雪景白天",
-    riddleIndex: 5,
-    trace: {
-      perception: "载入风景区雪景家庭场景",
-      decision: "用更稳重的语气主持，并避免打扰睡着乘客",
-      execution: "设置雪景环境、家庭乘客、谜底雪人",
-      strategyId: "V1.2-C",
       priority: "P3",
     },
   },
@@ -544,6 +559,24 @@ const GOLDEN_TIMELINES = [
     },
   },
   {
+    id: "rainy_city_hotpot_friends",
+    name: "雨天朋友聚会",
+    speed: 50,
+    destination: "火锅店",
+    relationship: "年轻朋友",
+    environment: "车库",
+    environmentAfter: "城区雨天白天",
+    environmentChangeDelay: 20000,
+    riddleIndex: 0,
+    trace: {
+      perception: "载入雨天朋友聚会场景",
+      decision: "朋友局采用轻松玩梗风格，副驾仍为真实用户",
+      execution: "设置城区出行、目的地火锅店、谜底雨伞",
+      strategyId: "V1.2-B",
+      priority: "P3",
+    },
+  },
+  {
     id: "scenic_sunset_family",
     name: "风景区傍晚家庭出行",
     speed: 50,
@@ -556,6 +589,24 @@ const GOLDEN_TIMELINES = [
       decision: "以轻松节奏融入风景与家庭出行氛围",
       execution: "切换风景晚霞、目的地草原、谜底草原",
       strategyId: "V1.2-E",
+      priority: "P3",
+    },
+  },
+  {
+    id: "scenic_snow_family",
+    name: "风景区雪景家庭",
+    speed: 50,
+    destination: "草原",
+    relationship: "中老年+儿女",
+    environment: "车库",
+    environmentAfter: "风景区雪景白天",
+    environmentChangeDelay: 20000,
+    riddleIndex: 5,
+    trace: {
+      perception: "载入风景区雪景家庭场景",
+      decision: "用更稳重的语气主持，并避免打扰睡着乘客",
+      execution: "设置雪景环境、家庭乘客、谜底雪人",
+      strategyId: "V1.2-C",
       priority: "P3",
     },
   },
@@ -620,6 +671,21 @@ const DEFAULT_STATE = {
   ui: {
     cabinMode: "normal",
     animation: "idle",
+    screenEnvironment: GOLDEN_TIMELINES[0].environment,
+    screenEnvironmentTimer: null,
+    screenEnvironmentTransitionId: 0,
+    environmentAnnouncementTimer: null,
+    environmentAnnouncementId: 0,
+    environmentAnnouncementText: "",
+    environmentAnnouncementBaseText: "",
+    environmentAnnouncementPending: "",
+    importantEvent: {
+      text: "",
+      phase: "hidden",
+      timer: null,
+      hideTimer: null,
+      id: 0,
+    },
     showAnswer: false,
     correctSeat: null,
     correctLightSeat: null,
@@ -638,6 +704,7 @@ const DEFAULT_STATE = {
     runId: 0,
     startedAt: 0,
     elapsedSeconds: 0,
+    environmentTransitionTimer: null,
     currentEvent: "准备好后点击开始模拟，系统会按时间轴触发座舱事件。",
   },
   decisionTrace: {
@@ -663,7 +730,18 @@ const DEFAULT_STATE = {
     nextRoundTimer: null,
     preparedReplyPending: false,
     preparedReplyRunId: 0,
+    hostThinkingCycleId: 0,
+    hostThinkingStartedAt: 0,
+    hostThinkingTimer: null,
+    hostThinkingActive: false,
     hostAvatarTimer: null,
+    hostSpeech: {
+      id: 0,
+      priority: 0,
+      source: "",
+      expiresAt: 0,
+      timer: null,
+    },
     pendingChats: [],
   },
   health: {
@@ -711,7 +789,9 @@ const hostSprite = {
   loop: false,
   fallback: false,
   loadId: 0,
+  thinkingCycleId: 0,
 };
+const hostSpriteImageCache = new Map();
 
 function boot() {
   cacheElements();
@@ -719,6 +799,7 @@ function boot() {
   resizeStage();
   applyGoldenLineDefaults(getActiveGoldenLine(), false);
   render();
+  preloadHostSpriteImages();
   loadHealthStatus();
 }
 
@@ -764,6 +845,8 @@ function cacheElements() {
     "decisionPerception",
     "decisionDecision",
     "decisionExecution",
+    "importantEvent",
+    "importantEventText",
     "switchScenario",
     "resetScenario",
     "playerInput",
@@ -822,6 +905,7 @@ function bindEvents() {
         applyImmediateSafetyPause();
       }
       const eventSeat = type === "passenger_sleep" ? "rearRight" : state.passengers.selectedSeat;
+      showImportantEvent(getImportantEventText(type, eventSeat));
       if (type === "passenger_sleep") {
         applyImmediatePassengerSleep(eventSeat);
       }
@@ -936,6 +1020,7 @@ async function startRoundGoldenTimeline() {
   if (state.timeline.runId !== runId || state.game.status === "victory") return;
 
   state.timeline.startedAt = Date.now();
+  scheduleGoldenEnvironmentTransition(runId, getActiveGoldenLine());
   for (const step of roundTimeline.steps) {
     if (state.timeline.runId !== runId) return;
     const waitMs = state.timeline.startedAt + step.delay - Date.now();
@@ -955,6 +1040,40 @@ async function startRoundGoldenTimeline() {
     state.timeline.currentEvent = `${roundTimeline.name}已完成，等待本题继续`;
     render();
   }
+}
+
+function scheduleGoldenEnvironmentTransition(runId, timeline) {
+  clearGoldenEnvironmentTransition();
+  if (!timeline?.environmentAfter) return;
+
+  const delay = Math.max(0, Number(timeline.environmentChangeDelay) || 20000);
+  state.timeline.environmentTransitionTimer = setTimeout(async () => {
+    state.timeline.environmentTransitionTimer = null;
+    if (
+      state.timeline.runId !== runId
+      || !["opening", "playing"].includes(state.game.status)
+    ) {
+      return;
+    }
+
+    await waitUntilRoundTimelineReady(runId);
+    if (
+      state.timeline.runId !== runId
+      || !["opening", "playing"].includes(state.game.status)
+    ) {
+      return;
+    }
+
+    state.timeline.currentEventType = "environment_change";
+    state.timeline.currentEvent = `车库环境结束，切换至${timeline.environmentAfter}`;
+    render();
+    await runScriptedEnvironment(timeline.environmentAfter);
+  }, delay);
+}
+
+function clearGoldenEnvironmentTransition() {
+  clearTimeout(state.timeline.environmentTransitionTimer);
+  state.timeline.environmentTransitionTimer = null;
 }
 
 function pickRoundGoldenTimeline() {
@@ -1112,6 +1231,11 @@ function stopTimeline(message) {
   if (state.timeline.status === "running" || state.timeline.status === "paused") {
     state.timeline.runId += 1;
   }
+  clearGoldenEnvironmentTransition();
+  clearScreenEnvironmentTransition();
+  clearEnvironmentAnnouncement();
+  clearImportantEvent();
+  clearHostSpeechLock();
   state.timeline.status = "idle";
   state.timeline.elapsedSeconds = 0;
   state.timeline.currentEventType = "";
@@ -1123,6 +1247,7 @@ function finishTimelineSilently() {
   if (state.timeline.status === "running" || state.timeline.status === "paused") {
     state.timeline.runId += 1;
   }
+  clearGoldenEnvironmentTransition();
   cancelPreparedHostReply();
   state.timeline.status = "finished";
   state.timeline.currentEventType = "round_finished";
@@ -1130,6 +1255,11 @@ function finishTimelineSilently() {
 }
 
 function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = false) {
+  clearGoldenEnvironmentTransition();
+  clearScreenEnvironmentTransition();
+  clearEnvironmentAnnouncement();
+  clearImportantEvent();
+  clearHostSpeechLock();
   clearQuestionClock();
   if (state.workflow.activityTimer) {
     clearTimeout(state.workflow.activityTimer);
@@ -1169,8 +1299,13 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.ui.correctSeat = null;
   state.ui.correctLightSeat = null;
   state.ui.cabinMode = "normal";
+  state.ui.screenEnvironment = timeline.environment;
   state.ui.alert = announce ? `已切换至${timeline.name}` : "";
-  state.host.text = getPrestartHostText(timeline);
+  publishHostLine(getPrestartHostText(timeline), {
+    priority: "P2",
+    source: "scenario_reset",
+    durationMs: 0,
+  });
   state.host.emotion = "normal";
   state.host.avatarState = HOST_AVATAR_DEFAULT_STATE;
   state.host.targetSeat = "front";
@@ -1246,70 +1381,85 @@ async function playPreparedPassengerExchange(seat, text, step) {
   );
   const runId = beginPreparedHostReply();
 
-  await sleep(PREPARED_REPLY_DELAY_MS);
-  while (
-    runId === state.workflow.preparedReplyRunId
-    && state.timeline.status === "paused"
-    && state.game.status !== "paused"
-  ) {
-    await sleep(PAUSED_ROUND_POLL_MS);
-  }
-  if (
-    runId !== state.workflow.preparedReplyRunId
-    || state.game.status === "paused"
-    || ["victory", "summary", "failed"].includes(state.game.status)
-  ) {
-    finishPreparedHostReply(runId);
-    return;
-  }
+  try {
+    await sleep(PREPARED_REPLY_DELAY_MS);
+    while (
+      runId === state.workflow.preparedReplyRunId
+      && state.timeline.status === "paused"
+      && state.game.status !== "paused"
+    ) {
+      await sleep(PAUSED_ROUND_POLL_MS);
+    }
+    if (
+      runId !== state.workflow.preparedReplyRunId
+      || state.game.status === "paused"
+      || ["victory", "summary", "failed"].includes(state.game.status)
+    ) {
+      return;
+    }
 
-  const replyText = interpolatePreparedReply(step.hostReplyText, seat);
-  const output = {
-    passenger_action: null,
-    ai_reply_text: replyText,
-    game_status: "playing",
-    is_correct: false,
-    answer: "",
-    covered_fact_keys: [step.factKey],
-    ui_change: {
-      cabin_mode: "game",
-      target_seat: seat,
-      host_emotion: step.hostEmotion || "thinking",
-      animation: "answer",
-      show_answer: false,
-    },
-    decision_trace: {
-      perception: `${SEATS[seat]}按逻辑提问链推进到“${step.stage || step.factKey}”`,
-      decision: "使用本题开场时预生成的连续问答，避免逐问等待模型",
-      execution: "显示乘客问题，并即时播放对应主持回答",
+    const replyText = interpolatePreparedReply(step.hostReplyText, seat);
+    const output = {
+      passenger_action: null,
+      ai_reply_text: replyText,
+      game_status: "playing",
+      is_correct: false,
+      answer: "",
+      covered_fact_keys: [step.factKey],
+      ui_change: {
+        cabin_mode: "game",
+        target_seat: seat,
+        host_emotion: step.hostEmotion === "thinking" ? "normal" : (step.hostEmotion || "normal"),
+        animation: "answer",
+        show_answer: false,
+      },
+      decision_trace: {
+        perception: `${SEATS[seat]}按逻辑提问链推进到“${step.stage || step.factKey}”`,
+        decision: "使用本题开场时预生成的连续问答，避免逐问等待模型",
+        execution: "显示乘客问题，并即时播放对应主持回答",
+        strategy_id: "S00",
+        priority: "P3",
+      },
       strategy_id: "S00",
       priority: "P3",
-    },
-    strategy_id: "S00",
-    priority: "P3",
-    debug: {
-      source: "round_question_plan",
-      plan_id: state.game.roundQuestionPlan?.id || "",
-      step_id: step.id,
-    },
-  };
+      debug: {
+        source: "round_question_plan",
+        plan_id: state.game.roundQuestionPlan?.id || "",
+        step_id: step.id,
+      },
+    };
 
-  state.host.text = sanitizeHostReplyText(replyText) || state.host.text;
-  state.host.targetSeat = seat;
-  state.host.emotion = step.hostEmotion || "thinking";
-  applyHostAvatarState(output, output.ui_change, false);
-  state.game.usedRoundQuestionStepIds = [
-    ...new Set([...state.game.usedRoundQuestionStepIds, step.id]),
-  ];
-  mergeCoveredFactKeysFromOutput(output);
-  updateDecisionTrace(output.decision_trace);
-  state.game.history.push({
-    at: new Date().toISOString(),
-    input,
-    output,
-  });
-  finishPreparedHostReply(runId);
-  render();
+    publishHostLine(sanitizeHostReplyText(replyText) || state.host.text, {
+      priority: "P2",
+      source: "prepared_reply",
+    });
+    state.host.targetSeat = seat;
+    state.host.emotion = step.hostEmotion === "thinking" ? "normal" : (step.hostEmotion || "normal");
+    applyHostAvatarState(output, output.ui_change, false);
+    state.game.usedRoundQuestionStepIds = [
+      ...new Set([...state.game.usedRoundQuestionStepIds, step.id]),
+    ];
+    mergeCoveredFactKeysFromOutput(output);
+    updateDecisionTrace(output.decision_trace);
+    state.game.history.push({
+      at: new Date().toISOString(),
+      input,
+      output,
+    });
+  } catch (error) {
+    console.warn("Prepared passenger exchange failed; using fallback reply.", error);
+    if (runId === state.workflow.preparedReplyRunId) {
+      publishHostLine("收到，我们继续沿着这个方向推进。", {
+        priority: "P2",
+        source: "prepared_reply_fallback",
+      });
+      state.host.targetSeat = seat;
+      state.host.emotion = "normal";
+    }
+  } finally {
+    finishPreparedHostReply(runId);
+    render();
+  }
 }
 
 function interpolatePreparedReply(text, seat) {
@@ -1322,7 +1472,10 @@ function interpolatePreparedReply(text, seat) {
 function cueRealUser(text) {
   state.passengers.selectedSeat = "front";
   state.host.targetSeat = "front";
-  state.host.text = text;
+  publishHostLine(text, {
+    priority: "P2",
+    source: "real_user_cue",
+  });
   state.ui.alert = "";
   updateDecisionTrace({
     perception: "时间轴轮到副驾真实用户",
@@ -1354,7 +1507,10 @@ function ensureScriptedVictory(seat, text) {
   showCorrectSeatLight(seat);
   state.host.targetSeat = seat;
   state.host.emotion = "excited";
-  state.host.text = `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`;
+  publishHostLine(
+    `${SEATS[seat]}一锤定音，答案就是“${riddle.answer}”。本局 MVP 出现，安全感拉满！`,
+    { priority: "P0", source: "victory", durationMs: HOST_SPEECH_P0_LOCK_MS },
+  );
   updateDecisionTrace({
     perception: `${SEATS[seat]}猜中谜底`,
     decision: "进入胜利收尾，给足情绪价值",
@@ -1368,6 +1524,7 @@ function ensureScriptedVictory(seat, text) {
 
 async function runScriptedEvent(type, label, targetSeat = state.passengers.selectedSeat) {
   const seat = targetSeat;
+  showImportantEvent(getImportantEventText(type, seat));
   if (type === "hard_brake") {
     applyImmediateSafetyPause();
   }
@@ -1399,7 +1556,10 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
     state.game.status = "playing";
     state.ui.cabinMode = "normal";
     state.ui.alert = "正在确认安全状态";
-    state.host.text = "收到，正在确认座舱状态，马上继续游戏。";
+    publishHostLine("收到，正在确认座舱状态，马上继续游戏。", {
+      priority: "P0",
+      source: "resume_game",
+    });
     clearPassengerBubbles();
     state.workflow.lastResumeAt = Date.now();
     updateDecisionTrace({
@@ -1531,7 +1691,10 @@ async function startGame() {
   state.game.status = "opening";
   state.ui.showAnswer = false;
   state.ui.correctSeat = null;
-  state.host.text = "各位侦探请就位，我要开始出题了。";
+  publishHostLine("各位侦探请就位，我要开始出题了。", {
+    priority: "P2",
+    source: "start_game",
+  });
   render();
   await dispatchWorkflow("event", { type: "start_game", source: "timeline" });
 }
@@ -1545,7 +1708,10 @@ async function sendQuestion() {
   }
 
   if (state.game.status === "paused") {
-    state.host.text = "游戏还在暂停中，先恢复再继续问。";
+    publishHostLine("游戏还在暂停中，先恢复再继续问。", {
+      priority: "P0",
+      source: "paused_input",
+    });
     render();
     return;
   }
@@ -1559,7 +1725,10 @@ async function sendQuestion() {
   els.playerInput.value = "";
   if (isHostBusy()) {
     state.workflow.pendingChats.push({ seat, text });
-    state.host.text = "这条问题我先记下，等上一轮回答结束马上接上。";
+    publishHostLine("这条问题我先记下，等上一轮回答结束马上接上。", {
+      priority: "P2",
+      source: "queued_question",
+    });
     state.ui.alert = "玩家提问已加入队列";
     render();
     return;
@@ -1586,13 +1755,177 @@ function setDestination(destination) {
 }
 
 function setEnvironment(environment) {
+  clearGoldenEnvironmentTransition();
+  clearScreenEnvironmentTransition();
+  const previousScreenEnvironment = state.ui.screenEnvironment || state.car.environment;
   state.car.environment = environment;
   const matchedIndex = findRiddleForEnvironment(environment);
   if (state.game.status === "idle") {
     state.game.currentRiddleIndex = matchedIndex;
   }
-  state.ui.alert = `${environment} 已同步到座舱`;
+  const shouldDelayScreen = ["opening", "playing"].includes(state.game.status);
+  if (shouldDelayScreen && previousScreenEnvironment !== environment) {
+    state.ui.alert = `${environment} 已同步到座舱，中控屏将在2秒后切换`;
+    scheduleScreenEnvironmentTransition(environment);
+  } else {
+    state.ui.screenEnvironment = environment;
+    state.ui.alert = `${environment} 已同步到座舱`;
+  }
   render();
+}
+
+function getEnvironmentHostLine(environment) {
+  return ENVIRONMENT_HOST_LINES[environment] || `我们来到${environment}啦。`;
+}
+
+function showEnvironmentAnnouncement(environment) {
+  const announcement = getEnvironmentHostLine(environment);
+  const currentText = String(state.host.text || "");
+  const baseText = state.ui.environmentAnnouncementText === currentText
+    ? state.ui.environmentAnnouncementBaseText
+    : currentText;
+  clearEnvironmentAnnouncement();
+  const announcementId = state.ui.environmentAnnouncementId;
+  state.ui.environmentAnnouncementText = announcement;
+  state.ui.environmentAnnouncementBaseText = baseText;
+  const published = publishHostLine(announcement, {
+    priority: "P1",
+    source: "environment",
+    durationMs: ENVIRONMENT_ANNOUNCEMENT_MS,
+  });
+  if (!published) {
+    const retryId = state.ui.environmentAnnouncementId;
+    state.ui.environmentAnnouncementText = "";
+    state.ui.environmentAnnouncementBaseText = "";
+    state.ui.environmentAnnouncementPending = environment;
+    state.ui.environmentAnnouncementTimer = window.setTimeout(() => {
+      if (state.ui.environmentAnnouncementId !== retryId) return;
+      state.ui.environmentAnnouncementTimer = null;
+      state.ui.environmentAnnouncementPending = "";
+      showEnvironmentAnnouncement(environment);
+    }, 500);
+    return;
+  }
+  state.ui.environmentAnnouncementTimer = window.setTimeout(() => {
+    if (
+      state.ui.environmentAnnouncementId !== announcementId
+      || state.host.text !== announcement
+    ) return;
+    state.ui.environmentAnnouncementTimer = null;
+    state.ui.environmentAnnouncementText = "";
+    clearHostSpeechLock("environment");
+    if (state.ui.environmentAnnouncementBaseText) {
+      publishHostLine(state.ui.environmentAnnouncementBaseText, {
+        priority: "P2",
+        source: "environment_restore",
+      });
+    }
+    state.ui.environmentAnnouncementBaseText = "";
+    render();
+  }, ENVIRONMENT_ANNOUNCEMENT_MS);
+  render();
+}
+
+function clearEnvironmentAnnouncement() {
+  if (state.ui.environmentAnnouncementTimer) {
+    window.clearTimeout(state.ui.environmentAnnouncementTimer);
+    state.ui.environmentAnnouncementTimer = null;
+  }
+  state.ui.environmentAnnouncementId += 1;
+  state.ui.environmentAnnouncementText = "";
+  state.ui.environmentAnnouncementBaseText = "";
+  state.ui.environmentAnnouncementPending = "";
+  clearHostSpeechLock("environment");
+}
+
+const IMPORTANT_EVENT_LABELS = {
+  hard_brake: () => "发生急刹",
+  driver_tired: () => "主驾疲惫",
+  passenger_sleep: (seat) => `${getSeatDisplayLabel(seat)}睡着`,
+  passenger_inactive: (seat) => `${getSeatDisplayLabel(seat)}暂时沉默`,
+  cabin_laughing: () => "舱内出现笑声",
+  near_destination: () => "快到目的地",
+  game_stuck: () => "游戏进入僵局",
+  near_answer: () => "接近答案",
+};
+
+function getSeatDisplayLabel(seat) {
+  return {
+    driver: "主驾",
+    front: "副驾",
+    rearLeft: "后排左",
+    rearRight: "后排右",
+  }[seat] || "乘客";
+}
+
+function getImportantEventText(type, seat) {
+  return IMPORTANT_EVENT_LABELS[type]?.(seat) || String(type || "").trim();
+}
+
+function showImportantEvent(text) {
+  const normalized = String(text || "").trim();
+  if (!normalized) return;
+
+  const eventState = state.ui.importantEvent;
+  window.clearTimeout(eventState.timer);
+  window.clearTimeout(eventState.hideTimer);
+  eventState.id += 1;
+  eventState.text = normalized;
+  eventState.phase = "visible";
+  eventState.timer = window.setTimeout(() => {
+    hideImportantEvent(eventState.id);
+  }, IMPORTANT_EVENT_DISPLAY_MS);
+  render();
+}
+
+function hideImportantEvent(eventId) {
+  const eventState = state.ui.importantEvent;
+  if (eventState.id !== eventId || eventState.phase === "hidden") return;
+
+  eventState.timer = null;
+  eventState.phase = "hiding";
+  eventState.hideTimer = window.setTimeout(() => {
+    if (eventState.id !== eventId) return;
+    eventState.hideTimer = null;
+    eventState.text = "";
+    eventState.phase = "hidden";
+    render();
+  }, IMPORTANT_EVENT_EXIT_MS);
+  render();
+}
+
+function clearImportantEvent() {
+  const eventState = state.ui.importantEvent;
+  window.clearTimeout(eventState.timer);
+  window.clearTimeout(eventState.hideTimer);
+  eventState.timer = null;
+  eventState.hideTimer = null;
+  eventState.id += 1;
+  eventState.text = "";
+  eventState.phase = "hidden";
+}
+
+function scheduleScreenEnvironmentTransition(environment) {
+  const transitionId = state.ui.screenEnvironmentTransitionId + 1;
+  state.ui.screenEnvironmentTransitionId = transitionId;
+  state.ui.screenEnvironmentTimer = window.setTimeout(() => {
+    if (
+      state.ui.screenEnvironmentTransitionId !== transitionId
+      || state.car.environment !== environment
+    ) return;
+    state.ui.screenEnvironmentTimer = null;
+    state.ui.screenEnvironment = environment;
+    state.ui.environmentAnnouncementPending = environment;
+    render();
+  }, SCREEN_ENVIRONMENT_DELAY_MS);
+}
+
+function clearScreenEnvironmentTransition() {
+  if (state.ui.screenEnvironmentTimer) {
+    window.clearTimeout(state.ui.screenEnvironmentTimer);
+    state.ui.screenEnvironmentTimer = null;
+  }
+  state.ui.screenEnvironmentTransitionId += 1;
 }
 
 function findRiddleForEnvironment(environment) {
@@ -1616,7 +1949,11 @@ function applyImmediateSafetyPause() {
   state.game.status = "paused";
   state.ui.cabinMode = "safety_pause";
   state.ui.alert = "急刹车：游戏已暂停";
-  state.host.text = "大家坐稳，游戏先暂停。";
+  publishHostLine("大家坐稳，游戏先暂停。", {
+    priority: "P0",
+    source: "hard_brake",
+    durationMs: HOST_SPEECH_P0_LOCK_MS,
+  });
   updateDecisionTrace({
     perception: "检测到急刹打断",
     decision: "安全优先，立即暂停游戏",
@@ -1643,7 +1980,10 @@ function scheduleEventRecovery(type) {
     state.game.status = "playing";
     state.ui.cabinMode = "normal";
     state.ui.alert = "安全状态恢复，游戏继续";
-    state.host.text = "安全状态恢复，刚才的线索还在，我们继续。";
+    publishHostLine("安全状态恢复，刚才的线索还在，我们继续。", {
+      priority: "P0",
+      source: "safety_recovery",
+    });
     updateDecisionTrace({
       perception: "急刹风险已解除",
       decision: "恢复猜谜并保留上下文",
@@ -1660,7 +2000,10 @@ function applyImmediatePassengerSleep(seat) {
   state.ui.cabinMode = "soft";
   state.ui.alert = `${SEATS[seat]}已睡着，降低打扰`;
   state.host.targetSeat = seat;
-  state.host.text = `${SEATS[seat]}好像睡着了，我们先不 cue TA，声音也放轻一点。`;
+  publishHostLine(`${SEATS[seat]}好像睡着了，我们先不 cue TA，声音也放轻一点。`, {
+    priority: "P3",
+    source: "passenger_sleep",
+  });
   updateDecisionTrace({
     perception: `检测到${SEATS[seat]}睡着`,
     decision: "轻声继续，并避免 cue 睡着乘客",
@@ -1677,7 +2020,10 @@ function applyImmediateDriverTired() {
   state.ui.cabinMode = "driver_focus";
   state.ui.alert = "主驾疲惫：降低驾驶员互动";
   state.host.targetSeat = "front";
-  state.host.text = "主驾先专心看路，接下来的问题交给副驾和后排。";
+  publishHostLine("主驾先专心看路，接下来的问题交给副驾和后排。", {
+    priority: "P3",
+    source: "driver_tired",
+  });
   updateDecisionTrace({
     perception: "检测到主驾疲惫",
     decision: "降低主驾互动，副驾和后排接管",
@@ -1692,7 +2038,10 @@ function applyImmediateNearDestination() {
   state.ui.cabinMode = "final_round";
   state.ui.alert = "快到目的地：准备收尾";
   state.host.targetSeat = null;
-  state.host.text = "前方快到目的地，我们准备进入收尾局。";
+  publishHostLine("前方快到目的地，我们准备进入收尾局。", {
+    priority: "P3",
+    source: "near_destination",
+  });
   updateDecisionTrace({
     perception: "检测到快到目的地",
     decision: "收束游戏节奏，进入绝杀局",
@@ -1719,33 +2068,50 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
 
   const input = buildWorkflowInput(triggerType, event, playerInput);
   const requestId = beginWorkflowRequest(input);
-  let output;
 
   try {
-    output = await requestWorkflow(input, state.workflow.activeController.signal);
+    let output = await requestWorkflow(input, state.workflow.activeController.signal);
+    if (requestId !== state.workflow.activeRequestId) return;
+    clearHostThinkingTimer();
+
+    const outputDelayMs = getBubbleOutputDelayMs(input);
+    if (outputDelayMs > 0) {
+      await sleep(outputDelayMs);
+      if (requestId !== state.workflow.activeRequestId) return;
+    }
+
+    output = applyAnswerHitGuard(output, input);
+    applyWorkflowOutput(output, input);
   } catch (error) {
-    if (requestId !== state.workflow.activeRequestId) {
-      return;
+    if (requestId !== state.workflow.activeRequestId) return;
+    clearHostThinkingTimer();
+    console.warn("Workflow exchange failed; using fallback reply.", error);
+    try {
+      if (input.trigger_type === "chat") {
+        await sleep(LOCAL_FALLBACK_REPLY_DELAY_MS);
+        if (requestId !== state.workflow.activeRequestId) return;
+      }
+      applyWorkflowOutput(localDecision(input, error), input);
+    } catch (fallbackError) {
+      console.error("Fallback workflow exchange failed.", fallbackError);
+      publishHostLine("收到，我们继续沿着这个方向推进。", {
+        priority: "P2",
+        source: "workflow_fallback",
+      });
+      state.host.emotion = "normal";
     }
-    output = localDecision(input, error);
-  }
-
-  if (requestId !== state.workflow.activeRequestId) {
-    return;
-  }
-
-  const outputDelayMs = getBubbleOutputDelayMs(input);
-  if (outputDelayMs > 0) {
-    await sleep(outputDelayMs);
-    if (requestId !== state.workflow.activeRequestId) {
-      return;
+  } finally {
+    if (requestId === state.workflow.activeRequestId) {
+      const elapsedMs = Date.now() - state.workflow.hostThinkingStartedAt;
+      const remainingMs = state.workflow.hostThinkingActive
+        ? Math.max(0, HOST_MIN_THINKING_DISPLAY_MS - elapsedMs)
+        : 0;
+      if (remainingMs > 0) await sleep(remainingMs);
+      if (requestId !== state.workflow.activeRequestId) return;
+      finishWorkflowRequest(requestId);
+      render();
     }
   }
-
-  output = applyAnswerHitGuard(output, input);
-  applyWorkflowOutput(output, input);
-  finishWorkflowRequest(requestId);
-  render();
 }
 
 function isHostBusy() {
@@ -1755,6 +2121,9 @@ function isHostBusy() {
 function beginPreparedHostReply() {
   state.workflow.preparedReplyRunId += 1;
   state.workflow.preparedReplyPending = true;
+  clearHostThinkingTimer();
+  state.workflow.hostThinkingActive = false;
+  state.workflow.hostThinkingStartedAt = 0;
   state.workflow.activeLabel = "AI 正在判断";
   state.ui.alert = state.workflow.activeLabel;
   render();
@@ -1767,11 +2136,13 @@ function finishPreparedHostReply(runId) {
   state.workflow.activeLabel = "";
   window.setTimeout(processNextPendingChat, 0);
   window.setTimeout(resolveExpiredQuestion, 0);
+  render();
 }
 
 function cancelPreparedHostReply() {
   state.workflow.preparedReplyRunId += 1;
   state.workflow.preparedReplyPending = false;
+  clearHostThinkingTimer();
   if (!state.workflow.inFlight) {
     state.workflow.activeLabel = "";
   }
@@ -1788,14 +2159,59 @@ function beginWorkflowRequest(input) {
       state.workflow.activeController.abort();
     }
   }, WORKFLOW_CLIENT_TIMEOUT_MS);
+  scheduleHostThinkingForRequest(requestId, input);
   state.ui.alert = state.workflow.activeLabel;
   render();
   return requestId;
 }
 
+function scheduleHostThinkingForRequest(requestId, input) {
+  clearHostThinkingTimer();
+  state.workflow.hostThinkingActive = false;
+  state.workflow.hostThinkingStartedAt = 0;
+  if (input?.trigger_type !== "chat") return;
+
+  state.workflow.hostThinkingTimer = window.setTimeout(() => {
+    state.workflow.hostThinkingTimer = null;
+    if (
+      state.workflow.activeRequestId !== requestId
+      || !state.workflow.inFlight
+    ) {
+      return;
+    }
+    beginHostThinkingCycle();
+  }, HOST_THINKING_WAIT_DELAY_MS);
+}
+
+function clearHostThinkingTimer() {
+  if (!state.workflow.hostThinkingTimer) return;
+  clearTimeout(state.workflow.hostThinkingTimer);
+  state.workflow.hostThinkingTimer = null;
+}
+
+function beginHostThinkingCycle() {
+  const thinkingSpriteAlreadyPlaying =
+    hostSprite.source === RESOURCE_CONFIG.host.thinking.src
+    && hostSprite.thinkingCycleId === state.workflow.hostThinkingCycleId
+    && !hostSprite.completed
+    && (hostSprite.loading || hostSprite.playing);
+  if (thinkingSpriteAlreadyPlaying) {
+    state.workflow.hostThinkingActive = true;
+    return;
+  }
+  state.workflow.hostThinkingCycleId += 1;
+  state.workflow.hostThinkingStartedAt = Date.now();
+  state.workflow.hostThinkingActive = true;
+  setHostAvatarState("thinking", { transient: false });
+  resetHostSprite();
+  hostSprite.thinkingCycleId = state.workflow.hostThinkingCycleId;
+  render();
+}
+
 function finishWorkflowRequest(requestId) {
   if (requestId !== state.workflow.activeRequestId) return;
   clearWorkflowTimeout();
+  clearHostThinkingTimer();
   state.workflow.inFlight = false;
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
@@ -1808,6 +2224,10 @@ function abortActiveWorkflow() {
     state.workflow.activeController.abort();
   }
   clearWorkflowTimeout();
+  clearHostThinkingTimer();
+  state.workflow.hostThinkingActive = false;
+  state.workflow.hostThinkingStartedAt = 0;
+  resetHostSprite();
   state.workflow.inFlight = false;
   state.workflow.activeLabel = "";
   state.workflow.activeController = null;
@@ -2415,6 +2835,108 @@ function normalizeThemeSelectionCopy(text) {
     .trim();
 }
 
+function normalizeHostSpeechPriority(priority) {
+  if (typeof priority === "number") return priority;
+  return HOST_SPEECH_PRIORITIES[String(priority || "P2").toUpperCase()] || HOST_SPEECH_PRIORITIES.P2;
+}
+
+function publishHostLine(text, {
+  priority = "P2",
+  source = "workflow",
+  durationMs = null,
+  force = false,
+} = {}) {
+  const normalizedText = String(text || "").trim();
+  if (!normalizedText) return false;
+
+  const speech = state.workflow.hostSpeech;
+  const nextPriority = normalizeHostSpeechPriority(priority);
+  const requestedLockDurationMs = durationMs == null
+    ? nextPriority === HOST_SPEECH_PRIORITIES.P1
+      ? ENVIRONMENT_ANNOUNCEMENT_MS
+      : HOST_SPEECH_MAX_DISPLAY_MS
+    : durationMs;
+  const lockDurationMs = requestedLockDurationMs === 0
+    ? HOST_SPEECH_MAX_DISPLAY_MS
+    : Math.min(
+      HOST_SPEECH_MAX_DISPLAY_MS,
+      Math.max(1, Number(requestedLockDurationMs) || HOST_SPEECH_DEFAULT_LOCK_MS),
+    );
+  const now = Date.now();
+  const activeLock = speech.expiresAt > now;
+  if (activeLock && !force && nextPriority < speech.priority) {
+    return false;
+  }
+
+  if (speech.timer) {
+    clearTimeout(speech.timer);
+    speech.timer = null;
+  }
+  if (speech.source === "environment" && nextPriority > speech.priority) {
+    if (state.ui.environmentAnnouncementTimer) {
+      clearTimeout(state.ui.environmentAnnouncementTimer);
+      state.ui.environmentAnnouncementTimer = null;
+    }
+    state.ui.environmentAnnouncementId += 1;
+    state.ui.environmentAnnouncementText = "";
+    state.ui.environmentAnnouncementBaseText = "";
+    state.ui.environmentAnnouncementPending = "";
+  }
+  speech.id += 1;
+  speech.priority = nextPriority;
+  speech.source = source;
+  speech.expiresAt = lockDurationMs === Infinity
+    ? Infinity
+    : lockDurationMs > 0
+      ? now + lockDurationMs
+      : 0;
+  state.host.text = normalizedText;
+
+  if (lockDurationMs > 0 && lockDurationMs !== Infinity) {
+    const speechId = speech.id;
+    const clearOnExpire = source !== "environment";
+    speech.timer = window.setTimeout(() => {
+      if (speech.id !== speechId) return;
+      speech.timer = null;
+      speech.priority = 0;
+      speech.source = "";
+      speech.expiresAt = 0;
+      if (clearOnExpire) {
+        state.host.text = "";
+        render();
+      }
+    }, lockDurationMs);
+  }
+  return true;
+}
+
+function clearHostSpeechLock(source = "") {
+  const speech = state.workflow.hostSpeech;
+  if (source && speech.source !== source) return;
+  if (speech.timer) clearTimeout(speech.timer);
+  speech.timer = null;
+  speech.id += 1;
+  speech.priority = 0;
+  speech.source = "";
+  speech.expiresAt = 0;
+}
+
+function getWorkflowHostSpeechPriority(output, input) {
+  if (output?.is_correct || output?.game_status === "victory" || output?.game_status === "failed") {
+    return "P0";
+  }
+
+  const eventType = input?.event?.type;
+  if (eventType === "hard_brake" || eventType === "resume_game") return "P0";
+  if (eventType === "environment_change") return "P1";
+  if (input?.trigger_type === "chat" || eventType === "start_game") return "P2";
+  if (["driver_tired", "passenger_sleep", "passenger_inactive", "near_destination", "speed_change"].includes(eventType)) {
+    return "P3";
+  }
+  if (["near_answer", "game_stuck", "cabin_laughing"].includes(eventType)) return "P4";
+  return "P2";
+}
+
 function getDefaultHostReply(output) {
   if (output.is_correct || output.game_status === "victory") {
     return `${SEATS[state.passengers.selectedSeat] || "这位侦探"}答对了，谜底揭晓。`;
@@ -2689,6 +3211,7 @@ function applyWorkflowOutput(output, input) {
   const isVictoryOutput = Boolean(output.is_correct || output.game_status === "victory");
   const isHardBrakeOutput = input.event?.type === "hard_brake";
   const eventType = input.event?.type;
+  const environmentAnnouncementActive = Boolean(state.ui.environmentAnnouncementText);
   const keepRealUserFocus = shouldKeepRealUserFocus(input, output);
   applyRoundQuestionPlanFromOutput(output, input);
   mergeCoveredFactKeysFromOutput(output);
@@ -2704,15 +3227,28 @@ function applyWorkflowOutput(output, input) {
     : applyPassengerAction(output.passenger_action);
   const previousHostText = state.host.text;
   const sanitizedHostText = sanitizeHostReplyText(output.ai_reply_text || "");
-  if (shouldMuteHostReplyForEvent(eventType, sanitizedHostText)) {
+  const hostSpeechPriority = getWorkflowHostSpeechPriority(output, input);
+  const preserveHigherPriorityHostReply =
+    eventType === "environment_change"
+    || (
+      environmentAnnouncementActive
+      && normalizeHostSpeechPriority(hostSpeechPriority) < HOST_SPEECH_PRIORITIES.P0
+    );
+  if (preserveHigherPriorityHostReply || shouldMuteHostReplyForEvent(eventType, sanitizedHostText)) {
     state.host.text = previousHostText;
   } else if (sanitizedHostText) {
-    state.host.text = normalizeHostReplyForRealUser(sanitizedHostText, output, input);
+    publishHostLine(
+      normalizeHostReplyForRealUser(sanitizedHostText, output, input),
+      { priority: hostSpeechPriority, source: input.event?.type || input.trigger_type },
+    );
   } else {
     state.host.text = previousHostText;
   }
-  if (passengerActionApplied && !output.ai_reply_text) {
-    state.host.text = "这个问题收到，我来接住这一轮。";
+  if (passengerActionApplied && !output.ai_reply_text && !preserveHigherPriorityHostReply) {
+    publishHostLine("这个问题收到，我来接住这一轮。", {
+      priority: hostSpeechPriority,
+      source: input.event?.type || input.trigger_type,
+    });
   }
   state.game.status = output.game_status || state.game.status;
   state.ui.cabinMode = uiChange.cabin_mode || state.ui.cabinMode || "normal";
@@ -2777,7 +3313,10 @@ function applyWorkflowOutput(output, input) {
     }
     showCorrectSeatLight(correctSeat);
     state.game.status = "victory";
-    state.host.text = makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer);
+    publishHostLine(
+      makeVictoryHostText(correctSeat, output.answer || getCurrentRiddle().answer),
+      { priority: "P0", source: "victory", durationMs: HOST_SPEECH_P0_LOCK_MS },
+    );
     setHostAvatarState("excited", { transient: false });
     state.host.targetSeat = correctSeat;
   }
@@ -3140,7 +3679,13 @@ function advanceAfterVictory(completedRound) {
   setHostAvatarState(HOST_AVATAR_DEFAULT_STATE);
   state.host.targetSeat = null;
   state.host.emotion = "normal";
-  state.host.text = `第 ${state.game.roundIndex} 题准备好了。`;
+  // Keep the P0 result bubble visibly cleared during the short handoff gap.
+  clearHostSpeechLock();
+  state.host.text = "";
+  publishHostLine(`第 ${state.game.roundIndex} 题准备好了。`, {
+    priority: "P2",
+    source: "next_round",
+  });
   state.ui.alert = `进入第 ${state.game.roundIndex} 题`;
   updateDecisionTrace({
     perception: `第 ${completedRound} 题已答对`,
@@ -3162,10 +3707,14 @@ function finishGameSeries() {
   state.ui.showAnswer = false;
   state.ui.correctLightSeat = null;
   state.ui.animation = "summary";
-  state.host.text = makeSummaryHostText();
-  state.host.emotion = "celebrating";
+  publishHostLine(makeSummaryHostText(), {
+    priority: "P0",
+    source: "game_summary",
+    durationMs: HOST_SPEECH_P0_LOCK_MS,
+  });
+  state.host.emotion = "normal";
   state.host.targetSeat = null;
-  setHostAvatarState("excited", { transient: false });
+  setHostAvatarState(HOST_AVATAR_DEFAULT_STATE, { transient: false });
   state.ui.alert = "本轮游戏已完成";
 }
 
@@ -3321,37 +3870,73 @@ function render() {
   const screenMode = getGameScreenMode();
   const hostBusy = isHostBusy();
   const requestedHostState = normalizeHostAvatarState(state.host.avatarState);
-  const hostThinking = hostBusy || requestedHostState === "thinking";
+  // Keep the thinking sprite alive until its own sequence finishes. A new
+  // reply may reveal the bubble while the already-started animation continues.
+  const hostThinking = hostBusy;
   const noWinnerReveal = state.game.status === "failed" && state.ui.showAnswer;
+  const currentThinkingSprite =
+    hostSprite.source === RESOURCE_CONFIG.host.thinking.src
+    && hostSprite.thinkingCycleId === state.workflow.hostThinkingCycleId;
   const thinkingAnimationComplete =
-    hostSprite.source === RESOURCE_CONFIG.host.thinking.src && hostSprite.completed;
-  const renderedHostState =
-    hostThinking && !thinkingAnimationComplete
-      ? "thinking"
-      : requestedHostState === "thinking"
-        ? HOST_AVATAR_DEFAULT_STATE
-        : requestedHostState;
+    currentThinkingSprite && hostSprite.completed;
+  const shouldShowThinking =
+    !thinkingAnimationComplete
+    && (state.workflow.hostThinkingActive || currentThinkingSprite);
+  const renderedHostState = shouldShowThinking
+    ? "thinking"
+    : requestedHostState === "thinking"
+      ? HOST_AVATAR_DEFAULT_STATE
+      : requestedHostState;
+  const hostBubbleText = hostThinking ? "" : String(state.host.text || "");
+  const hostBubbleHidden = hostThinking || !hostBubbleText.trim();
+  const hostSpeechVisible = !hostBubbleHidden;
+  const mediaHostState =
+    hostSpeechVisible && renderedHostState === HOST_AVATAR_DEFAULT_STATE
+      ? "speak"
+      : renderedHostState;
   const environmentAssets = resolveEnvironmentAssets(state.car.environment);
+  const screenEnvironmentAssets = resolveEnvironmentAssets(
+    state.ui.screenEnvironment || state.car.environment,
+  );
   const environmentMapping =
     getEnvironmentMapping(state.car.environment)
     || RESOURCE_CONFIG.environments["高速路晴天白天"];
   const screenBackground =
     screenMode === "ready"
       ? RESOURCE_CONFIG.screenBackgrounds.default
-      : environmentAssets.screen;
+      : screenMode === "summary"
+        ? RESOURCE_CONFIG.screenBackgrounds.scenicSunset
+      : screenEnvironmentAssets.screen;
   document.body.classList.toggle("is-paused", state.game.status === "paused");
   document.body.classList.toggle("is-victory", state.game.status === "victory");
   document.body.classList.toggle("is-working", hostBusy);
   els.gameScreen.className = `game-screen screen-${screenMode} ${getScreenEnvironmentClass(screenMode)}`;
   els.gameScreen.classList.toggle("screen-reveal-no-winner", noWinnerReveal);
-  renderHostMedia(screenMode, renderedHostState);
+  renderHostMedia(screenMode, mediaHostState);
 
   els.environmentBackdrop.className = `environment-backdrop ${
     environmentMapping.cabinClass
   }`;
-  els.environmentBackdrop.querySelector(".environment-backdrop-image").src =
-    environmentAssets.cabin;
-  els.gameScreen.querySelector(".game-screen-background").src = screenBackground;
+  setRenderedImageSource(
+    els.environmentBackdrop.querySelector(".environment-backdrop-image"),
+    environmentAssets.cabin,
+    () => {
+      // Refresh WebKit's backdrop snapshot together with the new image layer.
+      const glass = els.environmentBackdrop.parentElement.querySelector(".cabin-glass");
+      if (glass) glass.replaceWith(glass.cloneNode(true));
+    },
+  );
+  setRenderedImageSource(
+    els.gameScreen.querySelector(".game-screen-background"),
+    screenBackground,
+    () => {
+      refreshGameScreenBackdrop();
+      if (state.ui.environmentAnnouncementPending === state.ui.screenEnvironment) {
+        state.ui.environmentAnnouncementPending = "";
+        showEnvironmentAnnouncement(state.ui.screenEnvironment);
+      }
+    },
+  );
   els.environmentLabel.textContent = `车外环境：${state.car.environment}`;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
@@ -3376,23 +3961,22 @@ function render() {
   els.summaryTotal.textContent = state.game.totalRounds;
   els.summarySolved.textContent = getSummarySolvedCount();
   els.summaryMvp.textContent = SEATS[getSummaryMvpSeat()] || "副驾";
-  const hostBubbleText = hostThinking ? "" : String(state.host.text || "");
   const hostBubbleLength = Array.from(hostBubbleText).length;
   const hostBubbleVariant =
     hostBubbleLength > 46 ? "long-text" : hostBubbleLength > 28 ? "medium-text" : "";
   els.hostBubble.classList.remove("thinking");
-  els.hostBubble.classList.toggle("hidden", hostThinking);
+  els.hostBubble.classList.toggle("hidden", hostBubbleHidden);
   els.hostBubble.classList.toggle(
     "medium-text",
-    !hostThinking && hostBubbleVariant === "medium-text",
+    !hostBubbleHidden && hostBubbleVariant === "medium-text",
   );
   els.hostBubble.classList.toggle(
     "long-text",
-    !hostThinking && hostBubbleVariant === "long-text",
+    !hostBubbleHidden && hostBubbleVariant === "long-text",
   );
   els.hostBubble.setAttribute("aria-busy", hostBusy ? "true" : "false");
   const hostBubbleTextElement = setHostBubbleText(hostBubbleText);
-  if (!hostThinking && hostBubbleVariant) {
+  if (!hostBubbleHidden && hostBubbleVariant) {
     scheduleTextClamp(
       hostBubbleTextElement,
       hostBubbleText,
@@ -3400,7 +3984,7 @@ function render() {
     );
   }
   els.hostAvatar.classList.toggle("thinking", hostThinking);
-  els.hostAvatar.dataset.avatarState = renderedHostState;
+  els.hostAvatar.dataset.avatarState = mediaHostState;
   els.timelineName.textContent = state.timeline.name;
   els.decisionPerception.textContent = formatDecisionText(
     state.decisionTrace.perception,
@@ -3412,13 +3996,34 @@ function render() {
   );
   els.decisionExecution.textContent = state.decisionTrace.execution;
 
+  const importantEventState = state.ui.importantEvent;
+  const importantEventId = String(importantEventState.id);
+  if (els.importantEvent.dataset.eventId !== importantEventId) {
+    els.importantEvent.classList.remove("visible", "hiding");
+    void els.importantEvent.offsetWidth;
+    els.importantEvent.dataset.eventId = importantEventId;
+  }
+  els.importantEventText.textContent = importantEventState.text;
+  els.importantEvent.classList.toggle(
+    "visible",
+    importantEventState.phase === "visible",
+  );
+  els.importantEvent.classList.toggle(
+    "hiding",
+    importantEventState.phase === "hiding",
+  );
+  els.importantEvent.setAttribute(
+    "aria-hidden",
+    importantEventState.phase === "hidden" ? "true" : "false",
+  );
+
   renderSeats();
   renderControls();
 }
 
 function getScreenEnvironmentClass(screenMode) {
   if (screenMode === "ready") return "screen-default";
-  const mapping = getEnvironmentMapping(state.car.environment);
+  const mapping = getEnvironmentMapping(state.ui.screenEnvironment || state.car.environment);
   return mapping ? mapping.screenClass : "screen-default";
 }
 
@@ -3428,14 +4033,52 @@ function getEnvironmentMapping(environment) {
 
 function resolveEnvironmentAssets(environment) {
   const mapping = getEnvironmentMapping(environment);
+  const cabinFallback = RESOURCE_CONFIG.cabinEnvironments.scenicDay;
   return {
     screen: mapping
       ? RESOURCE_CONFIG.screenBackgrounds[mapping.screen] || RESOURCE_CONFIG.screenBackgrounds.default
       : RESOURCE_CONFIG.screenBackgrounds.default,
     cabin: mapping
-      ? RESOURCE_CONFIG.cabinEnvironments[mapping.cabin] || RESOURCE_CONFIG.cabinEnvironments.default
-      : RESOURCE_CONFIG.cabinEnvironments.default,
+      ? RESOURCE_CONFIG.cabinEnvironments[mapping.cabin] || cabinFallback
+      : cabinFallback,
   };
+}
+
+function setRenderedImageSource(image, source, onReplace) {
+  if (!image || !source || image.dataset.assetSource === source) return;
+
+  image.dataset.assetSource = source;
+  if (image.getAttribute("src") === source && image.complete && image.naturalWidth) return;
+  const pendingImage = new Image();
+  pendingImage.decoding = "async";
+  pendingImage.onload = () => {
+    if (!image.isConnected || image.dataset.assetSource !== source) return;
+    pendingImage.onload = null;
+    pendingImage.onerror = null;
+    for (const attribute of image.attributes) {
+      if (attribute.name !== "src") pendingImage.setAttribute(attribute.name, attribute.value);
+    }
+    // A new node invalidates stale image layers under Safari's backdrop filters.
+    image.replaceWith(pendingImage);
+    onReplace?.();
+  };
+  pendingImage.onerror = () => {
+    if (image.isConnected && image.dataset.assetSource === source) {
+      delete image.dataset.assetSource;
+      console.warn("Background image could not be loaded:", source);
+    }
+  };
+  pendingImage.src = source;
+}
+
+function refreshGameScreenBackdrop() {
+  const panel = els.gameScreen?.querySelector(".riddle-panel");
+  if (!panel) return;
+
+  // Rebuild the filtered panel after the background image commits so WebKit
+  // does not keep the previous backdrop snapshot for one or more frames.
+  panel.replaceWith(panel.cloneNode(true));
+  cacheElements();
 }
 
 function getGameScreenMode() {
@@ -3471,8 +4114,12 @@ function renderHostMedia(screenMode, avatarState = state.host.avatarState) {
 }
 
 async function loadHostSprite(media) {
+  const thinkingCycleId = media.src === RESOURCE_CONFIG.host.thinking.src
+    ? state.workflow.hostThinkingCycleId
+    : 0;
   resetHostSprite();
   hostSprite.source = media.src;
+  hostSprite.thinkingCycleId = thinkingCycleId;
   hostSprite.loading = true;
   const loadId = ++hostSprite.loadId;
 
@@ -3520,12 +4167,31 @@ function createHostSpriteFrames(media) {
 }
 
 function loadHostSpriteImage(src) {
-  return new Promise((resolve, reject) => {
+  const cached = hostSpriteImageCache.get(src);
+  if (cached) return cached;
+
+  const promise = new Promise((resolve, reject) => {
     const image = new Image();
+    image.decoding = "async";
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error(`Sprite image request failed: ${src}`));
     image.src = src;
   });
+  hostSpriteImageCache.set(src, promise);
+  promise.catch(() => {
+    if (hostSpriteImageCache.get(src) === promise) hostSpriteImageCache.delete(src);
+  });
+  return promise;
+}
+
+function preloadHostSpriteImages() {
+  Object.values(RESOURCE_CONFIG.host)
+    .filter((media) => media?.kind === "sprite" && media.src)
+    .forEach((media) => {
+      void loadHostSpriteImage(media.src).catch((error) => {
+        console.warn("Host sprite preload failed:", media.src, error);
+      });
+    });
 }
 
 function configureHostCanvas() {
@@ -3606,6 +4272,8 @@ function stepHostSprite(timestamp) {
     hostSprite.playing = false;
     hostSprite.completed = true;
     hostSprite.animationFrameId = 0;
+    state.workflow.hostThinkingActive = false;
+    state.workflow.hostThinkingStartedAt = 0;
     if (hostSprite.source === RESOURCE_CONFIG.host.thinking.src) render();
     return;
   }
@@ -3639,6 +4307,7 @@ function resetHostSprite() {
   hostSprite.playing = false;
   hostSprite.completed = false;
   hostSprite.fallback = false;
+  hostSprite.thinkingCycleId = 0;
 }
 
 const hostAudioCache = new Map();
@@ -3929,7 +4598,10 @@ function handleQuestionTimeout(completedRound) {
   state.host.emotion = "normal";
   state.host.targetSeat = null;
   setHostAvatarState(HOST_AVATAR_DEFAULT_STATE, { transient: false });
-  state.host.text = `时间到啦，这题没有人答对，答案是“${getCurrentRiddle().answer}”。`;
+  publishHostLine(
+    `时间到啦，这题没有人答对，答案是“${getCurrentRiddle().answer}”。`,
+    { priority: "P0", source: "question_timeout", durationMs: HOST_SPEECH_P0_LOCK_MS },
+  );
   state.ui.alert = "本题无人答对，公布谜底";
   finishTimelineSilently();
   render();
@@ -3974,8 +4646,13 @@ function advanceAfterTimeout(completedRound) {
   setHostAvatarState(HOST_AVATAR_DEFAULT_STATE);
   state.host.targetSeat = null;
   state.host.emotion = "normal";
+  clearHostSpeechLock();
+  state.host.text = "";
   state.ui.alert = `时间到，进入第 ${state.game.roundIndex} 题`;
-  state.host.text = `上一题时间到，第 ${state.game.roundIndex} 题准备好了。`;
+  publishHostLine(`上一题时间到，第 ${state.game.roundIndex} 题准备好了。`, {
+    priority: "P2",
+    source: "next_round_after_timeout",
+  });
   updateDecisionTrace({
     perception: `第 ${completedRound} 题时间结束，未猜中答案`,
     decision: "结束当前题目，保留整局进度并自动继续",

@@ -8,7 +8,7 @@
 - 调用 Coze/Dify Workflow 做融合决策
 - 根据结构化 JSON 返回更新网页表现
 
-当前代码已进入 `V1.4` UI 基础阶段：核心中控屏页面已按 Figma 资源落地，主持人区域支持后续替换为视频媒体，详细实现记录见 [docs/V1_4_UI_IMPLEMENTATION.md](./docs/V1_4_UI_IMPLEMENTATION.md)。
+当前代码已进入 `V1.4` UI 基础阶段：核心中控屏页面已按 Figma 资源落地，主持人默认、说话、思考、比心和答对状态已接入透明 Sprite Sheet + Canvas 播放，答对状态支持同步音频，详细实现记录见 [docs/V1_4_UI_IMPLEMENTATION.md](./docs/V1_4_UI_IMPLEMENTATION.md)。
 
 V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴模拟多模态事件，并由 Workflow 驱动 AI 主持人与半自主模拟乘客参与游戏。
 

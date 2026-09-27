@@ -1228,27 +1228,6 @@ select:disabled {
   max-height: 152px;
 }
 
-/* Figma mosaic layer sits behind the glass panel so the blur remains effective. */
-.riddle-mosaic {
-  position: absolute;
-  left: 122px;
-  top: 231px;
-  z-index: 5;
-  width: 716px;
-  height: 435px;
-  opacity: 0.5;
-  object-fit: cover;
-  pointer-events: none;
-}
-
-.screen-reveal .riddle-mosaic {
-  content: url("./assets/figma-reveal-mosaic.png");
-}
-
-.screen-summary .riddle-mosaic {
-  display: none;
-}
-
 .remaining-questions strong {
   color: #fff;
   font-size: 26px;
@@ -1850,22 +1829,6 @@ body.has-started .prestart-panel {
   backdrop-filter: blur(30px);
 }
 
-.riddle-panel::before {
-  inset: auto;
-  left: 39px;
-  top: 31px;
-  width: 716px;
-  height: 435px;
-  border-radius: 0;
-  opacity: 0.5;
-  background: url("./assets/figma-playing-mosaic.png") center / cover no-repeat;
-  filter: none;
-}
-
-.screen-reveal .riddle-panel::before {
-  background-image: url("./assets/figma-reveal-mosaic.png");
-}
-
 .riddle-ribbon {
   overflow: visible;
 }
@@ -2026,7 +1989,20 @@ body.has-started .prestart-panel {
   width: 536px;
   height: 536px;
   object-fit: fill;
-  opacity: 0.5;
+  opacity: 0.35;
+  will-change: opacity;
+  animation: summary-light-ring-breathe 4s ease-in-out infinite;
+}
+
+@keyframes summary-light-ring-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .summary-light-base {
@@ -2407,7 +2383,7 @@ body.has-started .prestart-panel {
 
 /* Final Figma adjustments for the preparation page and shared host bubbles. */
 .screen-ready::before {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .screen-ready .ready-beam-left {
@@ -2432,6 +2408,14 @@ body.has-started .prestart-panel {
   transform-origin: 503px 435px;
   will-change: transform;
   animation: ready-beam-sway-right 2.5s ease-in-out infinite alternate;
+}
+
+.game-screen.screen-summary {
+  background-image: url("./assets/screen-scenic-sunset.png");
+}
+
+.game-screen.screen-summary .game-screen-background {
+  filter: none;
 }
 
 @keyframes ready-beam-sway-left {
@@ -2520,7 +2504,6 @@ body.has-started .prestart-panel {
   height: 651px;
   object-fit: fill;
   object-position: center top;
-  backface-visibility: hidden;
   pointer-events: none;
 }
 
@@ -2536,8 +2519,8 @@ body.has-started .prestart-panel {
   width: 810px;
   height: 654px;
   background: rgba(0, 0, 0, 0.004);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
   pointer-events: none;
 }
 
@@ -2690,6 +2673,96 @@ body.has-started .prestart-panel {
   line-height: 21px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.cabin-region .important-event {
+  position: absolute;
+  z-index: 10;
+  left: 43px;
+  top: 310px;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 86px);
+  height: 56px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 30px;
+  padding: 0 20px;
+  overflow: hidden;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 14px 1px rgba(255, 178, 243, 0.2);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+  backdrop-filter: blur(12px) saturate(115%);
+  opacity: 0;
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+  visibility: hidden;
+}
+
+.cabin-region .important-event.visible,
+.cabin-region .important-event.hiding {
+  visibility: visible;
+}
+
+.cabin-region .important-event.visible {
+  animation: important-event-enter 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  opacity: 1;
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.cabin-region .important-event.hiding {
+  animation: important-event-exit 320ms cubic-bezier(0.4, 0, 0.8, 0.2) both;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.cabin-region .important-event img {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.cabin-region .important-event span {
+  display: block;
+  min-width: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+@keyframes important-event-enter {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+}
+
+@keyframes important-event-exit {
+  from {
+    opacity: 1;
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+  to {
+    opacity: 0;
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
 }
 
 .cabin-region .car-cabin {
@@ -3175,7 +3248,9 @@ body.has-started .prestart-panel {
   .answer-length-hint,
   .remaining-questions strong.count-roll,
   .riddle-panel h1.question-intro,
-  .game-screen.is-time-critical::after {
+  .game-screen.is-time-critical::after,
+  .cabin-region .important-event.visible,
+  .cabin-region .important-event.hiding {
     animation: none;
   }
 }

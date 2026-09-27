@@ -13,7 +13,8 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 5. 缺少某个状态资源时，按表内 `fallback_asset` 回退，避免页面空图。
 6. 人物切片使用 Figma 返回的 `rawImages` 原始透明图片层；不要使用节点 `export` 合成图，避免把画板底色一起带入人物资源。
 7. 运行时固定画布尺寸：主持人 `564×572`、乘客 `287×328`、中控背景 `1440×810`、座舱环境 `810×651`。个别 Figma 节点若少 1px，导入时只补透明边缘，不拉伸人物。
-8. Figma 中同名资源按媒体类型优先级处理：视频优先于静态切片，静态切片作为视频不可用时的 fallback。
+8. Figma 中同名资源按媒体类型整理；当前运行时主持人动画统一使用透明 Sprite Sheet + Canvas，静态 PNG 只作为加载失败时的 fallback，视频文件不再是主持人动画的运行时依赖。
+9. Sprite Sheet 按 `6 列 × 7 行` 排列，每帧为 `720×720`，运行时显示区域保持主持人 `564×572`；JSON 中的帧数和 fps 用于核对资源，播放时按统一 `100ms` 帧间隔推进。
 
 ## AI Host
 
@@ -22,9 +23,11 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 | `host_yes` | AI_HOST | Assets / AI Host | `214:1920` | 主持人 yes！静态切片 | `host-yes.png` | Sprite Sheet 加载失败时的静态 fallback | `host-normal.png` |
 | `host_cheer` | AI_HOST | Assets / AI Host | `214:1919` | 主持人 欢呼 | `host-cheer.png` | 结算、胜利总结、高情绪价值夸奖 | `host-yes.png` |
 | `host_puzzled` | AI_HOST | Assets / AI Host | `214:1915` | 主持人 疑惑 | `host-puzzled.png` | 思考、尴尬、玩家方向偏离 | `host-normal.png` |
-| `host_heart` | AI_HOST | Assets / AI Host | `214:1916` | 主持人 比心 | `host-heart.png` | 鼓励、安抚、亲和表达 | `host-normal.png` |
+| `host_heart_sprite` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 比心序列动画 | `host-heart.json` + `host-heart.webp` | 鼓励、安抚、亲和表达，Canvas 播放一次 | `host-heart.png` |
 | `host_wave` | AI_HOST | Assets / AI Host | `214:1917` | 主持人 打招呼 | `host-wave.png` | 开场、恢复游戏、欢迎回来 | `host-normal.png` |
 | `host_normal` | AI_HOST_SPRITE | Assets / AI Host | `214:1918` | 主持人 默认待机序列动画 | `host-normal.json` + `host-normal.webp` | 默认状态，Canvas 循环播放，不播放音频 | `host-normal.png` |
+| `host_speak_sprite` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 说话序列动画 | `host-speak.json` + `host-speak.webp` | 主持人说话气泡显示期间循环播放有效的 42 帧，无音频；忽略 JSON 中越出大图范围的末尾帧，气泡消失后停止 | `host-normal.png` |
+| `host_thinking_sprite` | AI_HOST_SPRITE | Assets / AI Host | Assets / AI Host | 主持人 思考序列动画 | `host-thinking.json` + `host-thinking.webp` | 主持人思考时播放一次，不显示说话气泡，播放完成后回默认状态 | `host-thinking.png` |
 | `host_yes_sprite` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 yes！40 帧透明序列动画与同步音频 | `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | 猜对、答对反馈，Canvas 按 JSON 帧时长播放一次，音频按 JSON 时间轴同步 | `host-yes.png` |
 
 ### Host State Mapping
@@ -32,10 +35,12 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 | 运行时字段 | 推荐资源 | 显示时长 | 备注 |
 | --- | --- | --- | --- |
 | `normal` | `host_normal` | 常驻 | 默认状态 |
+| `speak` | `host_speak_sprite` | 气泡可见期间 | 主持人说话时循环播放；气泡隐藏后恢复当前主持人状态 |
 | `greeting` | `host_wave` | 4s 后回默认 | 开局或恢复 |
-| `smile` | `host_heart` | 4s 后回默认 | 亲和、鼓励 |
+| `smile` | `host_heart_sprite` | 27 帧约 2.7s，播放一次 | 亲和、鼓励 |
+| `thinking` | `host_thinking_sprite` | 40 帧约 4s，播放一次后回默认 | 思考期间隐藏主持人气泡 |
 | `awkward` | `host_puzzled` | 4s 后回默认 | 尴尬、疑惑、冷场兜底 |
-| `excited` | `host_yes_sprite` | 40 帧约 4s，播放一次后停留最后一帧 | 答对题目，进入下一轮或重置时恢复默认 |
+| `excited` | `host_yes_sprite` | 40 帧约 4s，播放一次 | 答对题目，进入下一轮或重置时恢复默认；同步播放 `host-yes.mp3` |
 | `celebration` | `host_cheer` | 4s 后回默认 | 揭晓、结算、MVP |
 
 ## Passengers
@@ -108,6 +113,8 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 
 | asset_key | 类型 | Figma 页面 | Figma 节点 | Figma 图层名 | 推荐文件名 | 适用座舱外景 | fallback_asset |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| `cabin_garage` | CABIN_ENV | Assets / Cabin Environments | `272:322` | CE 车库 | `cabin-env-garage.png` | 车库环境 | `cabin-env-scenic-day.png` |
+| `cabin_tunnel` | CABIN_ENV | Assets / Cabin Environments | `272:323` | CE 隧道 | `cabin-env-tunnel.png` | 隧道环境 | `cabin-env-scenic-day.png` |
 | `cabin_scenic_day` | CABIN_ENV | Assets / Cabin Environments | `209:1297` | CE 风景白天 | `cabin-env-scenic-day.png` | 风景区晴天白天、高速路晴天白天 | `cabin-env-scenic-day.png` |
 | `cabin_snow_day` | CABIN_ENV | Assets / Cabin Environments | `212:1668` | CE 雪景白天 | `cabin-env-snow-day.png` | 风景区雪景白天 | `cabin-env-scenic-day.png` |
 | `cabin_city_day` | CABIN_ENV | Assets / Cabin Environments | `212:1670` | CE 城市白天 | `cabin-env-city-day.png` | 城区晴天白天、城区雨天白天 | `cabin-env-scenic-day.png` |
@@ -119,6 +126,8 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 
 | 车外环境 | control_screen_bg | cabin_environment | 备注 |
 | --- | --- | --- | --- |
+| 车库 | `screen_default` | `cabin_garage` | 车库场景，中控屏使用默认背景 |
+| 隧道 | `screen_default` | `cabin_tunnel` | 隧道场景，中控屏使用默认背景 |
 | 高速路晴天白天 | `screen_scenic_day` | `cabin_scenic_day` | 当前暂无专用高速图，先用风景白天 |
 | 高速路晴天深夜 | `screen_deep_night` | `cabin_deep_night` | 夜间氛围 |
 | 高速路雨天白天 | `screen_scenic_sunset` | `cabin_scenic_sunset` | 当前暂无雨天图，先用晚霞/暗色氛围占位 |
@@ -129,6 +138,8 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 | 风景区傍晚 | `screen_scenic_sunset` | `cabin_scenic_sunset` | 风景晚霞 |
 | 风景区雪景白天 | `screen_snow_day` | `cabin_snow_day` | 雪景白天 |
 | 风景区晴天深夜 | `screen_deep_night` | `cabin_deep_night` | 深夜氛围 |
+
+准备页的中控屏固定使用 `screen_default`；座舱按当前黄金体验线的环境配置显示，配置为 `车库` 或 `隧道` 时使用对应新资源，其他场景使用对应室外环境图。进入游戏后继续按 `Environment Runtime Mapping` 切换；如果环境值没有命中映射，座舱回退到 `cabin_scenic_day`，中控屏回退到 `screen_default`。
 
 ## 下一步接入建议
 

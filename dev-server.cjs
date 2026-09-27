@@ -175,6 +175,7 @@ function serveStatic(req, res) {
       "Accept-Ranges": isMedia ? "bytes" : "none",
       "Content-Length": stats.size,
       "Content-Type": contentType,
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
     });
     fs.createReadStream(filePath).pipe(res);
   });

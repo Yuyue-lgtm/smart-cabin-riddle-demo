@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智能座舱 AI 猜谜 Demo</title>
-    <link rel="preload" as="image" href="./assets/screen-default.png" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/cabin-env-scenic-sunset.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/screen-default.png?v=20260927-screen-default-v2" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-env-garage.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/host-normal.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20260923-figma-clockwise-ring-8px" />
+  <link rel="stylesheet" href="./styles.css?v=20260927-important-event-v2" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -18,7 +18,7 @@
         <div class="environment-backdrop" id="environmentBackdrop">
           <img
             class="environment-backdrop-image"
-            src="./assets/cabin-env-scenic-sunset.png"
+            src="./assets/cabin-env-garage.png"
             alt=""
             aria-hidden="true"
             decoding="sync"
@@ -28,7 +28,7 @@
         <div class="cabin-glass" aria-hidden="true"></div>
         <div class="cabin-overlay">
           <div class="scene-badges">
-            <span class="environment-badge" id="environmentLabel">车外环境：高速路晴天白天</span>
+            <span class="environment-badge" id="environmentLabel">车外环境：车库</span>
             <span class="destination-badge">
               <img src="./assets/cabin-location-icon.svg" alt="" aria-hidden="true" />
               <b id="destinationLabel">目的地：公司</b>
@@ -54,6 +54,10 @@
                 <dd id="decisionExecution">等待网页动作</dd>
               </div>
             </dl>
+          </div>
+          <div class="important-event" id="importantEvent" aria-hidden="true">
+            <img src="./assets/important-event-icon.svg" alt="" aria-hidden="true" />
+            <span id="importantEventText"></span>
           </div>
           <div class="car-cabin">
             <button class="seat seat-rear-left" data-seat="rearLeft" type="button">
@@ -102,7 +106,7 @@
           <div class="game-screen" id="gameScreen">
             <img
               class="game-screen-background"
-              src="./assets/screen-default.png"
+              src="./assets/screen-default.png?v=20260927-screen-default-v2"
               alt=""
               aria-hidden="true"
               decoding="sync"
@@ -126,7 +130,6 @@
 
             <span class="round-pill" aria-hidden="true">进度 <b id="roundProgress">1/10</b></span>
 
-              <img class="riddle-mosaic" src="./assets/figma-playing-mosaic.png" alt="" aria-hidden="true" />
               <div class="riddle-panel">
                 <div class="riddle-ribbon" aria-hidden="true">
                 <img src="./assets/figma-playing-ribbon.svg" alt="" />
@@ -237,7 +240,9 @@
             <div class="control-row environment-row">
               <span class="control-label">车外环境</span>
               <div class="chip-group" id="environmentChips">
-                <button class="chip active" data-environment="高速路晴天白天" type="button">高速路晴天白天</button>
+                <button class="chip active" data-environment="车库" type="button">车库</button>
+                <button class="chip" data-environment="隧道" type="button">隧道</button>
+                <button class="chip" data-environment="高速路晴天白天" type="button">高速路晴天白天</button>
                 <button class="chip" data-environment="高速路晴天深夜" type="button">高速路晴天深夜</button>
                 <button class="chip" data-environment="高速路雨天白天" type="button">高速路雨天白天</button>
                 <button class="chip" data-environment="城区晴天白天" type="button">城区晴天白天</button>
@@ -271,6 +276,6 @@
       </main>
     </div>
 
-  <script src="./app.js?v=20260923-figma-clockwise-ring-8px"></script>
+  <script src="./app.js?v=20260927-summary-host-normal-v22"></script>
   </body>
 </html>

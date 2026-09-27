@@ -76,7 +76,7 @@
 
 ### V1_4_UI_IMPLEMENTATION.md
 
-记录 V1.4 当前已落地的 Figma 页面资源、固定画布规则、主持人媒体接口、气泡小三角和透明切片阴影实现约定。
+记录 V1.4 当前已落地的 Figma 页面资源、固定画布规则、主持人 Sprite Sheet 与 Canvas 播放、题目倒计时、气泡小三角和透明切片阴影实现约定。
 
 ### COZE_ROUND_QUESTION_PLAN.md
 
