@@ -56,7 +56,7 @@ const CONFETTI_CONFIG = Object.freeze({
   colors: ["#DE7357", "#7941CD", "#1FA6F5", "#5DB538", "#E33077"],
   launchAngleDeg: 75,
   spreadDeg: 30,
-  gravity: 0.05,
+  gravity: 0.10,
   drag: 1,
   ribbonWidth: 20,
   ribbonHeight: 36,
@@ -990,7 +990,7 @@ function createConfettiParticle(side, width, height) {
   ) * Math.PI / 180;
   return {
     x: fromLeft ? -180 - Math.random() * 60 : width + 180 + Math.random() * 60,
-    y: height + 140 + Math.random() * 80,
+    y: height + 380 + Math.random() * 40,
     vx: (fromLeft ? 1 : -1) * Math.cos(launchAngle) * speed,
     vy: -Math.sin(launchAngle) * speed,
     width: CONFETTI_CONFIG.ribbonWidth,
