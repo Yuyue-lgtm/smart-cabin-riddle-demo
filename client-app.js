@@ -52,12 +52,14 @@ const HOST_SPEECH_PRIORITIES = Object.freeze({
 const HOST_SPEECH_DEFAULT_LOCK_MS = 6000;
 const CONFETTI_CONFIG = Object.freeze({
   count: 72,
-  durationMs: 2400,
+  durationMs: 2800,
   colors: ["#ff95c6", "#ffdb72", "#63d4ff", "#9b66df", "#ffffff"],
   launchAngleDeg: 52,
   spreadDeg: 16,
-  gravity: 0.28,
-  drag: 0.996,
+  gravity: 0.20,
+  drag: 0.999,
+  ribbonWidth: 20,
+  ribbonHeight: 36,
 });
 
 // Keep visual asset selection in one place. Runtime state stores semantic
@@ -987,12 +989,12 @@ function createConfettiParticle(side, width, height) {
     + (Math.random() - 0.5) * CONFETTI_CONFIG.spreadDeg
   ) * Math.PI / 180;
   return {
-    x: fromLeft ? -10 + Math.random() * 28 : width + 10 - Math.random() * 28,
-    y: height - 18 - Math.random() * 18,
+    x: fromLeft ? -110 - Math.random() * 50 : width + 110 + Math.random() * 50,
+    y: height + 44 + Math.random() * 44,
     vx: (fromLeft ? 1 : -1) * Math.cos(launchAngle) * speed,
     vy: -Math.sin(launchAngle) * speed,
-    width: 9 + Math.random() * 10,
-    height: 4 + Math.random() * 6,
+    width: CONFETTI_CONFIG.ribbonWidth,
+    height: CONFETTI_CONFIG.ribbonHeight,
     rotation: Math.random() * Math.PI,
     spin: (Math.random() - 0.5) * 0.24,
     wobble: Math.random() * Math.PI * 2,
