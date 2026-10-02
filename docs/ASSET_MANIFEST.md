@@ -19,6 +19,7 @@
 | `host-thinking.json` + `host-thinking.webp` | AI 主持人思考透明序列动画，40 帧、10fps，Canvas 播放一次，完成后回默认状态 | 用户提供 Sprite Sheet |
 | `host-heart.json` + `host-heart.webp` | AI 主持人比心透明序列动画，27 帧、10fps，Canvas 播放一次 | 用户提供 Sprite Sheet |
 | `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | AI 主持人答对后的 40 帧透明序列动画，10fps，Canvas 播放一次；音频延迟 180ms、音量 0.85 | 用户提供 Sprite Sheet 与音频 |
+| `background-music.m4a` | 游戏背景音乐，准备页开关控制，循环播放，默认关闭，音量 25% | 用户提供 `背景音乐.m4a` |
 | `stage-beam.png` | 准备页和结算页光束 | `figma-ready-beam.png`、`figma-summary-beam-right.png` |
 | `game-icon.png` | 游戏图标 | `figma-playing-game-icon.png`、`figma-reveal-game-icon.png` |
 | `question-icon.svg` | 问题计数图标 | `figma-playing-question-icon.svg`、`figma-reveal-question-icon.svg` |
@@ -47,4 +48,5 @@
 - `host-normal` 循环播放；`host-speak` 在主持人气泡显示期间循环播放，气泡消失后停止；`host-thinking`、`host-heart` 和 `host-yes` 播放一次。
 - 主持人思考时隐藏主持人说话气泡；思考动画结束后自动回到默认待机动画。
 - `host-yes.mp3` 只在答对动画中播放，音频加载失败时使用答对提示音兜底。
+- `background-music.m4a` 由准备页右上角声音按钮控制，默认关闭；每次进入准备页从 `0` 秒开始，打开后循环播放，首次播放遵守浏览器用户手势限制。
 - 本地代理已声明 `.webp`、`.mp3` 的 MIME 类型，并允许 `.mp3` 作为静态媒体资源返回。

@@ -1,6 +1,6 @@
 {
   "milestone": "V1.4",
-  "release": "V1.4-ui-foundation",
-  "build_date": "2026-07-20",
-  "focus": "Figma 视觉落地与媒体接口基础"
+  "release": "V1.4-audio-and-motion",
+  "build_date": "2026-10-02",
+  "focus": "主持人动效、彩带动画、音频反馈与背景音乐开关"
 }

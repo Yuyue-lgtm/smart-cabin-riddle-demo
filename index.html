@@ -8,7 +8,7 @@
     <link rel="preload" as="image" href="./assets/cabin-env-garage.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/host-normal.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20260927-confetti-v1" />
+  <link rel="stylesheet" href="./styles.css?v=20261001-audio-v1" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -103,6 +103,7 @@
         <section class="right-stack">
           <section class="game-region" aria-label="游戏界面">
           <div class="region-title">中控屏</div>
+          <audio id="backgroundMusic" src="./assets/background-music.m4a?v=20261001" loop preload="metadata" hidden aria-hidden="true"></audio>
           <div class="game-screen" id="gameScreen">
             <img
               class="game-screen-background"
@@ -112,7 +113,14 @@
               decoding="sync"
               fetchpriority="high"
             />
+            <img
+              class="summary-background-layer"
+              src="./assets/screen-scenic-sunset.png"
+              alt=""
+              aria-hidden="true"
+            />
             <canvas class="game-confetti-canvas" id="confettiCanvas" aria-hidden="true" hidden></canvas>
+            <canvas class="summary-confetti-canvas" id="summaryConfettiCanvas" aria-hidden="true" hidden></canvas>
             <div class="pencil-game-icon" aria-hidden="true">
               <img src="./assets/game-icon.png" alt="" />
             </div>
@@ -159,14 +167,16 @@
               <span class="summary-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <span class="summary-beam-left" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <img class="summary-mosaic" src="./assets/figma-summary-mosaic.png" alt="" aria-hidden="true" />
-              <img class="summary-light-ring" src="./assets/figma-summary-light-ring.png" alt="" aria-hidden="true" />
-              <img class="summary-light-base" src="./assets/figma-summary-light-base.png" alt="" aria-hidden="true" />
-              <img class="summary-bright-light" src="./assets/figma-summary-bright-light.png" alt="" aria-hidden="true" />
               <img class="summary-confetti" src="./assets/figma-summary-ribbon.png" alt="" aria-hidden="true" />
               <img class="summary-title-asset" src="./assets/figma-summary-title.png" alt="旅途战报" />
               <div class="summary-stats" id="summaryStats"><span>完成</span><strong id="summaryTotal">10</strong><span>题</span><span class="summary-gap"></span><span>破解</span><strong id="summarySolved">7</strong><span>题</span></div>
-              <img class="summary-mvp-asset" src="./assets/figma-summary-mvp.png" alt="MVP" />
-              <div class="summary-mvp-name" id="summaryMvp">副驾</div>
+              <img class="summary-light-ring" src="./assets/figma-summary-light-ring.png" alt="" aria-hidden="true" />
+              <img class="summary-light-base" src="./assets/figma-summary-light-base.png" alt="" aria-hidden="true" />
+              <img class="summary-bright-light" src="./assets/figma-summary-bright-light.png" alt="" aria-hidden="true" />
+              <div class="summary-mvp-group">
+                <img class="summary-mvp-asset" src="./assets/figma-summary-mvp.png" alt="MVP" />
+                <div class="summary-mvp-name" id="summaryMvp">副驾</div>
+              </div>
               <button class="summary-continue" id="summaryContinue" type="button" aria-label="继续挑战">
                 <img src="./assets/figma-ready-button.png" alt="" aria-hidden="true" />
                 <span>继续挑战</span>
@@ -174,6 +184,15 @@
             </div>
 
             <div class="ready-stage" aria-live="polite">
+              <button
+                class="ready-sound-toggle"
+                id="backgroundMusicToggle"
+                type="button"
+                aria-label="打开背景音乐"
+                aria-pressed="false"
+              >
+                <span class="ready-sound-icon" aria-hidden="true">🔇</span>
+              </button>
               <span class="ready-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <img class="ready-ring-mosaic" src="./assets/figma-ready-ring-mosaic.png" alt="" aria-hidden="true" />
               <img class="ready-panel-mosaic" src="./assets/figma-ready-panel-mosaic.png" alt="" aria-hidden="true" />
@@ -277,6 +296,6 @@
       </main>
     </div>
 
-  <script src="./client-app.js?v=20260927-confetti-v1"></script>
+  <script src="./client-app.js?v=20261001-audio-v2"></script>
   </body>
 </html>
