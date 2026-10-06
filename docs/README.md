@@ -1,5 +1,10 @@
 # 文档索引
 
+当前实时主持接入、Chatflow 会话状态同步、动作白名单与草稿发布步骤以 [DIFY_CHATFLOW_INTEGRATION.md](./DIFY_CHATFLOW_INTEGRATION.md) 和 [REALTIME_HOST_CONTEXT.md](./REALTIME_HOST_CONTEXT.md) 为准。
+
+- [DIFY_CHATFLOW_INTEGRATION.md](./DIFY_CHATFLOW_INTEGRATION.md)：当前接入、节点职责、动作权限、草稿生成与发布。
+- [REALTIME_HOST_CONTEXT.md](./REALTIME_HOST_CONTEXT.md)：精简上下文、状态同步、主动事件和前端初始化约束。
+
 这个目录用于固定项目方向，避免后续开发偏离“可分享体验版智能座舱 AI 猜谜 Demo”的目标，或让代码逻辑变得难以维护。
 
 建议每次开始新一轮开发前先看：
@@ -32,7 +37,7 @@
 
 ### WORKFLOW_CONTRACT.md
 
-定义网页和 Coze/Dify Workflow 的输入输出 JSON，包括 `passenger_action`、时间轴事件和 UI 指令。后续前端和工作流都应以这份契约为准。
+定义网页和 Coze/Dify Workflow 的输入输出 JSON，包括 `passenger_action`、时间轴事件、Chatflow 感知/决策/执行结构与动作白名单。实时主持的当前实现以 Dify 文档为准。
 
 ### FUSION_DECISION_KNOWHOW.md
 
@@ -56,7 +61,7 @@
 
 ### HOST_COPY_OWNERSHIP.md
 
-梳理当前哪些主持话术来自 Coze，哪些被前端覆盖，以及哪些覆盖是为了稳定性必须保留、哪些可以逐步放权给 Coze。
+梳理当前 Dify Chatflow 与前端的话术边界、环境事件时序和本地兜底；保留 Coze 阶段的历史覆盖分析。
 
 ### PUBLIC_ACCEPTANCE_REPORT.md
 

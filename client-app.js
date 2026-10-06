@@ -6,6 +6,42 @@ const SEATS = {
 };
 
 const DEFAULT_WORKFLOW_ENDPOINT = "/api/workflow";
+const DIFY_CONVERSATION_STORAGE_KEY = "smart-cabin-dify-conversation-id";
+const DIFY_USER_STORAGE_KEY = "smart-cabin-dify-user-id";
+let fallbackDifyUserId = "";
+
+function getPersistentDifyUserId() {
+  try {
+    const existing = localStorage.getItem(DIFY_USER_STORAGE_KEY);
+    if (existing) return existing;
+    const randomId = typeof crypto?.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const created = `demo-${randomId}`;
+    localStorage.setItem(DIFY_USER_STORAGE_KEY, created);
+    return created;
+  } catch {
+    fallbackDifyUserId ||= `demo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return fallbackDifyUserId;
+  }
+}
+
+function getPersistentDifyConversationId() {
+  try {
+    return localStorage.getItem(DIFY_CONVERSATION_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function savePersistentDifyConversationId(conversationId) {
+  if (!conversationId) return;
+  try {
+    localStorage.setItem(DIFY_CONVERSATION_STORAGE_KEY, conversationId);
+  } catch {
+    console.warn("Could not persist the Dify conversation ID in local storage.");
+  }
+}
 const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
 const MIN_BUBBLE_DISPLAY_MS = 3000;
 const PASSENGER_BUBBLE_MS = 8000;
@@ -51,6 +87,9 @@ const HOST_SPEECH_PRIORITIES = Object.freeze({
 });
 const HOST_SPEECH_DEFAULT_LOCK_MS = 6000;
 const SUMMARY_HOST_SPEECH_DELAY_MS = 6000;
+const DRIVER_SAFETY_HOLD_MS = 15_000;
+const OVERSPEED_KMH = 120;
+const CABIN_STATE_SYNC_DEBOUNCE_MS = 220;
 const CONFETTI_CONFIG = Object.freeze({
   count: 100,
   durationMs: 5000,
@@ -210,20 +249,6 @@ const RESOURCE_CONFIG = {
     风景区雪景白天: { screen: "snowDay", cabin: "snowDay", screenClass: "screen-snow", cabinClass: "env-snow-day" },
     风景区晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-scenic-night" },
   },
-};
-
-const ENVIRONMENT_HOST_LINES = {
-  车库: "我们回到车库啦，准备出发。",
-  隧道: "我们进入隧道啦，马上就出来。",
-  高速路晴天白天: "我们上高速啦，阳光正好，大家坐稳哦。",
-  高速路晴天深夜: "我们进入深夜高速啦，大家注意休息。",
-  高速路雨天白天: "我们遇到雨天啦，路上慢一点，大家坐稳。",
-  城区晴天白天: "我们来到市区啦，周围热闹起来了。",
-  城区夜晚: "我们来到夜晚的市区啦，灯光很漂亮。",
-  城区雨天白天: "我们来到下雨的市区啦，路面有点湿滑。",
-  风景区晴天白天: "我们到风景区啦，窗外风景真不错。",
-  风景区傍晚: "我们来到风景区傍晚啦，晚霞真漂亮。",
-  风景区雪景白天: "我们到雪景里啦，窗外白茫茫的。",
 };
 
 const PASSENGER_ACTIVITY_LABELS = {
@@ -663,6 +688,7 @@ const DEFAULT_STATE = {
   perception: {
     driverState: "normal",
     gameProgress: "normal",
+    driverSafetySince: 0,
   },
   game: {
     status: "idle",
@@ -688,11 +714,6 @@ const DEFAULT_STATE = {
     screenEnvironment: GOLDEN_TIMELINES[0].environment,
     screenEnvironmentTimer: null,
     screenEnvironmentTransitionId: 0,
-    environmentAnnouncementTimer: null,
-    environmentAnnouncementId: 0,
-    environmentAnnouncementText: "",
-    environmentAnnouncementBaseText: "",
-    environmentAnnouncementPending: "",
     importantEvent: {
       text: "",
       phase: "hidden",
@@ -727,6 +748,8 @@ const DEFAULT_STATE = {
     execution: "等待网页动作",
     strategyId: "",
     priority: "",
+    executionActions: [],
+    executionResult: "",
   },
   workflow: {
     inFlight: false,
@@ -750,6 +773,21 @@ const DEFAULT_STATE = {
     hostThinkingActive: false,
     hostAvatarTimer: null,
     summarySpeechTimer: null,
+    lastChatIntent: "",
+    lastChatReplyMode: "",
+    lastChatWasBridge: false,
+    chatTurnCount: 0,
+    driverSafetyTimer: null,
+    driverSafetyEpisode: 0,
+    driverSafetyAnnouncedEpisode: 0,
+    environmentSpeechSequence: 0,
+    pendingEnvironmentSpeech: null,
+    pendingEnvironmentSpeechTimer: null,
+    previousSpeed: 0,
+    cabinStateSyncTimer: null,
+    cabinStateSyncQueue: null,
+    cabinStateSyncRevision: 0,
+    pendingEvents: [],
     hostSpeech: {
       id: 0,
       priority: 0,
@@ -769,6 +807,8 @@ const DEFAULT_STATE = {
 };
 
 const state = structuredClone(DEFAULT_STATE);
+// Runtime promises cannot be cloned with the serializable default state.
+state.workflow.cabinStateSyncQueue = Promise.resolve();
 const els = {};
 let audioContext = null;
 const backgroundMusic = {
@@ -981,6 +1021,10 @@ function bindEvents() {
       }
       if (type === "driver_tired") {
         applyImmediateDriverTired();
+        scheduleDriverSafetyAnnouncement();
+        scheduleCabinSnapshotSync();
+        render();
+        return;
       }
       if (type === "near_destination") {
         applyImmediateNearDestination();
@@ -1689,6 +1733,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   clearImportantEvent();
   clearSummarySpeechTimer();
   clearHostSpeechLock();
+  clearDriverSafetyAnnouncement();
   clearQuestionClock();
   if (state.workflow.activityTimer) {
     clearTimeout(state.workflow.activityTimer);
@@ -1741,6 +1786,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.host.targetSeat = "front";
   state.workflow.lastPassengerActionKey = "";
   state.workflow.pendingChats = [];
+  resetRealtimeConversationState();
   state.perception.driverState = "normal";
   state.perception.gameProgress = "normal";
   clearPassengerBubbles();
@@ -1750,6 +1796,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
     seat.activityLabel = "";
   });
   updateDecisionTrace(timeline.trace);
+  scheduleCabinSnapshotSync();
 }
 
 function getPrestartHostText(timeline) {
@@ -1961,6 +2008,10 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
   }
   if (type === "driver_tired") {
     applyImmediateDriverTired();
+    scheduleDriverSafetyAnnouncement();
+    scheduleCabinSnapshotSync();
+    render();
+    return;
   }
   if (type === "passenger_sleep") {
     applyImmediatePassengerSleep(seat);
@@ -2009,10 +2060,11 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
 }
 
 async function runScriptedSpeed(speed) {
+  const previousSpeed = state.car.speed;
   state.car.speed = speed;
   state.ui.alert = `车速已更新为 ${speed} km/h`;
   render();
-  await dispatchWorkflow("event", { type: "speed_change", value: speed, source: "timeline" });
+  await handleSpeedStateChange(previousSpeed, speed, "timeline");
 }
 
 async function runScriptedEnvironment(environment) {
@@ -2376,18 +2428,20 @@ async function sendQuestion() {
 }
 
 function setSpeed(speed) {
+  const previousSpeed = state.car.speed;
   state.car.speed = speed;
   if (speed >= 100) {
     state.ui.alert = "高速安全模式：减少主驾互动";
     state.host.targetSeat = "front";
   }
-  dispatchWorkflow("event", { type: "speed_change", value: speed });
+  handleSpeedStateChange(previousSpeed, speed, "manual");
+  scheduleCabinSnapshotSync();
   render();
 }
 
 function setDestination(destination) {
   state.car.destination = destination;
-  dispatchWorkflow("event", { type: "destination_change", value: destination });
+  scheduleCabinSnapshotSync();
   render();
 }
 
@@ -2408,73 +2462,64 @@ function setEnvironment(environment) {
     state.ui.screenEnvironment = environment;
     state.ui.alert = `${environment} 已同步到座舱`;
   }
+  scheduleCabinSnapshotSync();
   render();
 }
 
-function getEnvironmentHostLine(environment) {
-  return ENVIRONMENT_HOST_LINES[environment] || `我们来到${environment}啦。`;
-}
-
-function showEnvironmentAnnouncement(environment) {
-  const announcement = getEnvironmentHostLine(environment);
-  const currentText = String(state.host.text || "");
-  const baseText = state.ui.environmentAnnouncementText === currentText
-    ? state.ui.environmentAnnouncementBaseText
-    : currentText;
-  clearEnvironmentAnnouncement();
-  const announcementId = state.ui.environmentAnnouncementId;
-  state.ui.environmentAnnouncementText = announcement;
-  state.ui.environmentAnnouncementBaseText = baseText;
-  const published = publishHostLine(announcement, {
-    priority: "P1",
-    source: "environment",
-    durationMs: ENVIRONMENT_ANNOUNCEMENT_MS,
-  });
-  if (!published) {
-    const retryId = state.ui.environmentAnnouncementId;
-    state.ui.environmentAnnouncementText = "";
-    state.ui.environmentAnnouncementBaseText = "";
-    state.ui.environmentAnnouncementPending = environment;
-    state.ui.environmentAnnouncementTimer = window.setTimeout(() => {
-      if (state.ui.environmentAnnouncementId !== retryId) return;
-      state.ui.environmentAnnouncementTimer = null;
-      state.ui.environmentAnnouncementPending = "";
-      showEnvironmentAnnouncement(environment);
-    }, 500);
+async function handleSpeedStateChange(previousSpeed, speed, source) {
+  if (previousSpeed <= OVERSPEED_KMH && speed > OVERSPEED_KMH) {
+    await dispatchWorkflow("event", {
+      type: "speed_overspeed",
+      value: speed,
+      threshold_kmh: OVERSPEED_KMH,
+      priority: "P1",
+      source,
+    });
     return;
   }
-  state.ui.environmentAnnouncementTimer = window.setTimeout(() => {
-    if (
-      state.ui.environmentAnnouncementId !== announcementId
-      || state.host.text !== announcement
-    ) return;
-    state.ui.environmentAnnouncementTimer = null;
-    state.ui.environmentAnnouncementText = "";
-    clearHostSpeechLock("environment");
-    // The environment speech lock timer only releases priority; clear the
-    // rendered text here so the announcement cannot remain on screen.
-    state.host.text = "";
-    if (state.ui.environmentAnnouncementBaseText) {
-      publishHostLine(state.ui.environmentAnnouncementBaseText, {
-        priority: "P2",
-        source: "environment_restore",
-      });
+  scheduleCabinSnapshotSync();
+}
+
+function scheduleDriverSafetyAnnouncement() {
+  clearTimeout(state.workflow.driverSafetyTimer);
+  state.workflow.driverSafetyEpisode += 1;
+  const episode = state.workflow.driverSafetyEpisode;
+  state.workflow.driverSafetyAnnouncedEpisode = 0;
+  state.perception.driverSafetySince = Date.now();
+  state.workflow.driverSafetyTimer = window.setTimeout(() => {
+    state.workflow.driverSafetyTimer = null;
+    const driverMood = state.passengers.seats.driver.mood;
+    if (!state.perception.driverState || !["fatigued", "asleep"].includes(state.perception.driverState)) {
+      if (!["疲惫", "睡着"].includes(driverMood)) return;
     }
-    state.ui.environmentAnnouncementBaseText = "";
-    render();
-  }, ENVIRONMENT_ANNOUNCEMENT_MS);
-  render();
+    if (episode !== state.workflow.driverSafetyEpisode) return;
+    state.workflow.driverSafetyAnnouncedEpisode = episode;
+    dispatchWorkflow("event", {
+      type: "driver_tired",
+      duration_ms: DRIVER_SAFETY_HOLD_MS,
+      state: driverMood === "睡着" || state.perception.driverState === "asleep" ? "asleep" : "fatigued",
+      priority: "P1",
+      source: "persistent_driver_state",
+    });
+  }, DRIVER_SAFETY_HOLD_MS);
+}
+
+function clearDriverSafetyAnnouncement() {
+  clearTimeout(state.workflow.driverSafetyTimer);
+  state.workflow.driverSafetyTimer = null;
+  state.workflow.driverSafetyEpisode += 1;
+  state.workflow.driverSafetyAnnouncedEpisode = 0;
+  state.perception.driverSafetySince = 0;
+  scheduleCabinSnapshotSync();
 }
 
 function clearEnvironmentAnnouncement() {
-  if (state.ui.environmentAnnouncementTimer) {
-    window.clearTimeout(state.ui.environmentAnnouncementTimer);
-    state.ui.environmentAnnouncementTimer = null;
-  }
-  state.ui.environmentAnnouncementId += 1;
-  state.ui.environmentAnnouncementText = "";
-  state.ui.environmentAnnouncementBaseText = "";
-  state.ui.environmentAnnouncementPending = "";
+  window.clearTimeout(state.workflow.pendingEnvironmentSpeechTimer);
+  state.workflow.pendingEnvironmentSpeechTimer = null;
+  state.workflow.pendingEnvironmentSpeech = null;
+  state.workflow.pendingEvents = state.workflow.pendingEvents.filter(
+    (item) => item.event.type !== "environment_change",
+  );
   clearHostSpeechLock("environment");
 }
 
@@ -2555,7 +2600,6 @@ function scheduleScreenEnvironmentTransition(environment) {
     ) return;
     state.ui.screenEnvironmentTimer = null;
     state.ui.screenEnvironment = environment;
-    state.ui.environmentAnnouncementPending = environment;
     render();
   }, SCREEN_ENVIRONMENT_DELAY_MS);
 }
@@ -2651,6 +2695,7 @@ function applyImmediatePassengerSleep(seat) {
     strategyId: "S04",
     priority: "P2",
   });
+  scheduleCabinSnapshotSync();
   render();
 }
 
@@ -2660,10 +2705,6 @@ function applyImmediateDriverTired() {
   state.ui.cabinMode = "driver_focus";
   state.ui.alert = "主驾疲惫：降低驾驶员互动";
   state.host.targetSeat = "front";
-  publishHostLine("主驾先专心看路，接下来的问题交给副驾和后排。", {
-    priority: "P3",
-    source: "driver_tired",
-  });
   updateDecisionTrace({
     perception: "检测到主驾疲惫",
     decision: "降低主驾互动，副驾和后排接管",
@@ -2693,9 +2734,16 @@ function applyImmediateNearDestination() {
 }
 
 async function dispatchWorkflow(triggerType, event, playerInput = "") {
-  const eventType = event?.type;
+  const normalizedEvent = event
+    ? { ...event, priority: event.priority || getEventPriority(event.type) }
+    : null;
+  const eventType = normalizedEvent?.type;
   const isSafetyInterrupt = eventType === "hard_brake";
   if (isHostBusy() && !isSafetyInterrupt) {
+    if (normalizedEvent && normalizedEvent.priority === "P1") {
+      enqueuePendingHostEvent(triggerType, normalizedEvent, playerInput);
+      return;
+    }
     state.ui.alert = "AI 正在处理上一条信息，请稍等";
     render();
     return;
@@ -2706,7 +2754,11 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
     cancelPreparedHostReply();
   }
 
-  const input = buildWorkflowInput(triggerType, event, playerInput);
+  if (normalizedEvent && normalizedEvent.priority !== "P0") {
+    await flushCabinSnapshotSync();
+  }
+
+  const input = buildWorkflowInput(triggerType, normalizedEvent, playerInput);
   const requestId = beginWorkflowRequest(input);
 
   try {
@@ -2750,8 +2802,35 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
       if (requestId !== state.workflow.activeRequestId) return;
       finishWorkflowRequest(requestId);
       render();
+      drainPendingHostEvents();
     }
   }
+}
+
+function enqueuePendingHostEvent(triggerType, event, playerInput) {
+  const eventType = event.type;
+  const entry = { triggerType, event, playerInput, queuedAt: Date.now() };
+  const existingIndex = state.workflow.pendingEvents.findIndex((item) => item.event.type === eventType);
+  if (existingIndex >= 0) state.workflow.pendingEvents.splice(existingIndex, 1);
+  state.workflow.pendingEvents.push(entry);
+  if (eventType === "environment_change") {
+    state.workflow.pendingEvents = state.workflow.pendingEvents.filter(
+      (item) => item.event.type !== "environment_change" || item === entry,
+    );
+  }
+}
+
+function drainPendingHostEvents() {
+  if (isHostBusy() || !state.workflow.pendingEvents.length) return;
+  state.workflow.pendingEvents.sort(
+    (left, right) => normalizeHostSpeechPriority(right.event.priority) - normalizeHostSpeechPriority(left.event.priority),
+  );
+  const next = state.workflow.pendingEvents.shift();
+  if (next.event.type === "environment_change" && next.event.value !== state.car.environment) {
+    drainPendingHostEvents();
+    return;
+  }
+  window.setTimeout(() => dispatchWorkflow(next.triggerType, next.event, next.playerInput), 0);
 }
 
 function isHostBusy() {
@@ -2987,6 +3066,13 @@ function buildRoundQuestionPlanRequest(event) {
 }
 
 function buildWorkflowInput(triggerType, event, playerInput) {
+  const fullInput = buildFullWorkflowInput(triggerType, event, playerInput);
+  return triggerType === "chat"
+    ? buildRealtimeChatInput(fullInput)
+    : fullInput;
+}
+
+function buildFullWorkflowInput(triggerType, event, playerInput) {
   const selectedSeat = state.passengers.selectedSeat;
   const personas = getPassengerPersonas();
   const selectedPersona = getPassengerPersona(selectedSeat);
@@ -3056,7 +3142,6 @@ function buildWorkflowInput(triggerType, event, playerInput) {
       max_questions: state.game.maxQuestions,
       current_answer: getCurrentRiddle().answer,
       current_theme: getCurrentRiddle().theme,
-      hint: getCurrentRiddle().hint,
       progress: perception.game_progress,
       asked_questions: getAskedQuestions(),
       covered_fact_keys: state.game.coveredFactKeys,
@@ -3074,6 +3159,79 @@ function buildWorkflowInput(triggerType, event, playerInput) {
     player_seat: SEATS[selectedSeat],
     player_input: playerInput,
     event: normalizedEvent,
+  };
+}
+
+function buildRealtimeChatInput(fullInput) {
+  const planSteps = (state.game.roundQuestionPlan?.steps || [])
+    .slice(0, 8)
+    .map((step) => ({
+      fact_key: String(step.factKey || "").trim(),
+      depends_on: Array.isArray(step.dependsOn) ? step.dependsOn.slice(0, 4) : [],
+      stage: String(step.stage || "").trim(),
+      expected_answer: String(step.expectedAnswer || "").trim(),
+      question: String(step.variants?.default || "").trim().slice(0, 80),
+    }))
+    .filter((step) => step.fact_key);
+
+  const recentMessages = (fullInput.interaction?.recent_messages || [])
+    .slice(-6)
+    .map((message) => ({
+      role: String(message.role || "").slice(0, 32),
+      seat: String(message.seat || "").slice(0, 32),
+      seat_label: String(message.seat_label || "").slice(0, 16),
+      text: String(message.text || "").trim().slice(0, 160),
+    }))
+    .filter((message) => message.text);
+
+  const justHadSmalltalk =
+    state.workflow.lastChatIntent === "smalltalk"
+    || state.workflow.lastChatReplyMode === "chat_only";
+  const wasGuidedBackToGame =
+    state.workflow.lastChatWasBridge
+    || state.workflow.lastChatReplyMode === "chat_then_bridge";
+
+  return {
+    trigger_type: "chat",
+    player_input: String(fullInput.player_input || "").trim().slice(0, 800),
+    passengers: {
+      relationship: fullInput.passengers.relationship,
+      selected_seat: fullInput.passengers.selected_seat,
+      selected_seat_label: fullInput.passengers.selected_seat_label,
+      selected_persona: fullInput.passengers.selected_persona,
+      user_seat: "front",
+    },
+    game: {
+      status: fullInput.game.status,
+      round_index: fullInput.game.round_index,
+      question_count: fullInput.game.question_count,
+      max_questions: fullInput.game.max_questions,
+      current_answer: fullInput.game.current_answer,
+      current_theme: fullInput.game.current_theme,
+      covered_fact_keys: (Array.isArray(fullInput.game.covered_fact_keys)
+        ? fullInput.game.covered_fact_keys
+        : []).slice(-12),
+      asked_questions: (Array.isArray(fullInput.game.asked_questions)
+        ? fullInput.game.asked_questions
+        : []).slice(-6),
+    },
+    car: fullInput.car,
+    perception: fullInput.perception,
+    event: fullInput.event,
+    round_question_plan: planSteps.length ? { steps: planSteps } : null,
+    interaction: {
+      current_speaker: fullInput.interaction.current_speaker,
+      current_speaker_label: fullInput.interaction.current_speaker_label,
+      current_speaker_persona: fullInput.interaction.current_speaker_persona,
+      speaker_source: fullInput.interaction.speaker_source,
+      recent_messages: recentMessages,
+    },
+    conversation_context: {
+      just_had_smalltalk: justHadSmalltalk,
+      last_response_guided_back_to_game: wasGuidedBackToGame,
+      should_gently_bridge_if_natural: justHadSmalltalk && !wasGuidedBackToGame,
+      turn_count: state.workflow.chatTurnCount,
+    },
   };
 }
 
@@ -3236,7 +3394,8 @@ function getEventPriority(type) {
     passenger_sleep: "P2",
     passenger_inactive: "P2",
     near_destination: "P2",
-    environment_change: "P2",
+    environment_change: "P1",
+    speed_overspeed: "P1",
     speed_change: "P2",
     game_stuck: "P3",
     near_answer: "P3",
@@ -3254,63 +3413,157 @@ async function requestWorkflow(input, signal) {
     },
     body: JSON.stringify({
       input_payload: JSON.stringify(input),
+      conversation_id: getPersistentDifyConversationId(),
+      user_id: getPersistentDifyUserId(),
     }),
     signal,
   });
 
   if (!response.ok) {
-    throw new Error(`Workflow request failed: ${response.status}`);
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.message || `Chatflow request failed: ${response.status}`);
   }
 
   const payload = await response.json();
+  savePersistentDifyConversationId(payload.conversation_id);
+  scheduleCabinSnapshotSync(0);
   return normalizeWorkflowPayload(payload);
+}
+
+function buildCabinSnapshot() {
+  const seats = state.passengers.seats;
+  return {
+    updated_at: new Date().toISOString(),
+    car: {
+      speed_kmh: Number(state.car.speed) || 0,
+      environment: String(state.car.environment || ""),
+      destination: String(state.car.destination || ""),
+    },
+    driver: {
+      state: String(state.perception.driverState || "normal"),
+      mood: String(seats.driver?.mood || "普通"),
+      state_since: state.perception.driverSafetySince || null,
+    },
+    passengers: {
+      relationship: String(state.passengers.relationship || ""),
+      front: String(seats.front?.mood || "普通"),
+      rear_left: String(seats.rearLeft?.mood || "普通"),
+      rear_right: String(seats.rearRight?.mood || "普通"),
+    },
+    game_status: String(state.game.status || "idle"),
+  };
+}
+
+function scheduleCabinSnapshotSync(delay = CABIN_STATE_SYNC_DEBOUNCE_MS) {
+  clearTimeout(state.workflow.cabinStateSyncTimer);
+  state.workflow.cabinStateSyncTimer = window.setTimeout(() => {
+    state.workflow.cabinStateSyncTimer = null;
+    syncCabinSnapshot();
+  }, delay);
+}
+
+function syncCabinSnapshot() {
+  const conversationId = getPersistentDifyConversationId();
+  if (!conversationId) return state.workflow.cabinStateSyncQueue;
+  const userId = getPersistentDifyUserId();
+  const snapshot = buildCabinSnapshot();
+  const revision = ++state.workflow.cabinStateSyncRevision;
+  state.workflow.cabinStateSyncQueue = state.workflow.cabinStateSyncQueue
+    .catch(() => {})
+    .then(async () => {
+      if (revision < state.workflow.cabinStateSyncRevision) return;
+      const response = await fetch(DEFAULT_WORKFLOW_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operation: "sync_state",
+          conversation_id: conversationId,
+          user_id: userId,
+          snapshot,
+        }),
+      });
+      if (!response.ok) {
+        const detail = await response.json().catch(() => ({}));
+        throw new Error(detail.error || `Conversation state sync failed: ${response.status}`);
+      }
+    })
+    .catch((error) => console.warn("Dify cabin snapshot sync failed.", error));
+  return state.workflow.cabinStateSyncQueue;
+}
+
+function flushCabinSnapshotSync() {
+  if (state.workflow.cabinStateSyncTimer) {
+    clearTimeout(state.workflow.cabinStateSyncTimer);
+    state.workflow.cabinStateSyncTimer = null;
+  }
+  return syncCabinSnapshot();
 }
 
 function normalizeWorkflowPayload(payload) {
   const candidates = [
     payload?.workflow_output,
     payload?.data?.workflow_output,
+    payload?.answer,
+    payload?.data?.answer,
+    payload?.outputs?.answer,
+    payload?.data?.outputs?.answer,
     payload,
-    payload.data,
-    payload.output,
-    payload.result,
+    payload?.data,
+    payload?.output,
+    payload?.result,
     payload?.data?.output,
     payload?.data?.result,
   ].filter(Boolean);
 
   for (const candidate of candidates) {
-    if (typeof candidate === "string") {
-      try {
-        return normalizeWorkflowOutput(JSON.parse(candidate));
-      } catch {
-        continue;
-      }
-    }
-    if (
-      typeof candidate === "object"
-      && (
-        candidate.ai_reply_text
-        || candidate.round_question_plan
-        || candidate.round_content?.round_question_plan
-        || candidate.round_content?.question_plan
-      )
-    ) {
-      return normalizeWorkflowOutput(candidate);
+    const parsed = parseWorkflowOutputCandidate(candidate);
+    if (isPublicWorkflowOutput(parsed)) {
+      return normalizeWorkflowOutput(parsed);
     }
   }
 
-  return {
-    ai_reply_text: "我收到了工作流返回，但格式还需要对齐一下。",
-    game_status: state.game.status,
-    is_correct: false,
-    answer: getCurrentRiddle().answer,
-    ui_change: {
-      cabin_mode: "normal",
-      host_emotion: "thinking",
-      animation: "speak",
-      show_answer: false,
-    },
-  };
+  throw new Error("Dify Chatflow response did not include a valid public JSON workflow output.");
+}
+
+function parseWorkflowOutputCandidate(candidate) {
+  if (candidate && typeof candidate === "object") return candidate;
+  if (typeof candidate !== "string") return null;
+
+  const text = candidate.trim();
+  if (!text) return null;
+
+  const candidates = [
+    text,
+    text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim(),
+  ];
+  const objectStart = text.indexOf("{");
+  const objectEnd = text.lastIndexOf("}");
+  if (objectStart >= 0 && objectEnd > objectStart) {
+    candidates.push(text.slice(objectStart, objectEnd + 1));
+  }
+
+  for (const value of candidates) {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch {
+      // Dify may wrap the JSON answer in a markdown code fence.
+    }
+  }
+  return null;
+}
+
+function isPublicWorkflowOutput(candidate) {
+  return Boolean(
+    candidate
+    && typeof candidate === "object"
+    && (
+      typeof candidate.ai_reply_text === "string"
+      || candidate.round_question_plan
+      || candidate.round_content?.round_question_plan
+      || candidate.round_content?.question_plan
+    ),
+  );
 }
 
 function normalizeWorkflowOutput(output) {
@@ -3485,6 +3738,7 @@ function publishHostLine(text, {
   source = "workflow",
   durationMs = null,
   force = false,
+  eventValue = "",
 } = {}) {
   const normalizedText = String(text || "").trim();
   if (!normalizedText) return false;
@@ -3504,6 +3758,44 @@ function publishHostLine(text, {
     );
   const now = Date.now();
   const activeLock = speech.expiresAt > now;
+  if (source === "environment" && activeLock && !force) {
+    const pendingId = ++state.workflow.environmentSpeechSequence;
+    state.workflow.pendingEnvironmentSpeech = {
+      id: pendingId,
+      text: normalizedText,
+      eventValue: String(eventValue || state.car.environment),
+      durationMs: lockDurationMs,
+    };
+    clearTimeout(state.workflow.pendingEnvironmentSpeechTimer);
+    state.workflow.pendingEnvironmentSpeechTimer = window.setTimeout(() => {
+      const pending = state.workflow.pendingEnvironmentSpeech;
+      state.workflow.pendingEnvironmentSpeechTimer = null;
+      if (!pending || pending.id !== pendingId) return;
+      if (state.workflow.hostSpeech.expiresAt > Date.now()) {
+        publishHostLine(pending.text, {
+          priority: "P1",
+          source: "environment",
+          durationMs: pending.durationMs,
+          eventValue: pending.eventValue,
+        });
+        return;
+      }
+      if (pending.eventValue !== state.car.environment) {
+        state.workflow.pendingEnvironmentSpeech = null;
+        return;
+      }
+      state.workflow.pendingEnvironmentSpeech = null;
+      publishHostLine(pending.text, {
+        priority: "P1",
+        source: "environment",
+        durationMs: pending.durationMs,
+        force: true,
+        eventValue: pending.eventValue,
+      });
+      render();
+    }, Math.max(0, speech.expiresAt - now) + 20);
+    return true;
+  }
   if (activeLock && !force && nextPriority < speech.priority) {
     return false;
   }
@@ -3513,14 +3805,9 @@ function publishHostLine(text, {
     speech.timer = null;
   }
   if (speech.source === "environment" && nextPriority > speech.priority) {
-    if (state.ui.environmentAnnouncementTimer) {
-      clearTimeout(state.ui.environmentAnnouncementTimer);
-      state.ui.environmentAnnouncementTimer = null;
-    }
-    state.ui.environmentAnnouncementId += 1;
-    state.ui.environmentAnnouncementText = "";
-    state.ui.environmentAnnouncementBaseText = "";
-    state.ui.environmentAnnouncementPending = "";
+    clearTimeout(state.workflow.pendingEnvironmentSpeechTimer);
+    state.workflow.pendingEnvironmentSpeechTimer = null;
+    state.workflow.pendingEnvironmentSpeech = null;
   }
   speech.id += 1;
   speech.priority = nextPriority;
@@ -3534,17 +3821,14 @@ function publishHostLine(text, {
 
   if (lockDurationMs > 0 && lockDurationMs !== Infinity) {
     const speechId = speech.id;
-    const clearOnExpire = source !== "environment";
     speech.timer = window.setTimeout(() => {
       if (speech.id !== speechId) return;
       speech.timer = null;
       speech.priority = 0;
       speech.source = "";
       speech.expiresAt = 0;
-      if (clearOnExpire) {
-        state.host.text = "";
-        render();
-      }
+      state.host.text = "";
+      render();
     }, lockDurationMs);
   }
   return true;
@@ -3573,13 +3857,8 @@ function getWorkflowHostSpeechPriority(output, input) {
   }
 
   const eventType = input?.event?.type;
-  if (eventType === "hard_brake" || eventType === "resume_game") return "P0";
-  if (eventType === "environment_change") return "P1";
-  if (input?.trigger_type === "chat" || eventType === "start_game") return "P2";
-  if (["driver_tired", "passenger_sleep", "passenger_inactive", "near_destination", "speed_change"].includes(eventType)) {
-    return "P3";
-  }
-  if (["near_answer", "game_stuck", "cabin_laughing"].includes(eventType)) return "P4";
+  if (eventType) return input.event?.priority || getEventPriority(eventType);
+  if (input?.trigger_type === "chat") return "P2";
   return "P2";
 }
 
@@ -3627,6 +3906,13 @@ function normalizeAnswerText(text) {
   return String(text || "")
     .toLowerCase()
     .replace(/[\s，。！？、,.!?:"'“”‘’（）()【】\[\]-]/g, "");
+}
+
+function isHintRequestInput(input) {
+  if (input?.trigger_type !== "chat" || input.game?.status !== "playing") {
+    return false;
+  }
+  return /(提示|线索|暗示)/.test(String(input.player_input || ""));
 }
 
 function localDecision(input, error) {
@@ -3787,6 +4073,25 @@ function localDecision(input, error) {
       };
     }
 
+    if (isHintRequestInput(input)) {
+      return {
+        ai_reply_text: "我先不额外给提示哦，可以继续问我一个是或否问题。",
+        game_status: "playing",
+        is_correct: false,
+        ui_change: {
+          cabin_mode: "normal",
+          target_seat: selectedSeat,
+          host_emotion: "normal",
+          animation: "speak",
+          show_answer: false,
+        },
+        intent: "game_related_chat",
+        reply_mode: "chat_then_bridge",
+        covered_fact_keys: [],
+        debug_fallback_reason: error?.message || "",
+      };
+    }
+
     if (reachedLimit) {
       return {
         ai_reply_text: `15 个问题用完，谜底揭晓：${riddle.answer}。这题确实有点狡猾。`,
@@ -3857,10 +4162,17 @@ function applyWorkflowOutput(output, input) {
   const isVictoryOutput = Boolean(output.is_correct || output.game_status === "victory");
   const isHardBrakeOutput = input.event?.type === "hard_brake";
   const eventType = input.event?.type;
-  const environmentAnnouncementActive = Boolean(state.ui.environmentAnnouncementText);
   const keepRealUserFocus = shouldKeepRealUserFocus(input, output);
   applyRoundQuestionPlanFromOutput(output, input);
-  mergeCoveredFactKeysFromOutput(output);
+  const isHintRefusal =
+    isHintRequestInput(input)
+    && output.reply_mode === "chat_then_bridge";
+  if (isHintRefusal) {
+    state.game.coveredFactKeys = [];
+  } else {
+    mergeCoveredFactKeysFromOutput(output);
+  }
+  updateRealtimeConversationState(output, input);
   if (!isVictoryOutput) {
     clearPassengerActivities();
   }
@@ -3874,23 +4186,25 @@ function applyWorkflowOutput(output, input) {
   const previousHostText = state.host.text;
   const sanitizedHostText = sanitizeHostReplyText(output.ai_reply_text || "");
   const hostSpeechPriority = getWorkflowHostSpeechPriority(output, input);
-  const preserveHigherPriorityHostReply =
+  const staleEnvironmentReply =
     eventType === "environment_change"
-    || (
-      environmentAnnouncementActive
-      && normalizeHostSpeechPriority(hostSpeechPriority) < HOST_SPEECH_PRIORITIES.P0
-    );
-  if (preserveHigherPriorityHostReply || shouldMuteHostReplyForEvent(eventType, sanitizedHostText)) {
+    && input.event?.value
+    && input.event.value !== state.car.environment;
+  if (staleEnvironmentReply || shouldMuteHostReplyForEvent(eventType, sanitizedHostText)) {
     state.host.text = previousHostText;
   } else if (sanitizedHostText) {
     publishHostLine(
       normalizeHostReplyForRealUser(sanitizedHostText, output, input),
-      { priority: hostSpeechPriority, source: input.event?.type || input.trigger_type },
+      {
+        priority: hostSpeechPriority,
+        source: eventType === "environment_change" ? "environment" : input.event?.type || input.trigger_type,
+        eventValue: input.event?.value || "",
+      },
     );
   } else {
     state.host.text = previousHostText;
   }
-  if (passengerActionApplied && !output.ai_reply_text && !preserveHigherPriorityHostReply) {
+  if (passengerActionApplied && !output.ai_reply_text && !staleEnvironmentReply) {
     publishHostLine("这个问题收到，我来接住这一轮。", {
       priority: hostSpeechPriority,
       source: input.event?.type || input.trigger_type,
@@ -3968,6 +4282,8 @@ function applyWorkflowOutput(output, input) {
     state.host.targetSeat = correctSeat;
   }
 
+  applyWorkflowActions(output.execution?.actions, input, { correctLightAlreadyExecuted: isVictoryOutput });
+
   updateDecisionTrace(normalizeDecisionTrace(output, input));
 
   state.game.history.push({
@@ -3975,10 +4291,49 @@ function applyWorkflowOutput(output, input) {
     input,
     output,
   });
+  scheduleCabinSnapshotSync();
 
   if (isVictoryOutput) {
     scheduleNextRound();
   }
+}
+
+function applyWorkflowActions(actions, input, { correctLightAlreadyExecuted = false } = {}) {
+  const results = [];
+  const allowed = Array.isArray(actions) ? actions : [];
+  for (const action of allowed) {
+    if (!action || typeof action !== "object") continue;
+    if (action.type === "ambient_light.play_preset") {
+      if (action.preset === "cabin-correct-light" && correctLightAlreadyExecuted) {
+        results.push("答对氛围灯已由前端答对逻辑触发");
+      } else {
+        results.push("氛围灯计划未执行：当前事件不符合执行条件");
+      }
+      continue;
+    }
+    if (action.type === "music.set_enabled" && typeof action.enabled === "boolean") {
+      setBackgroundMusicEnabled(action.enabled);
+      results.push(action.enabled ? "音乐已开启" : "音乐已关闭");
+      continue;
+    }
+    results.push(`动作未执行：${String(action.type || "未知动作")}`);
+  }
+  state.decisionTrace.executionResult = results.join("；");
+}
+
+function updateRealtimeConversationState(output, input) {
+  if (input?.trigger_type !== "chat") return;
+  state.workflow.lastChatIntent = String(output.intent || "").trim();
+  state.workflow.lastChatReplyMode = String(output.reply_mode || "").trim();
+  state.workflow.lastChatWasBridge = state.workflow.lastChatReplyMode === "chat_then_bridge";
+  state.workflow.chatTurnCount += 1;
+}
+
+function resetRealtimeConversationState() {
+  state.workflow.lastChatIntent = "";
+  state.workflow.lastChatReplyMode = "";
+  state.workflow.lastChatWasBridge = false;
+  state.workflow.chatTurnCount = 0;
 }
 
 function createDecisionTraceFromOutput(output, input) {
@@ -4066,22 +4421,49 @@ function createDecisionTraceFromOutput(output, input) {
 }
 
 function normalizeDecisionTrace(output, input) {
-  const eventType = input.event?.type;
-  if (input.trigger_type === "chat" && (output.is_correct || output.game_status === "victory")) {
-    return createDecisionTraceFromOutput(output, input);
-  }
-  if (LOCAL_TRACE_EVENT_TYPES.has(eventType)) {
-    return createDecisionTraceFromOutput(output, input);
-  }
-
   if (!output.decision_trace) {
     return createDecisionTraceFromOutput(output, input);
   }
 
+  const perception = output.perception && typeof output.perception === "object"
+    ? output.perception
+    : {};
+  const decisionTrace = output.decision_trace && typeof output.decision_trace === "object"
+    ? output.decision_trace
+    : {};
+  const execution = output.execution && typeof output.execution === "object"
+    ? output.execution
+    : {};
+  const actionNames = (Array.isArray(execution.actions) ? execution.actions : [])
+    .map((action) => action?.label || action?.type)
+    .filter(Boolean);
+  const planText = actionNames.length ? `计划：${actionNames.join("、")}` : "无车辆动作计划";
+  const resultText = state.decisionTrace.executionResult
+    ? `；结果：${state.decisionTrace.executionResult}`
+    : "";
+  const fallbackText = execution.fallback ? `；降级：${execution.fallback}` : "";
+  const timingText = execution.timing?.mode ? `；时序：${execution.timing.mode}` : "";
+  const confidence = Number(perception.confidence);
+  const perceptionText = [
+    perception.source ? `来源：${perception.source}` : "",
+    perception.fusion_conclusion || decisionTrace.perception || "座舱状态已更新",
+    Number.isFinite(confidence) ? `置信度 ${Math.round(confidence * 100)}%` : "",
+  ].filter(Boolean).join("；");
+  const decisionText = [
+    decisionTrace.layer ? `层级：${decisionTrace.layer}` : "",
+    decisionTrace.matched_rule ? `命中：${decisionTrace.matched_rule}` : "",
+    decisionTrace.decision || "",
+    decisionTrace.guard_status ? `守卫：${decisionTrace.guard_status}` : "",
+    decisionTrace.hint_blocked ? "已拦截提示请求" : "",
+  ].filter(Boolean).join("；");
   const trace = {
-    ...output.decision_trace,
-    strategy_id: output.decision_trace.strategy_id || output.strategy_id,
-    priority: output.decision_trace.priority || output.priority,
+    ...decisionTrace,
+    perception: perceptionText,
+    decision: decisionText || decisionTrace.decision || "策略已完成",
+    execution: `${planText}${timingText}${resultText}${fallbackText}`,
+    execution_actions: Array.isArray(execution.actions) ? execution.actions : [],
+    strategy_id: decisionTrace.strategy_id || output.strategy_id,
+    priority: decisionTrace.priority || output.priority || input.event?.priority,
   };
   const strategyId = trace.strategy_id || trace.strategyId || "";
   const label = STRATEGY_LABELS[strategyId];
@@ -4100,6 +4482,9 @@ function updateDecisionTrace(trace = {}) {
     trace.execution || trace.action || state.decisionTrace.execution || "等待网页动作";
   state.decisionTrace.strategyId = trace.strategy_id || trace.strategyId || "";
   state.decisionTrace.priority = trace.priority || "";
+  state.decisionTrace.executionActions = Array.isArray(trace.execution_actions)
+    ? trace.execution_actions
+    : state.decisionTrace.executionActions || [];
 }
 
 function resetDecisionTrace() {
@@ -4313,6 +4698,7 @@ function advanceAfterVictory(completedRound) {
   state.game.roundQuestionPlan = null;
   state.game.usedRoundQuestionStepIds = [];
   state.game.coveredFactKeys = [];
+  resetRealtimeConversationState();
   state.game.status = "idle";
   state.ui.cabinMode = "normal";
   state.ui.showAnswer = false;
@@ -4604,10 +4990,6 @@ function render() {
       screenBackground,
       () => {
         refreshGameScreenBackdrop();
-        if (state.ui.environmentAnnouncementPending === state.ui.screenEnvironment) {
-          state.ui.environmentAnnouncementPending = "";
-          showEnvironmentAnnouncement(state.ui.screenEnvironment);
-        }
       },
     );
   }

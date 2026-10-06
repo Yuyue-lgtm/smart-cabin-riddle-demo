@@ -6,6 +6,7 @@ const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "127.0.0.1";
 const ROOT = __dirname;
 const TIMEOUT_MS = 60000;
+const DEFAULT_CHATFLOW_APP_ID = "74bef8bd-22bd-4e19-91da-5e8d645dd8ed";
 const RELEASE_INFO_PATH = path.join(ROOT, "release-info.json");
 
 loadEnvFile(path.join(ROOT, ".env.local"));
@@ -75,29 +76,49 @@ function loadEnvFile(filePath) {
 }
 
 async function proxyWorkflow(req, res) {
-  const workflowUrl = process.env.COZE_WORKFLOW_URL;
-  const apiToken = process.env.COZE_API_TOKEN || process.env.COZE_WORKFLOW_TOKEN;
+  const appId = process.env.DIFY_CHATFLOW_APP_ID || DEFAULT_CHATFLOW_APP_ID;
+  const apiToken = process.env.DIFY_CHATFLOW_API_KEY
+    || process.env.DIFY_API_KEY
+    || getMappedApiKey(appId);
+  const apiBase = (process.env.DIFY_API_BASE_URL || "https://api.dify.ai").replace(/\/+$/, "");
 
-  if (!workflowUrl || !apiToken) {
+  if (!apiToken) {
     sendJson(res, 500, {
-      error: "COZE_PROXY_NOT_CONFIGURED",
-      message: "Missing COZE_WORKFLOW_URL or COZE_API_TOKEN in .env.local.",
+      error: "DIFY_CHATFLOW_NOT_CONFIGURED",
+      message: "Missing DIFY_CHATFLOW_API_KEY in .env.local.",
     });
     return;
   }
 
-  const body = await readJsonBody(req);
+  const body = normalizeRequestBody(await readJsonBody(req));
+  if (body.operation === "sync_state") {
+    await syncConversationState({ body, res, apiBase, apiToken, appId });
+    return;
+  }
+
+  const query = typeof body.input_payload === "string"
+    ? body.input_payload
+    : JSON.stringify(body.input_payload || body);
+  const requestBody = {
+    inputs: {},
+    query,
+    response_mode: "blocking",
+    user: normalizeId(body.user_id, "demo-user"),
+    ...(typeof body.conversation_id === "string" && body.conversation_id.trim()
+      ? { conversation_id: body.conversation_id.trim() }
+      : {}),
+  };
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const response = await fetch(workflowUrl, {
+    const response = await fetch(`${apiBase}/v1/chat-messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
@@ -106,25 +127,101 @@ async function proxyWorkflow(req, res) {
 
     if (!response.ok) {
       sendJson(res, response.status, {
-        error: "COZE_WORKFLOW_REQUEST_FAILED",
+        error: "DIFY_CHATFLOW_REQUEST_FAILED",
         status: response.status,
         payload,
       });
       return;
     }
 
+    if (typeof payload?.answer !== "string") {
+      sendJson(res, 502, {
+        error: "DIFY_CHATFLOW_INVALID_RESPONSE",
+        message: "Dify Chatflow response did not include an answer string.",
+      });
+      return;
+    }
+
     sendJson(res, 200, {
-      workflow_output: extractWorkflowOutput(payload),
-      raw: payload,
+      workflow_output: payload.answer,
+      conversation_id: payload.conversation_id || requestBody.conversation_id || "",
+      message_id: payload.message_id || payload.id || "",
+      app_id: appId,
     });
   } catch (error) {
     const isTimeout = error.name === "AbortError";
     sendJson(res, isTimeout ? 504 : 500, {
-      error: isTimeout ? "COZE_WORKFLOW_TIMEOUT" : "COZE_PROXY_ERROR",
-      message: isTimeout ? "Coze workflow request timed out." : error.message,
+      error: isTimeout ? "DIFY_CHATFLOW_TIMEOUT" : "DIFY_CHATFLOW_PROXY_ERROR",
+      message: isTimeout ? "Dify Chatflow request timed out." : error.message,
     });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function syncConversationState({ body, res, apiBase, apiToken, appId }) {
+  const conversationId = normalizeId(body.conversation_id, "");
+  const userId = normalizeId(body.user_id, "");
+  if (!conversationId || !userId || !body.snapshot || typeof body.snapshot !== "object" || Array.isArray(body.snapshot)) {
+    sendJson(res, 400, { error: "INVALID_STATE_SYNC_REQUEST" });
+    return;
+  }
+
+  const value = JSON.stringify(body.snapshot);
+  if (value.length > 12000) {
+    sendJson(res, 413, { error: "STATE_SNAPSHOT_TOO_LARGE" });
+    return;
+  }
+
+  const base = `${apiBase}/v1/conversations/${encodeURIComponent(conversationId)}/variables`;
+  const headers = {
+    Authorization: `Bearer ${apiToken}`,
+    "Content-Type": "application/json",
+  };
+  const query = new URLSearchParams({ user: userId });
+  try {
+    const listResponse = await fetch(`${base}?${query}`, { headers });
+    const listPayload = parseMaybeJson(await listResponse.text());
+    if (!listResponse.ok) {
+      sendJson(res, listResponse.status, {
+        error: "DIFY_CONVERSATION_VARIABLES_REQUEST_FAILED",
+        payload: listPayload,
+      });
+      return;
+    }
+
+    const variables = Array.isArray(listPayload?.data)
+      ? listPayload.data
+      : Array.isArray(listPayload?.variables)
+        ? listPayload.variables
+        : [];
+    const snapshotVariable = variables.find((variable) => variable?.name === "cabin_snapshot");
+    if (!snapshotVariable?.id) {
+      sendJson(res, 409, { error: "DIFY_CABIN_SNAPSHOT_VARIABLE_MISSING" });
+      return;
+    }
+
+    const updateResponse = await fetch(`${base}/${encodeURIComponent(snapshotVariable.id)}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ value, user: userId }),
+    });
+    const updatePayload = parseMaybeJson(await updateResponse.text());
+    if (!updateResponse.ok) {
+      sendJson(res, updateResponse.status, {
+        error: "DIFY_CONVERSATION_VARIABLE_UPDATE_FAILED",
+        payload: updatePayload,
+      });
+      return;
+    }
+    sendJson(res, 200, {
+      ok: true,
+      app_id: appId,
+      conversation_id: conversationId,
+      variable: "cabin_snapshot",
+    });
+  } catch (error) {
+    sendJson(res, 502, { error: "DIFY_STATE_SYNC_PROXY_ERROR", message: error.message });
   }
 }
 
@@ -222,8 +319,10 @@ function sendJson(res, status, payload) {
 }
 
 function buildHealthPayload(runtime) {
-  const workflowUrl = process.env.COZE_WORKFLOW_URL;
-  const apiToken = process.env.COZE_API_TOKEN || process.env.COZE_WORKFLOW_TOKEN;
+  const appId = process.env.DIFY_CHATFLOW_APP_ID || DEFAULT_CHATFLOW_APP_ID;
+  const apiToken = process.env.DIFY_CHATFLOW_API_KEY
+    || process.env.DIFY_API_KEY
+    || getMappedApiKey(appId);
   const releaseInfo = readReleaseInfo();
 
   return {
@@ -235,7 +334,8 @@ function buildHealthPayload(runtime) {
     build_date: releaseInfo.build_date,
     workflow_proxy: {
       endpoint: "/api/workflow",
-      configured: Boolean(workflowUrl && apiToken),
+      provider: apiToken ? "dify-chatflow" : "unconfigured",
+      configured: Boolean(apiToken),
       timeout_ms: TIMEOUT_MS,
     },
     checked_at: new Date().toISOString(),
@@ -267,30 +367,23 @@ function parseMaybeJson(value) {
   }
 }
 
-function extractWorkflowOutput(payload) {
-  const candidates = [
-    payload?.workflow_output,
-    payload?.data?.workflow_output,
-    payload?.output,
-    payload?.data?.output,
-    payload?.result,
-    payload?.data?.result,
-    payload,
-  ].filter((candidate) => candidate !== undefined && candidate !== null);
+function normalizeRequestBody(body) {
+  if (!body) return {};
+  if (typeof body === "string") return parseMaybeJson(body) || {};
+  return body;
+}
 
-  for (const candidate of candidates) {
-    if (typeof candidate === "string") {
-      const parsed = parseMaybeJson(candidate);
-      if (parsed && typeof parsed === "object") {
-        return parsed;
-      }
-      return candidate;
-    }
+function normalizeId(value, fallback) {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.trim().slice(0, 128);
+  return normalized || fallback;
+}
 
-    if (typeof candidate === "object") {
-      return candidate;
-    }
+function getMappedApiKey(appId) {
+  try {
+    const keys = JSON.parse(process.env.DIFY_WORKFLOW_API_KEYS || "{}");
+    return typeof keys[appId] === "string" ? keys[appId] : "";
+  } catch {
+    return "";
   }
-
-  return payload;
 }

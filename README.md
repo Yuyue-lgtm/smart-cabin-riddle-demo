@@ -10,6 +10,10 @@
 
 当前代码已进入 `V1.4` UI 基础阶段：核心中控屏页面已按 Figma 资源落地，主持人默认、说话、思考、比心和答对状态已接入透明 Sprite Sheet + Canvas 播放，答对状态支持同步音频，游戏准备页支持默认关闭的背景音乐开关，详细实现记录见 [docs/V1_4_UI_IMPLEMENTATION.md](./docs/V1_4_UI_IMPLEMENTATION.md)。
 
+实时主持目前使用同一个 Dify Chatflow 会话跨局延续；车速、环境和乘客变化会静默更新会话快照，重要事件才调用模型。Chatflow 草稿与动作权限见 [DIFY_CHATFLOW_INTEGRATION.md](./docs/DIFY_CHATFLOW_INTEGRATION.md)。
+
+2026-10-06 本次已更新云端草稿，未发布；模型与会话接口的完整联调需发布后验收。前端同时修复了状态复制异常导致的启动中断，准备页及整体自适应已通过 Chrome 多尺寸验证，记录见 [TEST_SCRIPT.md](./docs/TEST_SCRIPT.md)。Chatflow 生成源文件随仓库保存在 `tools/dify-workflow-mcp/workflows/host/`。
+
 V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴模拟多模态事件，并由 Workflow 驱动 AI 主持人与半自主模拟乘客参与游戏。
 
 最新需求、路线图和接口契约以 [docs/README.md](./docs/README.md) 为准。
@@ -18,11 +22,11 @@ V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴
 
 如果只看页面，不接 Workflow，直接打开 `index.html` 即可。
 
-如果需要本地联调 Coze Workflow，请先创建 `.env.local`：
+如果需要本地联调 Dify Chatflow，请先在 `.env.local` 中配置服务端 API Key：
 
 ```text
-COZE_WORKFLOW_URL=https://your-workflow-domain.coze.site/run
-COZE_API_TOKEN=replace_with_your_new_coze_api_token
+DIFY_CHATFLOW_API_KEY=replace_with_your_dify_chatflow_api_key
+DIFY_CHATFLOW_APP_ID=74bef8bd-22bd-4e19-91da-5e8d645dd8ed
 ```
 
 然后启动本地代理服务：
@@ -57,13 +61,13 @@ http://localhost:4173/api/health
 
 ## 部署方式
 
-当前推荐使用 Vercel，因为项目已经包含 `/api/workflow` 代理。
+当前推荐使用 Vercel，因为项目已经包含 `/api/workflow` Dify 代理。
 
 部署时需要在 Vercel 环境变量里配置：
 
 ```text
-COZE_WORKFLOW_URL=https://your-workflow-domain.coze.site/run
-COZE_API_TOKEN=replace_with_your_new_coze_api_token
+DIFY_CHATFLOW_API_KEY=replace_with_your_dify_chatflow_api_key
+DIFY_CHATFLOW_APP_ID=74bef8bd-22bd-4e19-91da-5e8d645dd8ed
 ```
 
 前端页面会请求同域的：
@@ -72,7 +76,7 @@ COZE_API_TOKEN=replace_with_your_new_coze_api_token
 /api/workflow
 ```
 
-由服务端代理携带 Token 请求 Coze。不要把 Token 写入 `client-app.js`、`index.html` 或任何会提交到 Git 的文件。
+由服务端代理携带 API Key 请求 Dify。不要把 API Key 写入 `client-app.js`、`index.html` 或任何会提交到 Git 的文件。
 
 部署后也可以直接访问：
 

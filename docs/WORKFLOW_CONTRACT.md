@@ -420,8 +420,9 @@ V1.x 支持：
 | `near_answer` | 玩家接近答案 | P3 |
 | `cabin_laughing` | 舱内持续大笑，可选 | P4 |
 | `near_destination` | 快到目的地 | P2 |
-| `environment_change` | 车外环境变化 | P2 |
-| `speed_change` | 车速变化 | P2 |
+| `environment_change` | 车外环境变化 | P1 |
+| `speed_overspeed` | 车速从 `<=120` 进入 `>120 km/h` | P1，仅边沿触发 |
+| `speed_change` | 普通车速变化 | P2 状态同步，不逐次调用主持人 |
 | `destination_change` | 目的地变化 | P3 |
 | `relationship_change` | 乘客关系变化 | P3 |
 | `request_passenger_action` | 请求模拟乘客动作 | P3 |
@@ -429,6 +430,8 @@ V1.x 支持：
 其中 `near_destination`、`destination_change`、`relationship_change` 保留向后兼容，不属于 V1.2 收敛后的核心感知范围。
 
 ## 输出结构
+
+当前 Dify Chatflow 在既有游戏输出之外，必须返回 `perception`、`decision_trace` 与 `execution`。其优先级只回显前端传入的 `event.priority`；前端仍拥有 UI、气泡、动画、P1 队列和 P0 紧急兜底。
 
 Workflow 必须返回结构化 JSON。
 
@@ -447,11 +450,24 @@ Workflow 必须返回结构化 JSON。
   "covered_fact_keys": ["protective"],
   "round_question_plan": null,
   "decision_trace": {
-    "perception": "识别到后排右提出了安全相关问题",
-    "decision": "继续围绕出行安全方向推进",
-    "execution": "回应后排右并保持游戏进行",
-    "strategy_id": "S00",
-    "priority": "P3"
+    "layer": "llm",
+    "matched_rule": "realtime_director",
+    "priority": "P2",
+    "strategy_id": "realtime_director",
+    "decision": "回应当前问题并保持游戏进行",
+    "policy": "frontend_arbitrates_execution",
+    "guard_status": "passed",
+    "hint_blocked": false
+  },
+  "perception": {
+    "source": "event",
+    "fusion_conclusion": "车速 121 km/h，当前进入超速状态",
+    "confidence": 1.0
+  },
+  "execution": {
+    "actions": [],
+    "timing": {"mode": "after_current_speech_if_p1", "owner": "frontend"},
+    "fallback": "ignore_unapproved_or_failed_action"
   },
   "ui_change": {
     "cabin_mode": "normal",
@@ -476,6 +492,8 @@ Workflow 必须返回结构化 JSON。
 | `passenger_states` | object/array | 否 | 一个或多个座位的可视化状态变化 |
 | `ui_change` | object | 是 | 网页执行动作 |
 | `decision_trace` | object | 否 | 融合决策可视化摘要 |
+| `perception` | object | 是 | `source`、`fusion_conclusion`、`confidence`；作为感知面板数据 |
+| `execution` | object | 是 | `actions`、`timing`、`fallback`；描述动作计划而非执行结果 |
 | `covered_fact_keys` | array | 否 | 本次对话新覆盖的事实键；用于让预生成提问链跳过已被真实用户问过的方向 |
 | `round_question_plan` | object/null | 否 | 每题开场时返回的有序逻辑提问链；非开场请求可省略或返回 `null` |
 
@@ -678,6 +696,17 @@ Workflow 生成模拟乘客动作时必须遵守：
 | `execution` | string | 否 | 建议网页或主持人执行的动作 |
 | `strategy_id` | string | 否 | 命中的 know-how 策略 ID |
 | `priority` | string | 否 | 事件优先级 |
+
+当前 Chatflow 另包含 `layer`（`rule`/`llm`）、`matched_rule`、`policy`、`guard_status` 和 `hint_blocked`。P0 确定性分支必须为 `layer = rule`，普通导演输出必须为 `layer = llm`。
+
+## execution 与动作白名单
+
+`execution.actions` 是 Chatflow 的计划；实际执行和成功/失败回执由前端产生，二者不得混为一谈。
+
+- 自然语言音乐开关可输出 `music.set_enabled`，仅当用户明确要求开/关时由输出守卫校验后执行；任何乘客、任何游戏状态均可请求。
+- 答对规则可输出 `ambient_light.play_preset`，参数 `preset = cabin-correct-light`。该动作只用于计划展示，灯效仍由前端已有答对逻辑触发。
+- 车内照明灯、空调温度和其他动作不在第一版白名单。
+- 气泡、Sprite 动画、屏幕切换、倒计时和抢占策略不属于 Chatflow 执行动作。
 
 注意：
 

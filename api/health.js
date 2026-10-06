@@ -14,8 +14,9 @@ module.exports = async function handler(req, res) {
 };
 
 function buildHealthPayload(runtime) {
-  const workflowUrl = process.env.COZE_WORKFLOW_URL;
-  const apiToken = process.env.COZE_API_TOKEN || process.env.COZE_WORKFLOW_TOKEN;
+  const difyApiKey = process.env.DIFY_CHATFLOW_API_KEY
+    || process.env.DIFY_API_KEY
+    || hasMappedDifyKey(process.env.DIFY_CHATFLOW_APP_ID || "74bef8bd-22bd-4e19-91da-5e8d645dd8ed");
   const releaseInfo = readReleaseInfo();
 
   return {
@@ -27,11 +28,21 @@ function buildHealthPayload(runtime) {
     build_date: releaseInfo.build_date,
     workflow_proxy: {
       endpoint: "/api/workflow",
-      configured: Boolean(workflowUrl && apiToken),
+      provider: difyApiKey ? "dify-chatflow" : "unconfigured",
+      configured: Boolean(difyApiKey),
       timeout_ms: DEFAULT_TIMEOUT_MS,
     },
     checked_at: new Date().toISOString(),
   };
+}
+
+function hasMappedDifyKey(appId) {
+  try {
+    const keys = JSON.parse(process.env.DIFY_WORKFLOW_API_KEYS || "{}");
+    return typeof keys[appId] === "string" && Boolean(keys[appId]);
+  } catch {
+    return false;
+  }
 }
 
 function readReleaseInfo() {
