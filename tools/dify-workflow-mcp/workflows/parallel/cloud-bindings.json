@@ -1,0 +1,117 @@
+{
+  "source_app_id": "74bef8bd-22bd-4e19-91da-5e8d645dd8ed",
+  "graph": {
+    "nodes": [
+      {
+        "id": "1000000000005",
+        "data": {
+          "model": {
+            "provider": "langgenius/deepseek/deepseek",
+            "name": "deepseek-flash",
+            "mode": "chat",
+            "completion_params": {}
+          }
+        }
+      },
+      {
+        "id": "1000000000012",
+        "data": {
+          "title": "主持经验知识检索",
+          "type": "knowledge-retrieval",
+          "desc": "",
+          "selected": false,
+          "query_variable_selector": [
+            "1000000000010",
+            "knowhow_query"
+          ],
+          "query_attachment_selector": [],
+          "dataset_ids": [
+            "bc87e197-f268-4710-9697-5185726d0ce3"
+          ],
+          "retrieval_mode": "multiple",
+          "multiple_retrieval_config": {
+            "top_k": 3,
+            "score_threshold": null,
+            "reranking_mode": "reranking_model",
+            "reranking_enable": false
+          },
+          "metadata_filtering_mode": "disabled",
+          "vision": {
+            "enabled": false
+          }
+        }
+      }
+    ]
+  },
+  "features": {
+    "opening_statement": "",
+    "suggested_questions": [],
+    "suggested_questions_after_answer": {
+      "enabled": false
+    },
+    "text_to_speech": {
+      "enabled": false,
+      "language": "",
+      "voice": ""
+    },
+    "speech_to_text": {
+      "enabled": false
+    },
+    "retriever_resource": {
+      "enabled": true
+    },
+    "sensitive_word_avoidance": {
+      "enabled": false
+    },
+    "file_upload": {
+      "image": {
+        "enabled": false,
+        "number_limits": 3,
+        "transfer_methods": [
+          "local_file",
+          "remote_url"
+        ]
+      },
+      "enabled": false,
+      "allowed_file_types": [
+        "image"
+      ],
+      "allowed_file_extensions": [
+        ".JPG",
+        ".JPEG",
+        ".PNG",
+        ".GIF",
+        ".WEBP",
+        ".SVG"
+      ],
+      "allowed_file_upload_methods": [
+        "local_file",
+        "remote_url"
+      ],
+      "number_limits": 3,
+      "fileUploadConfig": {
+        "file_size_limit": 15,
+        "knowledge_file_size_limit": 15,
+        "batch_count_limit": 5,
+        "file_upload_limit": 50,
+        "image_file_size_limit": 10,
+        "video_file_size_limit": 100,
+        "audio_file_size_limit": 50,
+        "skill_file_size_limit": 50,
+        "workflow_file_upload_limit": 10,
+        "image_file_batch_limit": 10,
+        "single_chunk_attachment_limit": 10,
+        "attachment_image_file_size_limit": 2
+      }
+    }
+  },
+  "conversation_variables": [
+    {
+      "id": "0f6d72e0-5c38-4b44-a504-869f57e47b32",
+      "name": "cabin_snapshot",
+      "value_type": "string",
+      "value": "{}",
+      "description": "最近一次静默同步的车速、环境、驾驶员与乘客状态 JSON。"
+    }
+  ]
+}

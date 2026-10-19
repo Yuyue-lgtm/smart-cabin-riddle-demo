@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { getBffHealth } = require("./dify-bff");
 
 const RELEASE_INFO_PATH = path.join(process.cwd(), "release-info.json");
 const DEFAULT_TIMEOUT_MS = 60000;
@@ -31,6 +32,7 @@ function buildHealthPayload(runtime) {
       provider: difyApiKey ? "dify-chatflow" : "unconfigured",
       configured: Boolean(difyApiKey),
       timeout_ms: DEFAULT_TIMEOUT_MS,
+      ...getBffHealth(),
     },
     checked_at: new Date().toISOString(),
   };

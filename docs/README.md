@@ -1,8 +1,20 @@
 # 文档索引
 
-当前实时主持接入、Chatflow 会话状态同步、动作白名单与草稿发布步骤以 [DIFY_CHATFLOW_INTEGRATION.md](./DIFY_CHATFLOW_INTEGRATION.md) 和 [REALTIME_HOST_CONTEXT.md](./REALTIME_HOST_CONTEXT.md) 为准。
+开始新的 Dify 子对话时，先读 [DIFY_CURRENT_STATE.md](./DIFY_CURRENT_STATE.md)。该文件记录最近确认的云端版本、应用职责、当前运行边界和安全迭代步骤；细节再查对应专题文档。
 
 - [DIFY_CHATFLOW_INTEGRATION.md](./DIFY_CHATFLOW_INTEGRATION.md)：当前接入、节点职责、动作权限、草稿生成与发布。
+- [DIFY_CURRENT_STATE.md](./DIFY_CURRENT_STATE.md)：Dify 云端版本和跨子对话交接入口。
+- [CABIN_SCENARIO_POLICY.md](./CABIN_SCENARIO_POLICY.md)：入睡必启关怀与空调用户记忆值、普通分区灯光权限、公开线索重述、临时打断与主驾安全边界。
+- [HOST_EVENT_QUEUE.md](./HOST_EVENT_QUEUE.md)：多事件优先级/FIFO、按座位合并、局部失效、P0后重新分析、设备去重与控制台诊断。
+- [SIMULATION_FREEZE.md](./SIMULATION_FREEZE.md)：暂停时冻结三分区画面、音频、计时和异步结果，恢复后从原位置继续。
+- [GAME_CONTROL_AND_SIX_ROUNDS.md](./GAME_CONTROL_AND_SIX_ROUNDS.md)：玩家暂停/继续游戏权限、六题进度条、控制器可用状态及本次 Dify 发布验收。
+- [ENVIRONMENT_AWARE_RIDDLES.md](./ENVIRONMENT_AWARE_RIDDLES.md)：当前题锁定、下一题按环境择优、本局去重及预演安全替换。
+- [DIFY_RELIABILITY_20261018.md](./DIFY_RELIABILITY_20261018.md)：最新结构化输出修复、原始失败根因、三应用发布与回归验收。
+- [SITUATION_DIALOGUE_ROUTING.md](./SITUATION_DIALOGUE_ROUTING.md)：情境分析后自动调用Chatflow、P1规则快速分支、事件有效期与串词仲裁。
+- [SLEEP_COMFORT.md](./SLEEP_COMFORT.md)：入睡必启关怀、随话术执行、醒来恢复、四区模拟与Figma资源。
+- [DIFY_PARALLEL_HOST.md](./DIFY_PARALLEL_HOST.md)：Chatflow 与情境/预演 Workflow 的路由和契约。
+- [DIFY_FALLBACK_DIAGNOSTICS.md](./DIFY_FALLBACK_DIAGNOSTICS.md)：模型兜底根因、重试与日志诊断。
+- [HOST_EXPERIENCES_V2.md](./HOST_EXPERIENCES_V2.md)：28条主持经验、首批成就反馈、真实统计、偏好记忆及HK28副驾低压力邀请。
 - [REALTIME_HOST_CONTEXT.md](./REALTIME_HOST_CONTEXT.md)：精简上下文、状态同步、主动事件和前端初始化约束。
 
 这个目录用于固定项目方向，避免后续开发偏离“可分享体验版智能座舱 AI 猜谜 Demo”的目标，或让代码逻辑变得难以维护。

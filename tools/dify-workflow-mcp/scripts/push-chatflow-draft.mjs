@@ -59,16 +59,54 @@ if (current.hash !== expectedHash) {
   throw new Error('Dify draft changed since preview; fetch the latest hash before writing.');
 }
 
+const codeOnly = process.argv.includes('--code-only');
+const guardOnly = process.argv.includes('--guard-only');
+if (codeOnly && guardOnly) throw new Error('Choose only one scoped update mode.');
+const graph = codeOnly || guardOnly ? structuredClone(current.graph) : dsl.workflow.graph;
+if (codeOnly) {
+  for (const id of ['1000000000002', '1000000000004', '1000000000006', '1000000000010']) {
+    const target = graph.nodes.find((node) => node.id === id);
+    const source = dsl.workflow.graph.nodes.find((node) => node.id === id);
+    if (target?.data?.type !== 'code' || source?.data?.type !== 'code') {
+      throw new Error(`Expected code node ${id}; refusing to replace draft.`);
+    }
+    target.data.code = source.data.code;
+    target.data.outputs = source.data.outputs;
+  }
+}
+if (guardOnly) {
+  const id = '1000000000006';
+  const target = graph.nodes.find((node) => node.id === id);
+  const baseline = dsl.workflow.graph.nodes.find((node) => node.id === id);
+  if (target?.data?.type !== 'code' || baseline?.data?.type !== 'code'
+    || target.data.code !== baseline.data.code) {
+    throw new Error('Cloud guard differs from the local baseline; refusing to replace it.');
+  }
+  const sourceDir = path.join(connectorDir, 'workflows/host/src');
+  const sources = ['common.py', 'parallel_common.py', 'realtime_guard.py', 'knowhow_guard.py', 'parallel_guard.py'];
+  target.data.code = sources.map((name) => fs.readFileSync(path.join(sourceDir, name), 'utf8').trim()).join('\n\n');
+  if (!target.data.code.includes('fallback_reason_codes')
+    || !target.data.code.includes('validation_reason_codes')) {
+    throw new Error('Diagnostic reason codes are missing from the replacement guard.');
+  }
+}
+
 const updated = await request(endpoint, {
   method: 'POST',
   body: JSON.stringify({
-    graph: dsl.workflow.graph,
-    features: dsl.workflow.features,
-    conversation_variables: dsl.workflow.conversation_variables || [],
+    graph,
+    features: codeOnly || guardOnly ? current.features : dsl.workflow.features,
+    conversation_variables: codeOnly || guardOnly ? current.conversation_variables : dsl.workflow.conversation_variables || [],
     hash: current.hash,
   }),
 });
 const verified = await request(endpoint);
+if (codeOnly && JSON.stringify(verified.graph.nodes.map((node) => node.data)) !== JSON.stringify(graph.nodes.map((node) => node.data))) {
+  throw new Error('Saved draft data differs from the intended code-only update; inspect the draft before continuing.');
+}
+if (guardOnly && JSON.stringify(verified.graph.nodes.map((node) => node.data)) !== JSON.stringify(graph.nodes.map((node) => node.data))) {
+  throw new Error('Saved draft data differs from the intended guard-only update; inspect the draft before continuing.');
+}
 if (!Array.isArray(verified.conversation_variables)
   || !verified.conversation_variables.some((item) => item.name === 'cabin_snapshot')) {
   throw new Error('Draft save returned, but cabin_snapshot was not present in the saved draft.');

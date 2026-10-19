@@ -1,6 +1,20 @@
 # Workflow 接口契约
 
+2026-10-18新增受限应景开场操作`route=chat, operation=environment_round_intro`：仅`round_changed / environment_riddle / P3`且第2题起、问题数0、无玩家输入、主题匹配环境时允许。BFF构造服务器规则指导，复用Chatflow已有事件校验，不调用情境Workflow、不写情境缓存，不替代或放宽普通情境的签名交接。前端只应用有效短话术，设备/事实/答对与游戏状态均不执行；每题一次、P3和6秒开题窗口，问答先到则取消。详见 [应景开场](ENVIRONMENT_AWARE_RIDDLES.md)。
+
+2026-10-18多事件调度见 [HOST_EVENT_QUEUE.md](HOST_EVENT_QUEUE.md)：前端按优先级与同级FIFO保留事件，不再按全局状态变化一律丢弃；轮到生成时快照版本变化，必须重新获取分析及签名交接，不篡改旧凭据或放宽服务端校验。P0之后只重发仍有效事件，不复用旧模型结果。BFF/Dify协议本次未改。
+
+2026-10-18当前增量见 [座舱情境协同规则](CABIN_SCENARIO_POLICY.md)：普通对话允许背景音乐和明确分区灯光；求助仅复述 `game.public_clues`，不增加事实；有效入睡必须启用关怀，分区关灯、音量0、空调调至用户记忆值，醒来随话术恢复原设置。新增 `temporary_interruption` 本地暂停4.5秒、后台仅记录，`driver_distracted` 为P1安全提醒并显示明确的分心感知。不考虑导航打断。以下旧版“提示一律婉拒”“自主选择睡眠关怀/关闭空调”和“仅音乐动作”由此替代。
+
+2026-10-17最新协议见 [情境串行路由](SITUATION_DIALOGUE_ROUTING.md)：重要事件先以`route=situation`分析，前端再以`route=chat, operation=situation_reply`及签名交接凭据请求主持人话术。P0不接续Chatflow；P1规则分析零模型零检索。以下较早“环境本地P1”说明不再适用于当前版本。
+
+> 当前使用 [Dify双路并行v4契约](DIFY_PARALLEL_HOST.md)：对话Answer为自然语言，结构化结果通过结果节点输出；情境分析使用独立Workflow，同源BFF已适配。2026-10-17环境快速分支已发布，前端/BFF增量尚未部署Vercel；本文较早Coze字段保留为历史参考。
+>
+> 跨子对话的最新云端发布 hash、未确认项和安全更新步骤见 [Dify 当前状态与子对话交接](DIFY_CURRENT_STATE.md)。
+
 ## 目标
+
+2026-10-17主持经验v2增量：聊天与情境输入增加真实统计`performance`和同源持久化偏好`host_preferences`。成就反馈使用P4事件`post_result_feedback`、来源`performance_monitor`及顶层`host_feedback`，走独立情境分支。前端核对反馈ID、局、题、环境版本、有效期和守卫状态后排队，不应用其游戏状态或动作；BFF不缓存该反馈为后续聊天情境。P0本地揭晓优先。字段与触发边界见[主持经验库v2](HOST_EXPERIENCES_V2.md)。
 
 Workflow 接口用于承接网页发来的座舱状态、游戏状态、时间轴事件、用户输入和模拟乘客请求，并返回 AI 主持人话术、模拟乘客动作与网页 UI 执行动作。
 
@@ -47,7 +61,9 @@ Content-Type: application/json
 
 ## round_question_plan_request
 
-前端只在每题的 `event.type=start_game` 请求中携带此字段。Workflow 应在同一次开场调用中生成本题的逻辑提问链，不额外增加一次网络请求。
+前端在独立 `route=preview` 请求中携带此字段，沿用 `event.type=start_game`、`event.source=question_preview`。这是目标题的预演请求，不等于当前 UI 正在开场：准备页请求首题，进入第 N 题请求第 N+1 题，结算页请求下一局首题。一次预演生成一整条提问链，实际开场复用缓存，不再等待或重复请求。
+
+预演输入的 `game_id/round_id`、谜底、主题、题号及自动事件模板必须对应目标题，提问次数为 0，已问问题、已覆盖事实及近期对话为空。下一局首题提前保留新 `game_id`，继续挑战时使用同一标识。响应须回显本次请求的局、题、状态版本及事件 ID；缓存只向匹配的目标题供给问题，不直接执行预演中的主持人话术或其他状态。
 
 ```json
 {
@@ -420,7 +436,7 @@ V1.x 支持：
 | `near_answer` | 玩家接近答案 | P3 |
 | `cabin_laughing` | 舱内持续大笑，可选 | P4 |
 | `near_destination` | 快到目的地 | P2 |
-| `environment_change` | 车外环境变化 | P1 |
+| `environment_change` | 有效环境变化先走情境规则快速分析；前端再调用Chatflow生成一句回应，进入P1仲裁 | P1 |
 | `speed_overspeed` | 车速从 `<=120` 进入 `>120 km/h` | P1，仅边沿触发 |
 | `speed_change` | 普通车速变化 | P2 状态同步，不逐次调用主持人 |
 | `destination_change` | 目的地变化 | P3 |
@@ -450,23 +466,27 @@ Workflow 必须返回结构化 JSON。
   "covered_fact_keys": ["protective"],
   "round_question_plan": null,
   "decision_trace": {
+    "schema_version": 2,
     "layer": "llm",
-    "matched_rule": "realtime_director",
+    "matched_rule": "reply_mode_selected",
     "priority": "P2",
     "strategy_id": "realtime_director",
-    "decision": "回应当前问题并保持游戏进行",
+    "decision": "回答本轮问题",
+    "selection_origin": "model_reply_mode",
     "policy": "frontend_arbitrates_execution",
     "guard_status": "passed",
     "hint_blocked": false
   },
   "perception": {
-    "source": "event",
-    "fusion_conclusion": "车速 121 km/h，当前进入超速状态",
-    "confidence": 1.0
+    "schema_version": 2,
+    "source": "request",
+    "signals": [{"field": "player_input", "label": "后排右说", "value": "它是不是车里能保护我们的东西？", "source": "request"}],
+    "confidence": null
   },
   "execution": {
+    "kind": "plan",
     "actions": [],
-    "timing": {"mode": "after_current_speech_if_p1", "owner": "frontend"},
+    "timing": {"owner": "frontend"},
     "fallback": "ignore_unapproved_or_failed_action"
   },
   "ui_change": {
@@ -492,14 +512,14 @@ Workflow 必须返回结构化 JSON。
 | `passenger_states` | object/array | 否 | 一个或多个座位的可视化状态变化 |
 | `ui_change` | object | 是 | 网页执行动作 |
 | `decision_trace` | object | 否 | 融合决策可视化摘要 |
-| `perception` | object | 是 | `source`、`fusion_conclusion`、`confidence`；作为感知面板数据 |
+| `perception` | object | 是 | v2 使用 `signals` 摘录上报事实；`confidence: null`，不生成固定置信度 |
 | `execution` | object | 是 | `actions`、`timing`、`fallback`；描述动作计划而非执行结果 |
 | `covered_fact_keys` | array | 否 | 本次对话新覆盖的事实键；用于让预生成提问链跳过已被真实用户问过的方向 |
-| `round_question_plan` | object/null | 否 | 每题开场时返回的有序逻辑提问链；非开场请求可省略或返回 `null` |
+| `round_question_plan` | object/null | 否 | 目标题提前预演返回的有序逻辑提问链；实时聊天请求可省略或返回 `null` |
 
 ## round_question_plan
 
-`round_question_plan` 是模拟乘客本题后续发言的唯一主计划。每一步同时包含不同人物口吻的问题变体和主持人预生成回答。
+`round_question_plan` 是模拟乘客本题后续发言的主计划。当前 Dify 提问预演仍生成并校验每步 `host_reply_text`，但前端只使用问题、事实键与依赖；实际主持人回答逐问调用实时 Chatflow。预演输出的 `ai_reply_text` 为空，不播放开场白。
 
 ```json
 {
@@ -551,15 +571,20 @@ Workflow 必须返回结构化 JSON。
 
 约束：
 
-- `steps` 至少 2 步，按 `order` 递增。
+- 完整 `steps` 按请求生成 2–8 步，按 `order` 递增；明确标记 `preview_status=partial` 的连续安全前缀可以只有 1 步。未带新状态的旧输出仍要求至少 2 步。
 - `fact_key` 在同一计划内唯一且稳定，供前端去重和跳步。
-- `depends_on` 只引用前序步骤的 `fact_key`。
+- `depends_on` 只引用前序步骤的 `fact_key`，且每一步必须依赖紧邻的前一步，表示下一问是在主持人回答该问题之后继续规划。
 - `variants` 至少提供 `default`；建议按请求中的 `persona_age_groups` 提供 `child`、`adult`、`elder` 等变体。
-- `host_reply_text` 必须能直接播放，不包含 JSON、分析过程或答案泄露。
-- `host_reply_text` 可使用 `{{seat_label}}`、`{{speaker_label}}` 或 `{{passenger_label}}`，前端播放前替换为实际座位名称。
-- 前两步不得直接猜谜底，最后一步也不强制模拟乘客答对。
-- 正常模拟提问使用此计划时，前端不再逐问调用 Workflow；真实副驾提问和高优先级座舱事件仍实时调用。
-- 计划缺失、少于 2 个有效步骤或字段不合法时，前端自动退回本地提问库，并保留逐问 Workflow 回答。
+- 当前预演守卫仍校验 `host_reply_text`，要求它简短、准确且不泄露答案；前端不播放它，也不做座位占位符替换。
+- 当前 Dify 草稿按“宽泛类别 → 宽泛场景 → 一般用途 → 非独有特征”递进；前三问必须依次为 category/location/function，第四问为 feature。只有第五问起才允许逐渐使用更具体的线索。
+- 每一步的 `expected_answer` 必须根据谜底和提示判断；`host_reply_text` 必须准确回答当前问题且不额外透露下一步线索，下一问再依据这一回答继续收窄。
+- 前四问要适用于大量不同答案；如果听完问题就能明显想到谜底，不能只把它标成宽泛阶段，必须改写为更上位的问题。
+- 第五步起才逐步引入更具体的用途或特征；每一步只增加一个区分信息，最后一步也不强制模拟乘客答对。
+- 新守卫在发现泄露、阶段错误或依赖不连续的第一步停止，保留此前通过校验的连续前缀。首步失败则为空，不使用本地问题池。云端是否已同步此实现须读取提问预演应用当前草稿/发布版本确认；不要把本段历史中的“待登录恢复”当作当前登录状态。
+- 每道题提前请求一次独立预演 Workflow；若 `preview_diagnostic.repairable=true`，允许再发一次修复请求，`round_question_plan_request.repair` 包含 `attempt:1`、`plan_id`、`accepted_steps`、`validation_errors`。云端模型只生成后缀，守卫合并并重验全链，BFF 拒绝改写固定前缀的结果，不再自动修复第三次。
+- BFF 输出 `preview_status=ready|partial|failed` 和 `preview_diagnostic`，包含有效/目标步数、修复标志、错误码及 `workflow_run_id`。守卫拒绝可以 HTTP 200 返回 `failed`，不能以 HTTP 状态替代内容校验。上游执行失败不自动进行内容修复。
+- 预演及修复不占用主持人问答锁；每个实际模拟问题及真实副驾提问仍调用实时主持 Chatflow，高优先级座舱事件走独立情境 Workflow 或前端 P0 规则。
+- 没有有效安全步骤、计划字段不合法或步骤用完时，游戏与玩家问答继续，模拟乘客不提问。修复失败保留原安全前缀。晚到结果仅用于后续提问时机，不补播已错过时刻，不清空已覆盖事实或已问问题。
 
 ## passenger_action
 
@@ -677,7 +702,9 @@ Workflow 生成模拟乘客动作时必须遵守：
 
 ## decision_trace
 
-融合决策可视化信息，用于让网页轻量展示“感知 -> 决策 -> 执行”的结果。
+可核验处理记录，不是模型内部推理。当前 `schema_version: 2` 的 `decision` 来自实际代码分支或通过校验的模型 `reply_mode`。输入事实放在顶层 `perception.signals`，动作计划放在顶层 `execution.actions`，实际执行状态由前端生成 `execution_receipts`。
+
+以下是旧版本兼容结构，仅保留用于读取历史，不再作为新面板的决策/执行证据：
 
 ```json
 {
@@ -697,15 +724,19 @@ Workflow 生成模拟乘客动作时必须遵守：
 | `strategy_id` | string | 否 | 命中的 know-how 策略 ID |
 | `priority` | string | 否 | 事件优先级 |
 
-当前 Chatflow 另包含 `layer`（`rule`/`llm`）、`matched_rule`、`policy`、`guard_status` 和 `hint_blocked`。P0 确定性分支必须为 `layer = rule`，普通导演输出必须为 `layer = llm`。
+当前 Chatflow 另包含 `layer`（`rule`/`llm`/`fallback`）、`matched_rule`、`policy`、`guard_status` 和 `hint_blocked`，这些字段留作调试，不公开堆在三栏中。P0 为 `rule`；普通导演事件走 `llm`，但固定事件入口选择标为 `selection_origin: code_branch`；回复方式选择为 `model_reply_mode`。额外提示拦截是 `rule`；校验失败为 `fallback`，不能伪装成模型成功决策。
 
 ## execution 与动作白名单
 
-`execution.actions` 是 Chatflow 的计划；实际执行和成功/失败回执由前端产生，二者不得混为一谈。
+`execution.kind: plan`，`execution.actions` 是 Chatflow 的计划；实际执行和成功/失败回执由前端产生，二者不得混为一谈。`timing.owner: frontend` 不表示实际排队；只有前端真的进入等待才显示“等待当前气泡结束”。音乐播放成功需要 `play()` 成功且播放器未暂停；被浏览器拦截、无播放器、加载失败均不得显示“音乐已开启”。
 
 - 自然语言音乐开关可输出 `music.set_enabled`，仅当用户明确要求开/关时由输出守卫校验后执行；任何乘客、任何游戏状态均可请求。
+- 游戏控制可输出 `{"type":"game.set_paused","paused":true|false}`。仅当玩家当前原话明确要求暂停/继续、请求作用域匹配且不处于安全暂停时允许；仅模型提出动作不授权。前端核对动作与原话后执行，保留题目、提问次数、事实和倒计时剩余时间。
 - 答对规则可输出 `ambient_light.play_preset`，参数 `preset = cabin-correct-light`。该动作只用于计划展示，灯效仍由前端已有答对逻辑触发。
-- 车内照明灯、空调温度和其他动作不在第一版白名单。
+- 2026-10-18新增窄范围模拟动作 `{"type":"cabin.apply_sleep_comfort","seat":"rearRight"}`。仅限有效 `situation_event / passenger_sleep` 的当前目标座位，且该座位仍睡着；由主持人决定是否输出，空动作列表代表不执行。整套模拟包含该区关灯、分区音量0、空调恢复用户记忆值。
+- 恢复动作为 `{"type":"cabin.restore_sleep_comfort","seat":"rearRight"}`，仅限有效 `passenger_wake` 的清醒目标，且 `car.sleep_comfort_seats` 确认该座位此前启用了关怀。醒来只更新乘员状态，不立即恢复设备。
+- 两种动作必须附带灯光、空调和分区音量说明，即使情境原本静默也应随动作发言；无动作仍可保持静默。前端让话术和动作一起排队，在气泡实际显示时再核对局/题/情境版本/P0和目标状态后执行，而非在响应到达时执行。无话术或说明不全的动作结果由Dify守卫拒绝并重试；P0/过期/条件变化取消待执行动作。
+- 不支持任意灯光/温度/音量参数，不改变整车背景音乐。普通乘客聊天、其他情境、过期/跨座位结果不能授权。重置清除该座位关怀效果；通用照明、空调和其他设备动作仍未开放。
 - 气泡、Sprite 动画、屏幕切换、倒计时和抢占策略不属于 Chatflow 执行动作。
 
 注意：
@@ -999,6 +1030,12 @@ V1.x 支持：
   不让该乘客主动发言
   话术改为轻声或建议暂停
 ```
+
+## 副驾参与机会
+
+`route=situation` 的 `passenger_inactive` 由真实参与状态触发，事件需要 `seat=front`、`source=participation_monitor`、`priority=P4`。输入 `participation` 包括 `seat`、整数 `version`、`inactive_duration_ms`、`dialogue_silence_ms`、`remaining_ms`、`real_user_turn_count`、`invitation_declined`。不传原始对话给情境分析器。
+
+Workflow 只在未参与至少20000ms、对话空闲至少2500ms、剩余时间大于15000ms且副驾清醒时分析；模型决定是否主动邀请。候选输出需要 `request_proactive_speech=true`、`strategy=invite_collaboration`、`target_seat=front`，并回显 `participation_version`。结果有效期10000ms，`usable_for_dialogue=false`，不将邀请策略带入后续问答。前端在播放前复核活动版本和空闲条件。静默、失败或过时结果均不生成本地邀请兜底。
 
 ## 错误处理
 

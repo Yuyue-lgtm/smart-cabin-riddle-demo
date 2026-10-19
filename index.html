@@ -8,7 +8,7 @@
     <link rel="preload" as="image" href="./assets/cabin-env-garage.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/host-normal.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20261001-audio-v1" />
+  <link rel="stylesheet" href="./styles.css?v=20261019-game-control-six-rounds-v1" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -46,7 +46,7 @@
                 <dd id="decisionPerception">等待座舱事件</dd>
               </div>
               <div>
-                <dt>决策</dt>
+                <dt>决策 <span id="decisionPriority" class="decision-priority" hidden></span></dt>
                 <dd id="decisionDecision">等待 Workflow 判断</dd>
               </div>
               <div>
@@ -96,6 +96,26 @@
                 <small data-seat-status="driver">普通</small>
               </span>
             </button>
+            <img class="cabin-sleep-shade cabin-sleep-shade-rear-left" data-sleep-shade="rearLeft" src="./assets/cabin-sleep-dim-rear.svg" width="511" height="472" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-rear-right" data-sleep-shade="rearRight" src="./assets/cabin-sleep-dim-rear.svg" width="511" height="472" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-front" data-sleep-shade="front" src="./assets/cabin-sleep-dim-front.svg" width="566" height="614" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-driver" data-sleep-shade="driver" src="./assets/cabin-sleep-dim-front.svg" width="566" height="614" alt="" aria-hidden="true" hidden />
+            <div class="cabin-zone-comfort cabin-zone-comfort-rear-left" data-comfort-zone="rearLeft" role="status" aria-label="后排左睡眠关怀设置" hidden>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+            </div>
+            <div class="cabin-zone-comfort cabin-zone-comfort-rear-right" data-comfort-zone="rearRight" role="status" aria-label="后排右睡眠关怀设置" hidden>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+            </div>
+            <div class="cabin-zone-comfort cabin-zone-comfort-front" data-comfort-zone="front" role="status" aria-label="副驾睡眠关怀设置" hidden>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+            </div>
+            <div class="cabin-zone-comfort cabin-zone-comfort-driver" data-comfort-zone="driver" role="status" aria-label="主驾睡眠关怀设置" hidden>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+            </div>
           </div>
         </div>
         </section>
@@ -134,10 +154,20 @@
               <span class="ticket-mark" aria-hidden="true">
                 <img src="./assets/question-icon.svg" alt="" />
               </span>
-              <span class="question-copy"><strong id="questionProgress">1 / 10</strong> 题</span>
+              <span class="question-copy"><strong id="questionProgress">1 / 6</strong> 题</span>
             </div>
 
-            <span class="round-pill" aria-hidden="true">进度 <b id="roundProgress">1/10</b></span>
+            <span class="round-pill" aria-hidden="true">进度 <b id="roundProgress">1/6</b></span>
+
+            <button
+              class="ready-sound-toggle game-sound-toggle"
+              id="backgroundMusicToggleGame"
+              type="button"
+              aria-label="打开背景音乐"
+              aria-pressed="false"
+            >
+              <span class="ready-sound-icon" aria-hidden="true">🔇</span>
+            </button>
 
               <div class="riddle-panel">
                 <div class="riddle-ribbon" aria-hidden="true">
@@ -169,7 +199,7 @@
               <img class="summary-mosaic" src="./assets/figma-summary-mosaic.png" alt="" aria-hidden="true" />
               <img class="summary-confetti" src="./assets/figma-summary-ribbon.png" alt="" aria-hidden="true" />
               <img class="summary-title-asset" src="./assets/figma-summary-title.png" alt="旅途战报" />
-              <div class="summary-stats" id="summaryStats"><span>完成</span><strong id="summaryTotal">10</strong><span>题</span><span class="summary-gap"></span><span>破解</span><strong id="summarySolved">7</strong><span>题</span></div>
+              <div class="summary-stats" id="summaryStats"><span>完成</span><strong id="summaryTotal">6</strong><span>题</span><span class="summary-gap"></span><span>破解</span><strong id="summarySolved">0</strong><span>题</span></div>
               <img class="summary-light-ring" src="./assets/figma-summary-light-ring.png" alt="" aria-hidden="true" />
               <img class="summary-light-base" src="./assets/figma-summary-light-base.png" alt="" aria-hidden="true" />
               <img class="summary-bright-light" src="./assets/figma-summary-bright-light.png" alt="" aria-hidden="true" />
@@ -201,7 +231,7 @@
               <div class="ready-rules">
                 <p>主持人藏一个谜底，</p>
                 <p>大家提问<span>“是/否”</span>的问题，</p>
-                <p>并在<span>10</span>个提问内猜出答案。</p>
+                <p>并在<span>15</span>个提问内猜出答案。</p>
               </div>
               <button class="ready-start-button" id="readyStartButton" type="button">
                 <img src="./assets/figma-ready-button.png" alt="" aria-hidden="true" />
@@ -280,8 +310,15 @@
               <div class="chip-group">
                 <button class="event-button" data-event="hard_brake" type="button">急刹打断</button>
                 <button class="event-button" data-event="driver_tired" type="button">主驾疲惫</button>
+                <button class="event-button" data-event="driver_distracted" type="button">主驾分心</button>
+                <button class="event-button" data-event="temporary_interruption" type="button">临时事件打断</button>
                 <button class="event-button" data-event="passenger_sleep" type="button">有人睡着</button>
+                <button class="event-button" data-event="passenger_wake" type="button">乘客醒来</button>
                 <button class="event-button" data-event="near_destination" type="button">快到目的地</button>
+                <button class="event-button" data-event="speed_overspeed" type="button">车速超限</button>
+                <button class="event-button" data-event="game_stuck" type="button">猜谜陷入僵局</button>
+                <button class="event-button" data-event="near_answer" type="button">接近答案</button>
+                <button class="event-button" data-event="cabin_laughing" type="button">车内欢笑</button>
               </div>
             </div>
           </div>
@@ -296,6 +333,6 @@
       </main>
     </div>
 
-  <script src="./client-app.js?v=20261006-dify-v2"></script>
+<script src="./client-app.js?v=20261019-game-control-six-rounds-v1"></script>
   </body>
 </html>

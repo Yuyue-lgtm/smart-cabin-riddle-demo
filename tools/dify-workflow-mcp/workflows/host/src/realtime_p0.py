@@ -1,5 +1,5 @@
 def main(payload: object, exact_correct: bool, event_type: str) -> dict:
-    payload = obj(payload)
+    payload = parse(payload)
     game = obj(payload.get("game"))
     answer = text(game.get("current_answer"), 100)
     seat = selected_seat(payload)

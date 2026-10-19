@@ -1,5 +1,7 @@
 # Dify Workflow MCP
 
+2026-10-18最新座舱协同规则维护入口为 `scripts/update-cabin-policy.mjs`，知识库六条增量源为 `scripts/update-cabin-knowhow.mjs`。先读项目 `docs/DIFY_CURRENT_STATE.md` 和 `docs/CABIN_SCENARIO_POLICY.md`；不要用早期整图生成器覆盖当前发布图或删除策略包装层。Console凭证与Demo API Key仍分开保管。
+
 Local stdio MCP server for Dify Cloud. It exposes draft read/preview/update, DSL create, Chatflow replacement, and published workflow run tools. Management requests are restricted to `cloud.dify.ai`; writes require the exact current draft hash and app ID confirmation, and never publish.
 
 ## Setup
@@ -61,7 +63,13 @@ The Chatflow API runtime uses `DIFY_CHATFLOW_API_KEY` (or `DIFY_API_KEY`) in the
 
 The current Chatflow app ID is `74bef8bd-22bd-4e19-91da-5e8d645dd8ed`; include it in `DIFY_ALLOWED_APP_IDS` when editing that app. Versioned build inputs live in `workflows/host/base-workflow.yml` and `workflows/host/src/`. Generated DSL goes to the ignored project `tmp/dify-import/` directory. The validator is `scripts/validate-dsl.py`; build and validation commands are documented in `docs/DIFY_CHATFLOW_INTEGRATION.md` at the project root. Do not edit old temporary Python copies as the canonical source.
 
-`scripts/push-chatflow-draft.mjs` is a direct draft updater with expected-hash checks and read-back verification. It uses the locally configured console/CSRF credentials; unlike the MCP connector it does not automatically refresh expired credentials.
+`scripts/push-chatflow-draft.mjs` is a direct draft updater with expected-hash checks and read-back verification. It uses the shared `requestConsoleJson` client, which reloads local console credentials and refreshes once on 401. Do not put console credentials in source control or chat.
+
+## Current Reliability Maintenance
+
+Read `../../docs/DIFY_CURRENT_STATE.md` and `../../docs/DIFY_RELIABILITY_20261018.md` before editing cloud apps. The latest targeted updater is `scripts/update-structured-reliability.mjs`: `status`, `prepare`, `save`, `publish`, `sync-local`. Run `scripts/verify-structured-reliability.mjs` after saving and `scripts/verify-structured-reliability-api.mjs` after publishing. Publication requires a passing report matching all three current draft hashes. Tests temporarily inject failures into drafts and restore the original graph; never publish injected settings. Historical updaters are not the current release entry point.
+
+The host separates reasoning from final text, then validates JSON Schema and business rules in code. Native early structured parsing and provider JSON mode are disabled. Primary uses low reasoning; retry, situation and preview models explicitly disable thinking. Only final natural-language answers enter conversation memory. Use `node scripts/diagnose-chatflow-run.mjs --latest --cloud` from this directory to locate and inspect recent failures without manually supplying a run ID.
 
 ## Tools
 

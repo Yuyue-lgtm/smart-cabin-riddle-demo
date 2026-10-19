@@ -1,6 +1,9 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const { handleWorkflowBody, getBffHealth } = require("./api/dify-bff");
+const { appendWorkflowDiagnostic } = require("./api/local-diagnostics");
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -8,6 +11,10 @@ const ROOT = __dirname;
 const TIMEOUT_MS = 60000;
 const DEFAULT_CHATFLOW_APP_ID = "74bef8bd-22bd-4e19-91da-5e8d645dd8ed";
 const RELEASE_INFO_PATH = path.join(ROOT, "release-info.json");
+const SERVER_STARTED_AT = new Date().toISOString();
+const SERVER_INSTANCE_ID = crypto.randomUUID();
+let diagnosticLastWriteAt = null;
+let diagnosticLastError = null;
 
 loadEnvFile(path.join(ROOT, ".env.local"));
 loadEnvFile(path.join(ROOT, ".env"));
@@ -51,6 +58,10 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
+  persistWorkflowDiagnostic({
+    phase: "server_start", timestamp: SERVER_STARTED_AT,
+    server_instance_id: SERVER_INSTANCE_ID, diagnostics_version: 2,
+  });
   console.log(`Smart cabin demo running at http://${HOST}:${PORT}`);
 });
 
@@ -76,153 +87,124 @@ function loadEnvFile(filePath) {
 }
 
 async function proxyWorkflow(req, res) {
-  const appId = process.env.DIFY_CHATFLOW_APP_ID || DEFAULT_CHATFLOW_APP_ID;
-  const apiToken = process.env.DIFY_CHATFLOW_API_KEY
-    || process.env.DIFY_API_KEY
-    || getMappedApiKey(appId);
-  const apiBase = (process.env.DIFY_API_BASE_URL || "https://api.dify.ai").replace(/\/+$/, "");
-
-  if (!apiToken) {
-    sendJson(res, 500, {
-      error: "DIFY_CHATFLOW_NOT_CONFIGURED",
-      message: "Missing DIFY_CHATFLOW_API_KEY in .env.local.",
-    });
-    return;
-  }
-
   const body = normalizeRequestBody(await readJsonBody(req));
-  if (body.operation === "sync_state") {
-    await syncConversationState({ body, res, apiBase, apiToken, appId });
-    return;
-  }
-
-  const query = typeof body.input_payload === "string"
-    ? body.input_payload
-    : JSON.stringify(body.input_payload || body);
-  const requestBody = {
-    inputs: {},
-    query,
-    response_mode: "blocking",
-    user: normalizeId(body.user_id, "demo-user"),
-    ...(typeof body.conversation_id === "string" && body.conversation_id.trim()
-      ? { conversation_id: body.conversation_id.trim() }
-      : {}),
+  const diagnosticId = crypto.randomUUID();
+  const startedAt = Date.now();
+  const requestInfo = summarizeWorkflowRequest(body);
+  const startDiagnostic = {
+    phase: "start",
+    diagnostic_id: diagnosticId,
+    timestamp: new Date().toISOString(),
+    ...requestInfo,
   };
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  console.info("[workflow-diagnostic]", JSON.stringify(startDiagnostic));
+  persistWorkflowDiagnostic(startDiagnostic);
 
   try {
-    const response = await fetch(`${apiBase}/v1/chat-messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal,
-    });
-
-    const text = await response.text();
-    const payload = parseMaybeJson(text);
-
-    if (!response.ok) {
-      sendJson(res, response.status, {
-        error: "DIFY_CHATFLOW_REQUEST_FAILED",
-        status: response.status,
-        payload,
-      });
-      return;
-    }
-
-    if (typeof payload?.answer !== "string") {
-      sendJson(res, 502, {
-        error: "DIFY_CHATFLOW_INVALID_RESPONSE",
-        message: "Dify Chatflow response did not include an answer string.",
-      });
-      return;
-    }
-
-    sendJson(res, 200, {
-      workflow_output: payload.answer,
-      conversation_id: payload.conversation_id || requestBody.conversation_id || "",
-      message_id: payload.message_id || payload.id || "",
-      app_id: appId,
-    });
+    const response = await handleWorkflowBody(body);
+    const workflowOutput = parseJson(response.payload?.workflow_output);
+    const hostResult = response.payload?.host_result || workflowOutput || {};
+    const trace = hostResult.decision_trace || {};
+    const reply = String(hostResult.ai_reply_text || "");
+    const finishDiagnostic = {
+      ...requestInfo,
+      phase: "finish",
+      diagnostic_id: diagnosticId,
+      timestamp: new Date().toISOString(),
+      status: response.status,
+      elapsed_ms: Date.now() - startedAt,
+      route: response.payload?.route || requestInfo.route,
+      context_verified: response.payload?.context_verified ?? null,
+      context_scope: hostResult.context_scope || null,
+      conversation_fingerprint: fingerprint(response.payload?.conversation_id || ""),
+      message_id: response.payload?.message_id || "",
+      workflow_run_id: response.payload?.workflow_run_id || "",
+      diagnostic: response.payload?.diagnostic || null,
+      preview_status: response.payload?.preview_status || "",
+      preview_diagnostic: response.payload?.preview_diagnostic || null,
+      guard_status: trace.guard_status || "",
+      matched_rule: trace.matched_rule || "",
+      strategy: hostResult.strategy || "",
+      fixed_soft_fallback: reply === "我陪你慢慢想，按你的节奏来。",
+      reply_fingerprint: fingerprint(reply),
+      error: response.payload?.error || "",
+      app_id: response.payload?.app_id || "",
+    };
+    console.info("[workflow-diagnostic]", JSON.stringify({
+      ...finishDiagnostic,
+      ai_reply_text: reply,
+      decision_trace: trace,
+    }));
+    persistWorkflowDiagnostic(finishDiagnostic);
+    sendJson(res, response.status, { ...response.payload, diagnostic_id: diagnosticId });
   } catch (error) {
-    const isTimeout = error.name === "AbortError";
-    sendJson(res, isTimeout ? 504 : 500, {
-      error: isTimeout ? "DIFY_CHATFLOW_TIMEOUT" : "DIFY_CHATFLOW_PROXY_ERROR",
-      message: isTimeout ? "Dify Chatflow request timed out." : error.message,
-    });
-  } finally {
-    clearTimeout(timeout);
+    const finishDiagnostic = {
+      ...requestInfo,
+      phase: "finish",
+      diagnostic_id: diagnosticId,
+      timestamp: new Date().toISOString(),
+      route: requestInfo.route,
+      trigger_type: requestInfo.trigger_type,
+      event_type: requestInfo.event_type,
+      event_id: requestInfo.event_id,
+      game_id: requestInfo.game_id,
+      round_id: requestInfo.round_id,
+      status: 500,
+      elapsed_ms: Date.now() - startedAt,
+      error: String(error.message || error),
+    };
+    console.info("[workflow-diagnostic]", JSON.stringify(finishDiagnostic));
+    persistWorkflowDiagnostic(finishDiagnostic);
+    throw error;
   }
 }
 
-async function syncConversationState({ body, res, apiBase, apiToken, appId }) {
-  const conversationId = normalizeId(body.conversation_id, "");
-  const userId = normalizeId(body.user_id, "");
-  if (!conversationId || !userId || !body.snapshot || typeof body.snapshot !== "object" || Array.isArray(body.snapshot)) {
-    sendJson(res, 400, { error: "INVALID_STATE_SYNC_REQUEST" });
-    return;
-  }
-
-  const value = JSON.stringify(body.snapshot);
-  if (value.length > 12000) {
-    sendJson(res, 413, { error: "STATE_SNAPSHOT_TOO_LARGE" });
-    return;
-  }
-
-  const base = `${apiBase}/v1/conversations/${encodeURIComponent(conversationId)}/variables`;
-  const headers = {
-    Authorization: `Bearer ${apiToken}`,
-    "Content-Type": "application/json",
-  };
-  const query = new URLSearchParams({ user: userId });
+function persistWorkflowDiagnostic(record) {
   try {
-    const listResponse = await fetch(`${base}?${query}`, { headers });
-    const listPayload = parseMaybeJson(await listResponse.text());
-    if (!listResponse.ok) {
-      sendJson(res, listResponse.status, {
-        error: "DIFY_CONVERSATION_VARIABLES_REQUEST_FAILED",
-        payload: listPayload,
-      });
-      return;
-    }
-
-    const variables = Array.isArray(listPayload?.data)
-      ? listPayload.data
-      : Array.isArray(listPayload?.variables)
-        ? listPayload.variables
-        : [];
-    const snapshotVariable = variables.find((variable) => variable?.name === "cabin_snapshot");
-    if (!snapshotVariable?.id) {
-      sendJson(res, 409, { error: "DIFY_CABIN_SNAPSHOT_VARIABLE_MISSING" });
-      return;
-    }
-
-    const updateResponse = await fetch(`${base}/${encodeURIComponent(snapshotVariable.id)}`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify({ value, user: userId }),
-    });
-    const updatePayload = parseMaybeJson(await updateResponse.text());
-    if (!updateResponse.ok) {
-      sendJson(res, updateResponse.status, {
-        error: "DIFY_CONVERSATION_VARIABLE_UPDATE_FAILED",
-        payload: updatePayload,
-      });
-      return;
-    }
-    sendJson(res, 200, {
-      ok: true,
-      app_id: appId,
-      conversation_id: conversationId,
-      variable: "cabin_snapshot",
-    });
+    appendWorkflowDiagnostic({ ...record, server_instance_id: SERVER_INSTANCE_ID, diagnostics_version: 2 });
+    diagnosticLastWriteAt = new Date().toISOString();
+    diagnosticLastError = null;
   } catch (error) {
-    sendJson(res, 502, { error: "DIFY_STATE_SYNC_PROXY_ERROR", message: error.message });
+    diagnosticLastError = error.code || "LOG_WRITE_FAILED";
+    console.warn("Could not persist local workflow diagnostics.", error.message);
   }
+}
+
+function summarizeWorkflowRequest(body) {
+  const input = typeof body.input_payload === "string"
+    ? parseJson(body.input_payload) || {}
+    : body.input_payload || {};
+  const query = String(body.query || input.player_input || "").trim();
+  return {
+    route: body.route || (input.trigger_type === "chat" ? "chat" : "situation"),
+    operation: body.operation || "",
+    trigger_type: input.trigger_type || "",
+    event_type: input.event?.type || "",
+    event_id: input.event?.id || "",
+    game_id: input.game_id || "",
+    round_id: input.round_id || "",
+    round_transition: input.round_context?.transition || "",
+    conversation_fingerprint: fingerprint(body.conversation_id || ""),
+    player_input: input.player_input || query,
+    current_answer: input.game?.current_answer || "",
+    preview_repair_attempt: input.round_question_plan_request?.repair?.attempt || 0,
+    recent_messages: input.interaction?.recent_messages || [],
+    query_fingerprint: fingerprint(query),
+    query_length: query.length,
+  };
+}
+
+function parseJson(value) {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function fingerprint(value) {
+  return crypto.createHash("sha256").update(String(value || "")).digest("hex").slice(0, 12);
 }
 
 function serveStatic(req, res) {
@@ -314,6 +296,7 @@ function readJsonBody(req) {
 function sendJson(res, status, payload) {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
   });
   res.end(JSON.stringify(payload));
 }
@@ -332,11 +315,20 @@ function buildHealthPayload(runtime) {
     milestone: releaseInfo.milestone,
     focus: releaseInfo.focus,
     build_date: releaseInfo.build_date,
+    local_diagnostics: {
+      schema_version: 2,
+      enabled: diagnosticLastWriteAt !== null && diagnosticLastError === null,
+      server_instance_id: SERVER_INSTANCE_ID,
+      server_started_at: SERVER_STARTED_AT,
+      last_write_at: diagnosticLastWriteAt,
+      last_error: diagnosticLastError,
+    },
     workflow_proxy: {
       endpoint: "/api/workflow",
       provider: apiToken ? "dify-chatflow" : "unconfigured",
       configured: Boolean(apiToken),
       timeout_ms: TIMEOUT_MS,
+      ...getBffHealth(),
     },
     checked_at: new Date().toISOString(),
   };

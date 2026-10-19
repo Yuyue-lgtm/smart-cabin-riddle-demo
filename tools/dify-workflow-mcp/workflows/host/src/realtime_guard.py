@@ -1,5 +1,5 @@
 def main(director_text: str, payload: object) -> dict:
-    payload = obj(payload)
+    payload = parse(payload)
     value = model_json(director_text)
     event_data = obj(payload.get("event"))
     event = text(event_data.get("type"), 80)
@@ -16,6 +16,15 @@ def main(director_text: str, payload: object) -> dict:
     ))
     blocked_hint_request = hint_request and payload.get("trigger_type") == "chat" and obj(payload.get("game")).get("status") == "playing"
     errors = []
+    validation_reasons = []
+    if not value:
+        validation_reasons.append("invalid_or_empty_model_json")
+    if not line:
+        validation_reasons.append("missing_model_reply")
+    elif len(line) > 60:
+        validation_reasons.append("model_reply_too_long")
+    elif answer and answer in line:
+        validation_reasons.append("answer_leak_in_model_reply")
     if not line or len(line) > 60 or (answer and answer in line):
         errors.append("missing_long_or_answer_leaking_reply")
         line = "这个问题我还没判断清楚，能换个说法吗？"
@@ -65,7 +74,35 @@ def main(director_text: str, payload: object) -> dict:
         result["covered_fact_keys"] = []
     if errors:
         result["intent"] = "fallback"
-        result["debug"] = {"validation_errors": errors}
+        result["debug"] = {"validation_errors": errors, "validation_reason_codes": validation_reasons}
+    # Describe the branch actually selected, not an invented model reasoning trace.
+    if blocked_hint_request:
+        layer, rule, summary = "rule", "hint_request_blocked", "拒绝额外提示，邀请继续提问"
+    elif errors:
+        layer, rule, summary = "fallback", "invalid_model_reply", "回复未通过校验，请乘客换个说法"
+    elif event and payload.get("trigger_type") != "chat":
+        event_choices = {
+            "environment_change": ("environment_response", "回应新的车外环境"),
+            "speed_overspeed": ("overspeed_response", "提醒车速超限"),
+            "driver_tired": ("driver_care_response", "提醒关注主驾状态"),
+            "passenger_sleep": ("sleep_response", "回应乘客睡着事件"),
+            "near_destination": ("arrival_response", "提示即将到达，准备收尾"),
+        }
+        rule, summary = event_choices.get(event, ("event_response", "按事件入口生成回应"))
+        layer = "llm"
+    else:
+        summaries = {"answer_only": "回答本轮问题", "chat_only": "接续闲聊，暂不拉回游戏",
+                     "chat_then_bridge": "接住话题，再引导回到游戏"}
+        layer, rule, summary = "llm", "reply_mode_selected", summaries[result["reply_mode"]]
+    result["decision_trace"].update(layer=layer, matched_rule=rule, strategy_id=rule, decision=summary,
+                                    basis={"event_type": event, "intent": result["intent"], "reply_mode": result["reply_mode"]})
+    result["decision_trace"]["selection_origin"] = "model_reply_mode" if rule == "reply_mode_selected" else "code_branch"
+    if rule == "reply_mode_selected" and value.get("reply_mode") not in modes:
+        result["decision_trace"].update(decision="未返回有效回应方式，采用默认回答",
+                                         selection_origin="code_default", matched_rule="default_reply_mode")
+    if actions:
+        result["decision_trace"]["action_authorization"] = "explicit_music_command"
+        result["decision_trace"]["decision"] += "；允许音乐开关请求"
     return {"workflow_output": encode(result)}
 
 

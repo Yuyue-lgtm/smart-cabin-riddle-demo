@@ -1,5 +1,4 @@
 import { fileURLToPath } from 'node:url';
-import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
@@ -7,25 +6,18 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { parseDocument } from 'yaml';
 import { z } from 'zod';
+import { createConsoleClient } from './console-client.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.resolve(here, '../.env');
-dotenv.config({ path: envPath });
+dotenv.config({ path: envPath, quiet: true });
 
 // Node's fetch does not inherit the macOS system proxy settings.
 const proxyUrl = process.env.DIFY_PROXY_URL ?? 'http://127.0.0.1:7897';
 if (proxyUrl) setGlobalDispatcher(new ProxyAgent(proxyUrl));
 
 const BASE_URL = process.env.DIFY_BASE_URL || 'https://cloud.dify.ai';
-const cookiePrefix = (process.env.DIFY_CSRF_COOKIE_NAME || 'csrf_token').startsWith('__Host-') ? '__Host-' : '';
-const auth = {
-  accessToken: process.env.DIFY_CONSOLE_TOKEN || '',
-  csrfToken: process.env.DIFY_CSRF_TOKEN || '',
-  refreshToken: process.env.DIFY_REFRESH_TOKEN || '',
-  csrfCookieName: process.env.DIFY_CSRF_COOKIE_NAME || 'csrf_token',
-  refreshCookieName: process.env.DIFY_REFRESH_COOKIE_NAME || `${cookiePrefix}refresh_token`,
-  accessCookieName: process.env.DIFY_ACCESS_COOKIE_NAME || `${cookiePrefix}access_token`,
-};
+export const requestConsoleJson = createConsoleClient({ envPath });
 const DEFAULT_APP_IDS = [
   'bf81cd44-a49f-4048-901f-e95e941dc429',
   'dddd27b9-e7c5-4936-90da-8640d7ac8991',
@@ -58,82 +50,18 @@ function requireAppAccess(appId) {
   if (!allowedAppIds.has(appId)) throw new Error('This app ID is not in DIFY_ALLOWED_APP_IDS.');
 }
 
-function requireConsoleToken() {
-  const token = auth.accessToken;
-  if (!token) throw new Error('Set DIFY_CONSOLE_TOKEN in tools/dify-workflow-mcp/.env.');
-  return token;
-}
-
-function persistCredentials() {
-  const values = {
-    DIFY_CONSOLE_TOKEN: auth.accessToken,
-    DIFY_CSRF_TOKEN: auth.csrfToken,
-    DIFY_REFRESH_TOKEN: auth.refreshToken,
-  };
-  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
-  for (const [key, value] of Object.entries(values)) {
-    const index = lines.findIndex((line) => line.startsWith(`${key}=`));
-    if (index >= 0) lines[index] = `${key}=${value}`;
-    else lines.push(`${key}=${value}`);
-  }
-  fs.writeFileSync(envPath, `${lines.join('\n').replace(/\n+$/, '')}\n`, { mode: 0o600 });
-  fs.chmodSync(envPath, 0o600);
-}
-
-let refreshPromise;
-async function refreshConsoleSession() {
-  if (refreshPromise) return refreshPromise;
-  if (!auth.refreshToken) {
-    throw new Error('Dify access token expired. Add DIFY_REFRESH_TOKEN from the current Dify refresh_token cookie to .env.');
-  }
-  refreshPromise = (async () => {
-    const response = await fetch(consoleUrl('/refresh-token'), {
-      method: 'POST',
-      headers: { Accept: 'application/json', Cookie: `${auth.refreshCookieName}=${auth.refreshToken}` },
-      signal: AbortSignal.timeout(30_000),
-    });
-    const text = await response.text();
-    let data;
-    try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text.slice(0, 500) }; }
-    if (!response.ok) {
-      const detail = typeof data.message === 'string' ? data.message : `HTTP ${response.status}`;
-      throw new Error(`Dify token refresh failed (${response.status}): ${detail}`);
-    }
-    const cookies = response.headers.getSetCookie?.() || [];
-    const updated = new Map(cookies.map((cookie) => {
-      const pair = cookie.split(';', 1)[0];
-      const separator = pair.indexOf('=');
-      return separator > 0 ? [pair.slice(0, separator), pair.slice(separator + 1)] : ['', ''];
-    }));
-    const accessToken = updated.get(auth.accessCookieName);
-    const csrfToken = updated.get(auth.csrfCookieName);
-    const refreshToken = updated.get(auth.refreshCookieName);
-    if (!accessToken || !csrfToken || !refreshToken) {
-      throw new Error('Dify refreshed the session but did not return all expected auth cookies. Check the cookie names in .env.');
-    }
-    auth.accessToken = accessToken;
-    auth.csrfToken = csrfToken;
-    auth.refreshToken = refreshToken;
-    persistCredentials();
-  })();
-  try { await refreshPromise; } finally { refreshPromise = undefined; }
-}
-
-async function requestJson(url, { token, body, method = 'GET', csrf = false } = {}) {
+async function requestJson(url, { token, body, form, raw = false, method = 'GET' } = {}) {
   const response = await fetch(url, {
     method,
     headers: {
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(csrf && auth.csrfToken ? {
-        'X-CSRF-Token': auth.csrfToken,
-        Cookie: `${auth.csrfCookieName}=${auth.csrfToken}`,
-      } : {}),
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(body !== undefined && !form ? { 'Content-Type': 'application/json' } : {}),
     },
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(form ? { body: form } : body !== undefined ? { body: JSON.stringify(body) } : {}),
     signal: AbortSignal.timeout(30_000),
   });
+  if (response.ok && raw) return response;
   const text = await response.text();
   let data;
   try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text.slice(0, 1000) }; }
@@ -145,25 +73,6 @@ async function requestJson(url, { token, body, method = 'GET', csrf = false } = 
     throw error;
   }
   return data;
-}
-
-function consoleUrl(pathname) {
-  return `${assertCloudBaseUrl()}/console/api${pathname}`;
-}
-
-async function requestConsoleJson(pathname, options = {}) {
-  const url = consoleUrl(pathname);
-  const request = () => requestJson(url, { ...options, token: requireConsoleToken(), csrf: true });
-  try {
-    return await request();
-  } catch (error) {
-    if (error.status !== 401) throw error;
-    if (!auth.refreshToken) {
-      throw new Error('Dify rejected the console token. Configure DIFY_REFRESH_TOKEN in tools/dify-workflow-mcp/.env to enable automatic refresh.');
-    }
-    await refreshConsoleSession();
-    return request();
-  }
 }
 
 async function getDraft(appId) {
@@ -375,4 +284,6 @@ server.registerTool('run_workflow', {
   } catch (error) { return toolError(error); }
 });
 
-await server.connect(new StdioServerTransport());
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await server.connect(new StdioServerTransport());
+}

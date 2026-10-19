@@ -52,28 +52,46 @@ def fact_catalog(payload):
 def perception_snapshot(payload):
     event = obj(payload.get("event"))
     event_type = text(event.get("type"), 80)
-    perception = obj(payload.get("perception"))
     car = obj(payload.get("car"))
-    if event_type:
-        source = "event"
-        conclusion = text(event.get("description"), 160) or event_type.replace("_", " ")
-        confidence = 1.0
-    elif perception:
-        source = "cabin_snapshot"
-        signals = [text(perception.get(key), 80) for key in ("vehicle_state", "driver_state", "cabin_mood", "game_progress")]
-        conclusion = "；".join(value for value in signals if value) or "座舱状态已更新"
-        confidence = 0.9
-    else:
-        source = "request_state"
-        conclusion = "车速{} km/h，环境{}，驾驶员{}".format(
-            car.get("speed", "未知"), text(car.get("environment"), 80) or "未知", text(obj(payload.get("passengers")).get("states", {}).get("driver"), 40) or "正常"
-        )
-        confidence = 0.7
-    return {"source": source, "fusion_conclusion": conclusion, "confidence": confidence}
+    signals = []
+    if payload.get("trigger_type") == "chat" and text(payload.get("player_input")):
+        labels = {"driver": "主驾", "front": "副驾", "rearLeft": "后排左", "rearRight": "后排右"}
+        signals.append({"field": "player_input", "value": text(payload.get("player_input"), 160),
+                        "label": labels[selected_seat(payload)] + "说", "source": "request"})
+    if event_type == "environment_change":
+        signals.append({"field": "environment", "value": event.get("value"),
+                        "previous_value": event.get("previous_value"), "label": "车外环境", "source": "event"})
+    elif event_type == "speed_overspeed":
+        signals.append({"field": "speed", "value": event.get("value"), "unit": "km/h",
+                        "previous_value": event.get("previous_value"), "threshold": event.get("threshold_kmh"),
+                        "label": "车速", "source": "event"})
+    elif event_type in {"driver_tired", "driver_distracted"}:
+        labels = {"asleep": "睡着", "fatigued": "疲惫"}
+        value = "分心" if event_type == "driver_distracted" else labels.get(event.get("state"), "疲惫")
+        signals.append({"field": "driver_state", "value": value,
+                        "duration_ms": event.get("duration_ms"), "label": "主驾状态", "source": "event"})
+    elif event_type == "passenger_inactive":
+        signals.append({"field": "participation", "value": "副驾持续未参与",
+                        "duration_ms": event.get("duration_ms"), "label": "乘客参与", "source": "event"})
+    elif event_type:
+        labels = {"hard_brake": "急刹", "safety_pause": "安全暂停", "passenger_sleep": "乘客睡着",
+                  "near_destination": "即将到达", "timeout": "本题超时", "round_timeout": "本题超时",
+                  "game_end": "整局结束", "start_game": "开始游戏", "resume_game": "恢复游戏",
+                  "near_answer": "接近答案", "game_stuck": "猜谜停滞", "cabin_laughing": "车内欢笑",
+                  "passenger_question": "乘客提问"}
+        signals.append({"field": "event", "value": labels.get(event_type, "收到座舱事件"), "label": "事件", "source": "event"})
+    if not signals:
+        for key, label in (("environment", "车外环境"), ("speed", "车速")):
+            if key in car:
+                signals.append({"field": key, "value": car[key], "label": label, "source": "request"})
+    # Simulation inputs are observations, not a calibrated sensor confidence.
+    return {"schema_version": 2, "source": "event" if event_type else "request",
+            "signals": signals, "confidence": None}
 
 
 def decision_trace(layer, rule, priority, decision, guard_status="passed", hint_blocked=False):
     return {
+        "schema_version": 2,
         "layer": layer, "matched_rule": rule, "priority": priority,
         "strategy_id": rule, "decision": decision,
         "policy": "frontend_arbitrates_execution",
@@ -95,9 +113,16 @@ def envelope(payload, line, priority="P2", status=None, correct=False, mode="nor
         "perception": perception_snapshot(payload),
         "decision_trace": decision_trace(layer, rule, priority, decision, guard_status, hint_blocked),
         "execution": {
+            "kind": "plan",
             "actions": items(actions),
-            "timing": {"mode": "after_current_speech_if_p1", "owner": "frontend"},
+            "timing": {"owner": "frontend"},
             "fallback": "ignore_unapproved_or_failed_action",
         },
+        "knowhow_status": "not_relevant",
+        "retrieved_knowhow": [],
+        "strategy": "direct_answer",
+        "target_seat": None,
+        "reason_codes": [],
+        "applied_knowhow_ids": [],
         "speech": {"priority": priority, "max_duration_ms": 6000, "interruptible": priority != "P0"}
     }

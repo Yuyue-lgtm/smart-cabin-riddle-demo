@@ -17,7 +17,7 @@ def main(input_payload: str, cabin_snapshot: str) -> dict:
     exact = bool(expected and trigger == "chat" and game.get("status") == "playing" and guess in
                  (expected, "答案是" + expected, "我猜" + expected, "我猜是" + expected, "是" + expected))
     p0_event = event_type in ("hard_brake", "safety_pause", "timeout", "round_timeout", "game_end")
-    ended_game = game.get("status") in ("victory", "failed", "finished") and not music_request
+    ended_game = trigger != "chat" and game.get("status") in ("victory", "failed", "finished") and not music_request
     p0 = p0_event or exact or ended_game
     interaction = obj(payload.get("interaction"))
     recent = [{k: text(message.get(k), 180) for k in ("role", "speaker", "seat", "text", "content") if text(message.get(k), 180)}
@@ -33,7 +33,9 @@ def main(input_payload: str, cabin_snapshot: str) -> dict:
         "speaker_persona": obj(interaction.get("current_speaker_persona") or obj(payload.get("passengers")).get("selected_persona"))
     }
     return {
-        "payload": payload, "context_json": encode(context), "exact_correct": exact,
+        # Keep nested player payload serialized between Dify Code nodes. Dify
+        # limits structured values to five levels; game plans can exceed that.
+        "payload": encode(payload), "context_json": encode(context), "exact_correct": exact,
         "is_p0": p0, "event_type": event_type, "priority": priority,
         "perception": perception_snapshot(payload),
     }

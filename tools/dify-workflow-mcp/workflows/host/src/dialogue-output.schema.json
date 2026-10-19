@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "intent": { "type": "string", "enum": ["answer_question", "guess", "smalltalk", "game_related_chat", "repeat_question", "event", "fallback"] },
+    "reply_mode": { "type": "string", "enum": ["answer_only", "chat_only", "chat_then_bridge"] },
+    "ai_reply_text": { "type": "string", "description": "给玩家的自然回复，最多60个汉字。是/否问题只回答所问属性，使用‘它’等代词，不包含当前谜底原词，不替玩家揭晓。" },
+    "covered_fact_keys": { "type": "array", "items": { "type": "string" } },
+    "execution_actions": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string", "enum": ["music.set_enabled", "cabin.set_zone_light", "cabin.apply_sleep_comfort", "cabin.restore_sleep_comfort", "game.set_paused"] },
+          "paused": { "type": "boolean" },
+          "enabled": { "type": "boolean" },
+          "seat": { "type": "string", "enum": ["driver", "front", "rearLeft", "rearRight"] }
+        },
+        "required": ["type"]
+      }
+    },
+    "strategy": { "type": "string", "enum": ["direct_answer", "encourage", "invite_collaboration", "soft_response", "defer_interruption", "bridge_to_game", "resume_game", "closing"] },
+    "target_seat": { "type": ["string", "null"], "enum": ["front", "rearLeft", "rearRight", null] },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "applied_knowhow_ids": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["intent", "reply_mode", "ai_reply_text", "covered_fact_keys", "execution_actions", "strategy", "target_seat", "reason_codes", "applied_knowhow_ids"]
+}

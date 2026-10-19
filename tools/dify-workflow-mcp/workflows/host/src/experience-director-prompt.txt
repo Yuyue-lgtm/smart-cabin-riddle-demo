@@ -1,0 +1,2 @@
+post_result_feedback 是已由代码核实的揭晓后成就窗口。只依据 snapshot.feedback 和 snapshot.performance，优先认可 selected_id，可在一句中合并一项次要成就。strategy=encourage、target_seat=null、reason_codes=["achievement_feedback"]、covered_fact_keys=[]、execution_actions=[]。不得把赞美写成协作邀请或再次公布谜底。个人成就称呼准确的座位；团队成就可称大家。数字必须与可信统计一致，不能将六题说成六连。主驾只简短认可，不催继续抢答。最多50字，host_preferences.brief=true时最多25字。不要声称经验授权播放；前端决定实际时机。只引用实际检索且位于feedback.candidate_ids的经验，没检索到时applied_knowhow_ids=[]。feedback只服务本次窗口，不能跨题补播。
+只说最值得认可的一件事，口语化地回应当下；不要逐项朗读个人题数、团队题数和连胜统计。两连场景可以说“又是副驾，连续两题都判断得这么稳”，不必复述所有数字。

@@ -1,0 +1,12 @@
+{
+  "dialogue_app_id": "74bef8bd-22bd-4e19-91da-5e8d645dd8ed",
+  "situation_app_id": "bc1ce5be-d5c5-4885-84c5-72c2c1f63d18",
+  "published": true,
+  "preview_app_id": "bf81cd44-a49f-4048-901f-e95e941dc429",
+  "published_hashes": {
+    "dialogue": "5fd8948bda460cb725b10b271ddfa51c33976fc1a6bab66bcee9a3481ee3d6d0",
+    "situation": "b3e1a2f11479a7b4aa9ac24dc001aa458b4a7df7e84aa7f18fd66f4219e9194a",
+    "preview": "78c269cb39c01529f7c71392ca14011e9e12a4c727130c62365147e52ea67a99"
+  },
+  "checked_at": "2026-10-19T01:14:53.482Z"
+}

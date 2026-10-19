@@ -593,10 +593,11 @@ select:disabled {
 
 .pencil-progress-rail {
   position: absolute;
-  left: 485px;
+  left: calc(50% - 8px);
+  transform: translateX(-50%);
   top: 51px;
   z-index: 1;
-  width: 454px;
+  width: 270px;
   height: 26px;
 }
 
@@ -1599,6 +1600,12 @@ select:focus {
   background: #293a50;
 }
 
+.event-button:disabled {
+  border-color: #39404a;
+  color: #7d8795;
+  background: #202630;
+}
+
 .destination-input {
   width: 80px;
 }
@@ -1671,6 +1678,17 @@ select:focus {
 
 .timeline-paused .control-region {
   background: #0d0a16;
+}
+
+.simulation-frozen *,
+.simulation-frozen *::before,
+.simulation-frozen *::after {
+  animation-play-state: paused !important;
+}
+
+.simulation-frozen button:not(#pauseTimeline),
+.simulation-frozen input {
+  pointer-events: none;
 }
 
 .hidden {
@@ -2359,6 +2377,27 @@ body.has-started .prestart-panel {
   opacity: 0.72;
 }
 
+.game-sound-toggle {
+  position: absolute;
+  top: 111px;
+  right: 31px;
+  z-index: 7;
+  display: none;
+  background: rgba(78, 78, 78, 0.09);
+}
+
+.screen-playing .game-sound-toggle {
+  display: grid;
+}
+
+.screen-reveal .game-sound-toggle {
+  display: grid;
+}
+
+.game-sound-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .ready-beam-right {
   left: 937px;
   top: -435px;
@@ -2716,7 +2755,7 @@ body.has-started .prestart-panel {
   left: 43px;
   top: 129px;
   width: 724px;
-  height: 161px;
+  height: 194px;
   margin: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.34);
@@ -2746,7 +2785,7 @@ body.has-started .prestart-panel {
 .cabin-region .cabin-decision-card dl {
   position: absolute;
   left: 17px;
-  top: 55px;
+  top: 49px;
   display: grid;
   width: 690px;
   grid-template-columns: 190px 190px 190px;
@@ -2759,7 +2798,11 @@ body.has-started .prestart-panel {
   min-width: 0;
 }
 
-.cabin-region .cabin-decision-card dl > div:not(:last-child)::after {
+.cabin-region .cabin-decision-card dl > div.is-blocked {
+  visibility: hidden;
+}
+
+.cabin-region .cabin-decision-card dl > div.has-content:not(:last-child)::after {
   position: absolute;
   right: -43px;
   top: 20px;
@@ -2771,6 +2814,9 @@ body.has-started .prestart-panel {
 }
 
 .cabin-region .cabin-decision-card dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 4px;
   color: #fff;
   font-size: 15px;
@@ -2778,24 +2824,46 @@ body.has-started .prestart-panel {
   line-height: 21px;
 }
 
+.cabin-region .decision-priority {
+  display: inline-flex;
+  align-items: center;
+  min-height: 19px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  color: #74e7cd;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.cabin-region .decision-priority[hidden] { display: none; }
+.cabin-region .decision-priority[data-priority="P0"] { color: #ff9294; }
+.cabin-region .decision-priority[data-priority="P1"] { color: #ffd56a; }
+.cabin-region .decision-priority[data-priority="P3"] { color: #a9d8ff; }
+.cabin-region .decision-priority[data-priority="P4"] { color: #e5c1f5; }
+
 .cabin-region .cabin-decision-card dd {
-  display: -webkit-box;
-  max-height: 63px;
+  display: block;
+  max-height: 100px;
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: #fff;
   font-size: 14px;
   font-weight: 500;
-  line-height: 21px;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  line-height: 20px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
 }
 
 .cabin-region .important-event {
   position: absolute;
   z-index: 10;
   left: 43px;
-  top: 310px;
+  top: 337px;
   display: flex;
   width: max-content;
   max-width: calc(100% - 86px);
@@ -3009,6 +3077,60 @@ body.has-started .prestart-panel {
 .cabin-region .seat.sleeping .passenger-figure {
   opacity: 1;
   filter: none;
+}
+
+.cabin-region .cabin-sleep-shade {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.cabin-sleep-shade-rear-left { left: 2px; top: 370px; }
+.cabin-sleep-shade-rear-right { left: 292px; top: 375px; }
+.cabin-sleep-shade-front { left: -47px; top: 633px; }
+.cabin-sleep-shade-driver { left: 299px; top: 649px; }
+
+.cabin-region .cabin-zone-comfort {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  width: 147px;
+  height: 44px;
+  grid-template-rows: 14px 14px;
+  row-gap: 6px;
+  border-radius: 10px;
+  padding: 4px 11px 6px;
+  color: #45e6b5;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 14px;
+  text-align: left;
+  -webkit-backdrop-filter: blur(3.5px);
+  backdrop-filter: blur(3.5px);
+  pointer-events: none;
+}
+
+.cabin-zone-comfort-rear-left { left: 170px; top: 635px; }
+.cabin-zone-comfort-rear-right { left: 484px; top: 635px; }
+.cabin-zone-comfort-front { left: 151px; top: 968px; }
+.cabin-zone-comfort-driver { left: 509px; top: 968px; }
+
+.cabin-zone-setting {
+  display: grid;
+  grid-template-columns: 14px 48px max-content;
+  column-gap: 4px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.cabin-zone-setting b {
+  color: #fff;
+  font-weight: 500;
+}
+
+.cabin-sleep-shade[hidden],
+.cabin-region .cabin-zone-comfort[hidden] {
+  display: none;
 }
 
 .cabin-region .seat-info {
