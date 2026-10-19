@@ -88,6 +88,32 @@ test("victory-period chat is queued safely and holds the next-round handoff", ()
   assert.equal(app.value("state.game.roundIndex"), 7);
 });
 
+test("round handoff diagnostics identify frontend wait gates without recording bubble text", () => {
+  const app = client();
+  let payload;
+  app.context.fetch = async (url, options) => {
+    assert.equal(url, "/api/client-diagnostic");
+    payload = JSON.parse(options.body);
+    return { ok: true };
+  };
+  app.run(`state.health.runtime = "local";
+    state.game.status = "victory"; state.game.roundIndex = 1; state.timeline.status = "running";
+    state.workflow.inFlight = true;
+    state.workflow.pendingChats = [{text:"private passenger question"}];
+    state.workflow.deferredHostReplies = [{roundId:getDifyRoundScopeKey(),text:"private reply",
+      options:{source:"environment",priority:"P1"}}];
+    state.workflow.hostSpeech.source = "victory";
+    state.workflow.hostSpeech.expiresAt = simulationRuntime.now() + 2000;
+    state.workflow.resultFeedback = {shown:false,output:null,expiresAt:simulationRuntime.now()+5000};
+    advanceAfterVictory(1);`);
+  assert.deepEqual(JSON.parse(JSON.stringify(payload.blockers)), [
+    "workflow_in_flight", "result_feedback_not_shown",
+  ]);
+  assert.equal(payload.host_speech_source, "victory");
+  assert.deepEqual(JSON.parse(JSON.stringify(payload.deferred_reply_sources)), ["environment"]);
+  assert.doesNotMatch(JSON.stringify(payload), /private passenger question|private reply/);
+});
+
 test("environment analysis hands off to Chatflow before any environment speech", async () => {
   const app = client();
   const requests = [];

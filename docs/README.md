@@ -13,7 +13,7 @@
 - [SITUATION_DIALOGUE_ROUTING.md](./SITUATION_DIALOGUE_ROUTING.md)：情境分析后自动调用Chatflow、P1规则快速分支、事件有效期与串词仲裁。
 - [SLEEP_COMFORT.md](./SLEEP_COMFORT.md)：入睡必启关怀、随话术执行、醒来恢复、四区模拟与Figma资源。
 - [DIFY_PARALLEL_HOST.md](./DIFY_PARALLEL_HOST.md)：Chatflow 与情境/预演 Workflow 的路由和契约。
-- [DIFY_FALLBACK_DIAGNOSTICS.md](./DIFY_FALLBACK_DIAGNOSTICS.md)：模型兜底根因、重试与日志诊断。
+- [DIFY_FALLBACK_DIAGNOSTICS.md](./DIFY_FALLBACK_DIAGNOSTICS.md)：模型兜底根因、重试、云端节点日志和前端答对后未推进的本机诊断。
 - [HOST_EXPERIENCES_V2.md](./HOST_EXPERIENCES_V2.md)：28条主持经验、首批成就反馈、真实统计、偏好记忆及HK28副驾低压力邀请。
 - [REALTIME_HOST_CONTEXT.md](./REALTIME_HOST_CONTEXT.md)：精简上下文、状态同步、主动事件和前端初始化约束。
 
@@ -89,7 +89,7 @@
 
 ### TEST_SCRIPT.md
 
-提供每次修改后的回归测试步骤、分享体验测试步骤和比赛现场讲解脚本。
+提供每次修改后的回归测试步骤、分享体验测试步骤和比赛现场讲解脚本；近期记录包含换题阻塞诊断，以及首题、答对换题、超时换题的 3 秒题号提示浏览器回归。
 
 ### V1_4_UI_IMPLEMENTATION.md
 

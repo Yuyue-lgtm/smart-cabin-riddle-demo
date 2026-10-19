@@ -85,6 +85,7 @@ function createSimulationRuntime(host = globalThis) {
 
 const simulationRuntime = createSimulationRuntime();
 const simulationFreeze = { previousTimelineStatus: null, animations: [], media: [], audioWasRunning: false };
+const roundAdvanceDiagnostic = { lastKey: "", lastAt: 0, waitingSince: 0 };
 
 const SEATS = {
   driver: "主驾",
@@ -6576,6 +6577,10 @@ function clearCorrectLightTimer() {
 function scheduleNextRound() {
   clearNextRoundTimer();
   const completedRound = state.game.roundIndex;
+  roundAdvanceDiagnostic.lastKey = "";
+  roundAdvanceDiagnostic.lastAt = 0;
+  roundAdvanceDiagnostic.waitingSince = 0;
+  logRoundAdvanceDiagnostic("round_advance_started", completedRound, []);
   state.workflow.nextRoundTimer = simulationRuntime.setTimeout(
     () => advanceAfterVictory(completedRound),
     NEXT_ROUND_DELAY_MS,
@@ -6587,6 +6592,7 @@ function advanceAfterVictory(completedRound) {
   if (state.game.status !== "victory" || state.game.roundIndex !== completedRound) return;
 
   if (state.timeline.status === "paused") {
+    logRoundAdvanceDiagnostic("round_advance_wait", completedRound, ["timeline_paused"]);
     state.workflow.nextRoundTimer = simulationRuntime.setTimeout(
       () => advanceAfterVictory(completedRound),
       PAUSED_ROUND_POLL_MS,
@@ -6595,20 +6601,25 @@ function advanceAfterVictory(completedRound) {
   }
 
   const currentRoundId = getDifyRoundScopeKey();
-  const currentChatReplyIsPending = state.workflow.inFlight
-    || state.workflow.deferredHostReplies.some((entry) => entry.roundId === currentRoundId)
-    || (isChatSpeechSource(state.workflow.hostSpeech.source)
-      && state.workflow.hostSpeech.expiresAt > simulationRuntime.now())
-    || (state.workflow.resultFeedback && !state.workflow.resultFeedback.shown)
-    || (state.workflow.hostSpeech.source === "post_result_feedback"
-      && state.workflow.hostSpeech.expiresAt > simulationRuntime.now());
-  if (currentChatReplyIsPending) {
+  const blockers = [];
+  const now = simulationRuntime.now();
+  const deferredCurrentRound = state.workflow.deferredHostReplies.filter((entry) => entry.roundId === currentRoundId);
+  const speechRemaining = Math.max(0, state.workflow.hostSpeech.expiresAt - now);
+  if (state.workflow.inFlight) blockers.push("workflow_in_flight");
+  if (deferredCurrentRound.some((entry) => isChatSpeechSource(entry.options.source))) blockers.push("deferred_chat_reply");
+  if (isChatSpeechSource(state.workflow.hostSpeech.source) && speechRemaining > 0) blockers.push("chat_speech_active");
+  if (state.workflow.resultFeedback && !state.workflow.resultFeedback.shown) blockers.push("result_feedback_not_shown");
+  if (state.workflow.hostSpeech.source === "post_result_feedback" && speechRemaining > 0) blockers.push("post_result_feedback_active");
+  if (blockers.length) {
+    logRoundAdvanceDiagnostic("round_advance_wait", completedRound, blockers);
     state.workflow.nextRoundTimer = simulationRuntime.setTimeout(
       () => advanceAfterVictory(completedRound),
       PAUSED_ROUND_POLL_MS,
     );
     return;
   }
+
+  logRoundAdvanceDiagnostic("round_advance_completed", completedRound, []);
 
   if (completedRound >= state.game.totalRounds) {
     finishGameSeries();
@@ -6660,6 +6671,51 @@ function advanceAfterVictory(completedRound) {
   });
   render();
   void startRoundGoldenTimeline();
+}
+
+function logRoundAdvanceDiagnostic(type, completedRound, blockers) {
+  if (state.health.runtime !== "local" || typeof fetch !== "function") return;
+  const now = simulationRuntime.now();
+  const speech = state.workflow.hostSpeech;
+  const feedback = state.workflow.resultFeedback;
+  const safeSource = value => ["victory", "environment", "post_result_feedback", "chat", "passenger_question",
+    "workflow_fallback", "game_control", "hard_brake", "passenger_sleep", "passenger_wake", "driver_tired",
+    "near_destination", "timeout"].includes(value) ? value : value ? "other" : "";
+  if (type === "round_advance_wait") {
+    if (!roundAdvanceDiagnostic.waitingSince) roundAdvanceDiagnostic.waitingSince = Date.now();
+    const key = blockers.join(",") || "timeline_paused";
+    const wallNow = Date.now();
+    if (key === roundAdvanceDiagnostic.lastKey && wallNow - roundAdvanceDiagnostic.lastAt < 5000) return;
+    roundAdvanceDiagnostic.lastKey = key;
+    roundAdvanceDiagnostic.lastAt = wallNow;
+  } else {
+    roundAdvanceDiagnostic.lastKey = "";
+    roundAdvanceDiagnostic.lastAt = 0;
+    if (type === "round_advance_completed") roundAdvanceDiagnostic.waitingSince = 0;
+  }
+  const deferred = state.workflow.deferredHostReplies.filter(entry => entry.roundId === getDifyRoundScopeKey());
+  const payload = {
+    type,
+    game_id: state.workflow.gameId,
+    round_id: `${state.workflow.gameId}-round-${completedRound}`,
+    game_status: state.game.status,
+    timeline_status: state.timeline.status,
+    simulation_paused: simulationRuntime.paused,
+    workflow_in_flight: Boolean(state.workflow.inFlight),
+    deferred_reply_count: deferred.length,
+    deferred_reply_sources: deferred.slice(0, 8).map(entry => safeSource(entry.options?.source)),
+    pending_chat_count: state.workflow.pendingChats.length,
+    host_speech_source: safeSource(speech.source),
+    host_speech_remaining_ms: Math.round(Math.max(0, speech.expiresAt - now)),
+    result_feedback_state: !feedback ? "none" : feedback.shown ? "shown" : feedback.output ? "output_ready" : "waiting",
+    result_feedback_remaining_ms: feedback ? Math.round(Math.max(0, feedback.expiresAt - now)) : 0,
+    pending_minimum_speech_source: safeSource(state.workflow.pendingMinimumSpeech?.source),
+    next_round_timer_active: Boolean(state.workflow.nextRoundTimer),
+    blockers,
+    wait_duration_ms: roundAdvanceDiagnostic.waitingSince ? Date.now() - roundAdvanceDiagnostic.waitingSince : 0,
+  };
+  fetch("/api/client-diagnostic", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload), keepalive: true }).catch(() => {});
 }
 
 function finishGameSeries() {
@@ -7469,6 +7525,7 @@ function startQuestionIntro() {
     questionIntro.active = false;
     render();
   }, QUESTION_INTRO_DURATION_MS);
+  render();
   queueEnvironmentRoundIntro();
 }
 

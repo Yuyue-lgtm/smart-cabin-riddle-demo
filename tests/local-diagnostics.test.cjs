@@ -51,3 +51,41 @@ test("local workflow diagnostics retain correlation and guard codes without priv
   assert.doesNotMatch(saved, /private question|private answer|private conversation|private reply|private model|private prompt/);
   assert.equal(fs.statSync(logPath).mode & 0o777, 0o600);
 });
+
+test("client round-advance diagnostics keep wait gates but never persist speech contents", (t) => {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), "cabin-client-diagnostics-"));
+  t.after(() => fs.rmSync(folder, { recursive: true, force: true }));
+  const logPath = path.join(folder, "workflow.ndjson");
+  appendWorkflowDiagnostic({
+    phase: "client_runtime",
+    game_id: "game-1",
+    round_id: "game-1-round-1",
+    player_input: "private question",
+    client_diagnostic: {
+      type: "round_advance_wait",
+      game_status: "victory",
+      timeline_status: "running",
+      simulation_paused: false,
+      workflow_in_flight: true,
+      deferred_reply_count: 1,
+      deferred_reply_sources: ["environment"],
+      pending_chat_count: 1,
+      host_speech_source: "victory",
+      host_speech_remaining_ms: 1200,
+      result_feedback_state: "waiting",
+      result_feedback_remaining_ms: 5000,
+      pending_minimum_speech_source: "chat",
+      next_round_timer_active: true,
+      blockers: ["workflow_in_flight", "result_feedback_not_shown"],
+      wait_duration_ms: 5200,
+      speech_text: "private host speech",
+    },
+  }, logPath);
+
+  const saved = fs.readFileSync(logPath, "utf8");
+  const record = JSON.parse(saved);
+  assert.deepEqual(record.client_diagnostic.blockers, ["workflow_in_flight", "result_feedback_not_shown"]);
+  assert.equal(record.client_diagnostic.host_speech_remaining_ms, 1200);
+  assert.equal(record.client_diagnostic.speech_text, undefined);
+  assert.doesNotMatch(saved, /private question|private host speech/);
+});

@@ -48,6 +48,22 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/api/client-diagnostic" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      if (!body || body.type !== "round_advance_wait" && body.type !== "round_advance_started" && body.type !== "round_advance_completed") {
+        sendJson(res, 400, { error: "INVALID_CLIENT_DIAGNOSTIC" });
+        return;
+      }
+      persistWorkflowDiagnostic({
+        phase: "client_runtime", timestamp: new Date().toISOString(),
+        game_id: String(body.game_id || "").slice(0, 100),
+        round_id: String(body.round_id || "").slice(0, 140),
+        client_diagnostic: body,
+      });
+      sendJson(res, 202, { ok: true });
+      return;
+    }
+
     serveStatic(req, res);
   } catch (error) {
     sendJson(res, 500, {

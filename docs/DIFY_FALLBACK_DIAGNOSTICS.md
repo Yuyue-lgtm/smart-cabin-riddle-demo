@@ -74,6 +74,8 @@ node tools/dify-workflow-mcp/scripts/diagnose-chatflow-run.mjs --latest
 
 本地服务器启动时立即写入 `server_start`，`/api/health.local_diagnostics` 返回当前实例、启动时间、日志版本、最近写入时间及错误码。只有实际写入成功后 `enabled` 才为 `true`。请求完成日志同时保留事件、局号和题号，便于关联。首次启用日志或更新 Node 服务代码需要重启实际使用端口上的 `node dev-server.cjs`；只刷新网页不会重新加载服务端代码。
 
+答对后未推进属于浏览器运行状态问题时，另查下方“前端答对后未推进诊断”。`diagnose-chatflow-run.mjs --latest` 选择的是工作流异常，不会自动选择前端等待记录。
+
 1. 优先运行 `node tools/dify-workflow-mcp/scripts/diagnose-chatflow-run.mjs --latest`，自动定位最近一条兜底/失败 Chatflow 记录，并读取本地证据。
 2. 若 `diagnostic.status=reason_recorded`，查看 `reason_codes`、`validation_reason_codes`、`validation_errors`。只有这些字段来自结构化守卫结果时，才可以确认触发原因。
 3. 若固定话术返回但状态为 `reason_unavailable`，在配置了**本机私有** Dify 控制台登录令牌后运行：
@@ -88,3 +90,36 @@ node tools/dify-workflow-mcp/scripts/diagnose-chatflow-run.mjs --latest
 发布版 API 的 SSE 在 JSON 数据中携带事件类型。本地 BFF 已兼容这种格式以读取 `workflow_run_id` 和 `node_finished.host_result`；若 Dify 对某次运行只返回最终 `answer`，仍可能标为 `source=dify_answer_only`、`reason_unavailable`，这时用运行 ID 查询节点记录。更新云端时只同步必要节点并校验草稿 hash，不用旧 DSL 覆盖其他节点。
 
 诊断查询只在测试或事后排查时进行，不加入玩家问答的关键路径，也不延长气泡、思考动画或出声时间。
+
+## 前端答对后未推进诊断（2026-10-19）
+
+本机开发服务新增 `POST /api/client-diagnostic`，将浏览器记录追加到同一日志，`phase=client_runtime`。页面健康状态须为 `runtime=local`；直接打开 HTML、云端页面及未加载新接口的旧服务不能采集这一类记录。更新服务端代码后重启实际端口的 Node 进程并刷新页面，再复现问题。此次本地验收端口为 `4187`，不代表其他端口已重启。
+
+| `client_diagnostic.type` | 记录时机与含义 |
+| --- | --- |
+| `round_advance_started` | 安排答对后的下一题调度；随后仍等待原揭晓展示时段 |
+| `round_advance_wait` | 下一题检查被某项条件阻塞；首次、阻塞原因变化时记录，持续相同原因最多每 5 秒一次 |
+| `round_advance_completed` | 等待检查已通过，接下来切下一题或整局结算；不等于所有待播话术均已显示 |
+
+按 `game_id`、`round_id` 与附近 `phase=start/finish` 的工作流记录关联。时间戳为 UTC；`wait_duration_ms` 在等待记录中表示从首次阻塞起的真实耗时。快速查看：
+
+```sh
+rg '"phase":"client_runtime"' tmp/workflow-diagnostics.ndjson | tail -20
+```
+
+等待原因对应当前 `advanceAfterVictory()` 的检查条件：
+
+| `blockers` 项 | 当前条件 |
+| --- | --- |
+| `timeline_paused` | 时间轴处于暂停状态 |
+| `workflow_in_flight` | 前端仍标记主持请求未结束 |
+| `deferred_chat_reply` | 当前题仍有来源为 `chat`、`passenger_question` 或 `workflow_fallback` 的待播回答 |
+| `chat_speech_active` | 上述乘客回答仍处于气泡展示期 |
+| `result_feedback_not_shown` | 答后反馈对象存在且尚未标记已提交展示 |
+| `post_result_feedback_active` | 答后反馈已成为当前话术，展示期尚未结束 |
+
+快照还记录当前题全部待播话术数量/来源、待处理乘客问题数量、话术锁剩余时长、答后反馈剩余窗口、最短气泡保护及模拟暂停状态。服务端按白名单落盘，限制字符串、数组及数值范围，不包含玩家原话、谜底、气泡正文、模型输出或密钥；未知话术来源记为 `other`。
+
+解读快照时保留以下边界：`deferred_reply_count` 包含当前题的全部来源，不等于 `deferred_chat_reply` 阻塞数；答后反馈 `shown` 表示已交给话术发布逻辑，仍可能在队列中；`next_round_timer_active` 是检查回调内的瞬时值，回调会先清空引用再安排重试，不能仅凭 `false` 断定计时器丢失。模型请求全部完成也不能单独证明画面或下一题已推进。
+
+此次新增诊断没有确认旧卡住会话内部的具体阻塞项。后续体验日志已观察到第 1→2→3 题的调度检查通过，题号提示缺失则另外由浏览器复现并修复，详见 [测试记录](TEST_SCRIPT.md)。

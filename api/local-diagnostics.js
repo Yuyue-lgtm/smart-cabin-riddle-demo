@@ -83,6 +83,33 @@ function sanitizeRecord(record) {
     };
   }
 
+  if (record.client_diagnostic && typeof record.client_diagnostic === "object") {
+    const diagnostic = record.client_diagnostic;
+    const textFields = ["type", "game_status", "timeline_status", "host_speech_source", "result_feedback_state",
+      "pending_minimum_speech_source"];
+    const numericFields = ["deferred_reply_count", "pending_chat_count", "host_speech_remaining_ms",
+      "result_feedback_remaining_ms", "wait_duration_ms"];
+    const booleanFields = ["simulation_paused", "workflow_in_flight", "next_round_timer_active"];
+    const sanitized = {};
+    for (const field of textFields) {
+      if (typeof diagnostic[field] === "string") sanitized[field] = diagnostic[field].slice(0, 80);
+    }
+    for (const field of numericFields) {
+      if (Number.isFinite(diagnostic[field])) sanitized[field] = Math.max(0, Math.min(86400000, Math.round(diagnostic[field])));
+    }
+    for (const field of booleanFields) {
+      if (typeof diagnostic[field] === "boolean") sanitized[field] = diagnostic[field];
+    }
+    for (const field of ["deferred_reply_sources", "blockers"]) {
+      if (Array.isArray(diagnostic[field])) {
+        sanitized[field] = diagnostic[field].slice(0, 8)
+          .filter(value => typeof value === "string")
+          .map(value => value.slice(0, 80));
+      }
+    }
+    safe.client_diagnostic = sanitized;
+  }
+
   return safe;
 }
 

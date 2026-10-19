@@ -158,6 +158,23 @@ PLAYWRIGHT_MODULE=/Users/diaoxuanyue/.cache/codex-runtimes/codex-primary-runtime
 
 代理日志只能确认请求/回复及守卫结果，不记录浏览器逐帧动画；不能仅凭没有额外网络请求就断定某次动画的具体起因。浏览器回归通过拦截接口稳定重现返回时机，不调用云端 Dify，检查回复期间自然播完，以及气泡到期后持续重绘 7 秒不再进入思考。
 
+## 答对后卡住诊断回归（2026-10-19）
+
+```sh
+node --test tests/dify-environment.test.cjs tests/local-diagnostics.test.cjs
+```
+
+本组 12 项回归通过，覆盖答对后的下一题等待门槛诊断，以及本机 NDJSON 对诊断字段的脱敏白名单。开发服务已验证 `/api/health` 与新增诊断接收接口。实际体验卡住时，按当前 `game_id` 查看 `tmp/workflow-diagnostics.ndjson` 中 `phase=client_runtime` 记录；`client_diagnostic.blockers` 指明仍未解除的等待项，`wait_duration_ms` 表示等待持续时间。字段含义及瞬时状态边界见 [本机运行诊断](DIFY_FALLBACK_DIAGNOSTICS.md)。这些诊断不直接清空队列或强制切题；本组测试不构成对旧卡住会话根因的最终证明。
+
+## 题号提示显示回归（2026-10-19）
+
+```sh
+PLAYWRIGHT_MODULE=/Users/diaoxuanyue/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright TEST_DEMO_URL=http://127.0.0.1:4187/ node tests/question-intro-browser.cjs
+node --test tests/environment-round-intro.test.cjs tests/dify-environment.test.cjs tests/environment-riddle-selection.test.cjs
+```
+
+修复前浏览器测试复现：`questionIntro.active=true`，但面板仍显示题目提示。`startQuestionIntro` 只设置状态和 3 秒结束计时，没有立即 `render()`；没有其他状态刷新时，题号整段时间不可见。修复为启动题号提示时立即渲染，保留原有放大动画、提示音和 3 秒时长。Chrome 浏览器验证首题、答对换题、超时换题三条路径，包含 2380×1120 与 1024×768 窗口：题号实际可见，期间倒计时和剩余提问次数隐藏，结束后恢复题目提示和两项控件；无页面脚本错误。截图在忽略目录 `tmp/question-intro-round-{1,2,3}.png`。相关 35 项本地测试通过；浏览器接口全部模拟，不调用云端 Dify。
+
 ## 安全前缀与一次修复回归（2026-10-17，当时的连接器状态）
 
 ```sh

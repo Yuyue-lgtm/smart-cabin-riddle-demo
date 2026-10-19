@@ -10,9 +10,9 @@
 
 当前代码已进入 `V1.4` UI 基础阶段：核心中控屏页面已按 Figma 资源落地，主持人默认、说话、思考、比心和答对状态已接入透明 Sprite Sheet + Canvas 播放，答对状态支持同步音频，游戏准备页支持默认关闭的背景音乐开关，详细实现记录见 [docs/V1_4_UI_IMPLEMENTATION.md](./docs/V1_4_UI_IMPLEMENTATION.md)。
 
-实时主持目前使用同一个 Dify Chatflow 会话跨局延续；车速、环境和乘客变化会静默更新会话快照，重要事件才调用模型。Chatflow 草稿与动作权限见 [DIFY_CHATFLOW_INTEGRATION.md](./docs/DIFY_CHATFLOW_INTEGRATION.md)。
+实时主持使用同一个 Dify Chatflow 会话跨题、跨局延续。乘客问答走 Chatflow；重要座舱事件先走情境 Workflow，再由前端接续 Chatflow。请求直接携带最新快照，常规 `sync_state` 会话变量同步已停用。三应用最近记录的发布版本、权限及后续子对话入口见 [DIFY_CURRENT_STATE.md](./docs/DIFY_CURRENT_STATE.md)，具体接入见 [DIFY_CHATFLOW_INTEGRATION.md](./docs/DIFY_CHATFLOW_INTEGRATION.md)。
 
-2026-10-06 本次已更新云端草稿，未发布；模型与会话接口的完整联调需发布后验收。前端同时修复了状态复制异常导致的启动中断，准备页及整体自适应已通过 Chrome 多尺寸验证，记录见 [TEST_SCRIPT.md](./docs/TEST_SCRIPT.md)。Chatflow 生成源文件随仓库保存在 `tools/dify-workflow-mcp/workflows/host/`。
+2026-10-19 本地增量：每局六题，玩家可经输入框请求暂停/继续；新增答对后未推进的前端诊断，修复题号提示启动计时却未立即刷新的问题。新题开始显示“第 N 题”3 秒，之后恢复提示、倒计时和剩余提问次数。诊断说明见 [DIFY_FALLBACK_DIAGNOSTICS.md](./docs/DIFY_FALLBACK_DIAGNOSTICS.md)，复现及验证记录见 [TEST_SCRIPT.md](./docs/TEST_SCRIPT.md)。本次诊断和题号修复未修改 Dify 云端、未部署 Vercel。
 
 V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴模拟多模态事件，并由 Workflow 驱动 AI 主持人与半自主模拟乘客参与游戏。
 
@@ -54,6 +54,8 @@ http://localhost:4173
 ```text
 http://localhost:4173/api/health
 ```
+
+本机服务还支持 `POST /api/client-diagnostic`，将答对后换题的等待原因与工作流记录一起写入忽略目录 `tmp/workflow-diagnostics.ndjson`。页面仅在健康检查返回 `runtime=local` 时发送这些诊断；文件记录局/题、队列来源和计时状态，不记录气泡正文或谜底。更新该服务端接口后需要重启 Node 服务，并刷新页面。端口可通过 `PORT=4187 node dev-server.cjs` 指定，后续体验与日志应使用同一端口。
 
 背景音乐默认关闭，用户打开准备页右上角的声音按钮后才会循环播放；每次重新进入准备页都会从头播放。浏览器会限制无用户手势的自动播放，因此首次播放需要点击页面或声音按钮，背景音乐音量为 `25%`。
 
