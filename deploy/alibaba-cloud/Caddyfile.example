@@ -1,0 +1,13 @@
+cabinplay.xyz, www.cabinplay.xyz {
+    encode zstd gzip
+    request_body {
+        max_size 2MB
+    }
+    header X-Content-Type-Options nosniff
+    reverse_proxy 127.0.0.1:4173 {
+        flush_interval -1
+        transport http {
+            response_header_timeout 180s
+        }
+    }
+}

@@ -58,7 +58,7 @@ test('manual wake handler sends the chosen seat and sends nothing when nobody is
   const app = client();
   app.run(`const clicks={};
     const control={addEventListener(){}};
-    for(const name of ["backgroundMusicToggle","backgroundMusicToggleGame","switchScenario","resetScenario","summaryContinue","readyStartButton","startTimeline","pauseTimeline","sendQuestion","playerInput"]) els[name]=control;
+    for(const name of ["backgroundMusicToggle","backgroundMusicToggleGame","switchScenario","resetScenario","summaryContinue","readyStartButton","startTimeline","pauseTimeline","resumeInactiveSimulation","sendQuestion","playerInput"]) els[name]=control;
     els.speedChips=[]; els.environmentChips=[];
     els.eventButtons=[{dataset:{event:"passenger_wake"},addEventListener(name,fn){clicks.wake=fn;}}];
     window.addEventListener=()=>{}; globalThis.document={addEventListener(){}};

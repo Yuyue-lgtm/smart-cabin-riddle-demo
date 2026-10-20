@@ -1,0 +1,174 @@
+{
+  "created_at": "2026-10-19T14:55:55.006Z",
+  "source": "Dify Cloud published",
+  "target_version_reported_by_owner": "1.17.1",
+  "apps": [
+    {
+      "kind": "host",
+      "cloud_app_id": "74bef8bd-22bd-4e19-91da-5e8d645dd8ed",
+      "published_hash": "5fd8948bda460cb725b10b271ddfa51c33976fc1a6bab66bcee9a3481ee3d6d0",
+      "draft_matches_published": true,
+      "local_graph_matches_published": true,
+      "file": "host.import.yml",
+      "source_file": "host.source.yml",
+      "sha256": "606e910afd9965247c6401f3a5be157adfef8a7086c60f59464f2e8a086037c3",
+      "node_count": 17,
+      "dependencies": [
+        {
+          "current_identifier": null,
+          "type": "marketplace",
+          "value": {
+            "marketplace_plugin_unique_identifier": "langgenius/deepseek:0.0.24@9e12eef09973667f0eaf4f082af883167e1de88740b22e71e71488d020c3778a",
+            "version": null
+          }
+        }
+      ],
+      "cloud_encoded_references_restored": 0,
+      "models": [
+        {
+          "node_id": "1000000000005",
+          "title": "自然对话主持人",
+          "provider": "langgenius/deepseek/deepseek",
+          "name": "deepseek-flash",
+          "parameters": {
+            "max_tokens": 4096,
+            "reasoning_effort": "low",
+            "thinking": true
+          }
+        },
+        {
+          "node_id": "1000000000023",
+          "title": "主持回复格式重试（仅一次）",
+          "provider": "langgenius/deepseek/deepseek",
+          "name": "deepseek-flash",
+          "parameters": {
+            "max_tokens": 4096,
+            "thinking": false
+          }
+        }
+      ],
+      "retrieval_nodes": [],
+      "requires_dataset_binding_before_publish": false,
+      "private_variables_to_supply": []
+    },
+    {
+      "kind": "situation",
+      "cloud_app_id": "bc1ce5be-d5c5-4885-84c5-72c2c1f63d18",
+      "published_hash": "b3e1a2f11479a7b4aa9ac24dc001aa458b4a7df7e84aa7f18fd66f4219e9194a",
+      "draft_matches_published": true,
+      "local_graph_matches_published": true,
+      "file": "situation.import.yml",
+      "source_file": "situation.source.yml",
+      "sha256": "439447fb7f762cb9e7ea6fd4cf3b86a9e6bc9ed0b6f071de4780ab0096727030",
+      "node_count": 26,
+      "dependencies": [
+        {
+          "current_identifier": null,
+          "type": "marketplace",
+          "value": {
+            "marketplace_plugin_unique_identifier": "langgenius/deepseek:0.0.24@9e12eef09973667f0eaf4f082af883167e1de88740b22e71e71488d020c3778a",
+            "version": null
+          }
+        }
+      ],
+      "cloud_encoded_references_restored": 2,
+      "models": [
+        {
+          "node_id": "3000000000007",
+          "title": "LLM 情境判断",
+          "provider": "langgenius/deepseek/deepseek",
+          "name": "deepseek-flash",
+          "parameters": {
+            "max_tokens": 4096,
+            "thinking": false
+          }
+        }
+      ],
+      "retrieval_nodes": [
+        {
+          "node_id": "3000000000010",
+          "dataset_ids": [
+            "bc87e197-f268-4710-9697-5185726d0ce3"
+          ]
+        },
+        {
+          "node_id": "3000000000024",
+          "dataset_ids": [
+            "bc87e197-f268-4710-9697-5185726d0ce3"
+          ]
+        }
+      ],
+      "requires_dataset_binding_before_publish": true,
+      "private_variables_to_supply": []
+    },
+    {
+      "kind": "preview",
+      "cloud_app_id": "bf81cd44-a49f-4048-901f-e95e941dc429",
+      "published_hash": "78c269cb39c01529f7c71392ca14011e9e12a4c727130c62365147e52ea67a99",
+      "draft_matches_published": true,
+      "local_graph_matches_published": true,
+      "file": "preview.import.yml",
+      "source_file": "preview.source.yml",
+      "sha256": "bb45417fa77092f9365f09782f240efd8e2fcdc5ec55b5c6040ab6dddd224af4",
+      "node_count": 5,
+      "dependencies": [
+        {
+          "current_identifier": null,
+          "type": "marketplace",
+          "value": {
+            "marketplace_plugin_unique_identifier": "langgenius/deepseek:0.0.24@9e12eef09973667f0eaf4f082af883167e1de88740b22e71e71488d020c3778a",
+            "version": null
+          }
+        }
+      ],
+      "cloud_encoded_references_restored": 0,
+      "models": [
+        {
+          "node_id": "2000000000002",
+          "title": "生成逻辑提问链",
+          "provider": "langgenius/deepseek/deepseek",
+          "name": "deepseek-flash",
+          "parameters": {
+            "max_tokens": 6144,
+            "thinking": false
+          }
+        }
+      ],
+      "retrieval_nodes": [],
+      "requires_dataset_binding_before_publish": false,
+      "private_variables_to_supply": []
+    }
+  ],
+  "knowledge": [
+    {
+      "cloud_dataset_id": "bc87e197-f268-4710-9697-5185726d0ce3",
+      "cloud_document_id": "a2a9e833-5902-416e-a5c9-eb192a20d622",
+      "indexing_technique": "economy",
+      "recorded_embedding_provider": "langgenius/openai/openai",
+      "recorded_embedding_model": "text-embedding-3-small",
+      "segmentation": {
+        "separator": "\n\n",
+        "max_tokens": 1024,
+        "chunk_overlap": 0
+      },
+      "total": 28,
+      "all_enabled_and_completed": true,
+      "jsonl_sha256": "6a2cdd4d3c55479efe55978e002effbb553a5d583f728dae91e7f0294b920421",
+      "local_differences": [
+        {
+          "id": "HK10",
+          "source_version": "2.0",
+          "local_version": "2.0",
+          "fields": [
+            "title",
+            "applicability",
+            "examples"
+          ]
+        }
+      ],
+      "migration_action": "Create new economy dataset, import complete segments, rebind both retrieval nodes to its new ID."
+    }
+  ],
+  "secrets_exported": false,
+  "target_modified": false
+}

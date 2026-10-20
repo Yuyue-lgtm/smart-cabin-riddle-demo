@@ -319,12 +319,23 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
       diagnostic,
     });
   } catch (error) {
+    const cause = error.cause || {};
+    let apiOrigin = "";
+    try { apiOrigin = new URL(config.apiBase).origin; } catch {}
     return result(error.name === "AbortError" ? 504 : 502, {
       route: "chat",
       event_type: input.event?.type || "",
       event_id: input.event?.id || "",
+      app_id: config.appId,
       error: error.name === "AbortError" ? "DIFY_CHATFLOW_TIMEOUT" : "DIFY_CHATFLOW_PROXY_ERROR",
       message: error.name === "AbortError" ? "Dify Chatflow request timed out." : error.message,
+      proxy_failure: {
+        stage: "chatflow_fetch",
+        api_origin: apiOrigin,
+        error_name: String(error.name || "Error").slice(0, 80),
+        error_code: String(error.code || "").slice(0, 80),
+        cause_code: String(cause.code || "").slice(0, 80),
+      },
     });
   }
 }
@@ -741,6 +752,8 @@ function parsePublicOutput(value) {
 }
 
 function getConfig(kind) {
+  const apiBase = (process.env.DIFY_API_BASE_URL?.trim() || "https://api.dify.ai")
+    .replace(/\/+$/, "").replace(/\/v1$/, "");
   const appId = kind === "situation"
     ? process.env.DIFY_SITUATION_APP_ID || DEFAULT_SITUATION_APP_ID
     : kind === "preview"
@@ -754,7 +767,7 @@ function getConfig(kind) {
   return {
     appId,
     apiKey,
-    apiBase: (process.env.DIFY_API_BASE_URL || "https://api.dify.ai").replace(/\/+$/, ""),
+    apiBase,
     timeoutMs: Number(process.env.DIFY_BFF_TIMEOUT_MS || DEFAULT_TIMEOUT_MS),
   };
 }
@@ -820,6 +833,7 @@ module.exports = {
     const situation = getConfig("situation");
     const preview = getConfig("preview");
     return {
+      environment: process.env.DIFY_ENVIRONMENT || "unlabelled",
       configured: Boolean(chat.apiKey),
       chatflow_configured: Boolean(chat.apiKey),
       situation_configured: Boolean(situation.apiKey),

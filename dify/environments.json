@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-20",
+  "baseline": "releases/2026-10-20-migration-baseline",
+  "evidence": "../docs/ALIBABA_CLOUD_PRODUCTION.md",
+  "live_readback_in_this_archive": true,
+  "live_readback_environment": "alibaba",
+  "latest_verified_ecs_snapshot": "releases/2026-10-20T05-17-33-943Z-ecs",
+  "local_demo_configuration": "alibaba-test",
+  "alibaba_test_apps_created": true,
+  "environments": {
+    "cloud": {
+      "role": "Historical backup; no further routine development",
+      "api_base_url": "https://api.dify.ai",
+      "published_graph_verified_at": "2026-10-19T14:55:55.006Z",
+      "apps": {
+        "host": "74bef8bd-22bd-4e19-91da-5e8d645dd8ed",
+        "situation": "bc1ce5be-d5c5-4885-84c5-72c2c1f63d18",
+        "preview": "bf81cd44-a49f-4048-901f-e95e941dc429"
+      },
+      "knowledge": {
+        "dataset_id": "bc87e197-f268-4710-9697-5185726d0ce3",
+        "document_id": "a2a9e833-5902-416e-a5c9-eb192a20d622",
+        "indexing_technique": "economy",
+        "segmentation": {
+          "separator": "\n\n",
+          "max_tokens": 1024,
+          "chunk_overlap": 0
+        }
+      }
+    },
+    "alibaba": {
+      "role": "Production",
+      "website": "https://cabinplay.xyz/",
+      "dify_version": "1.17.1",
+      "api_base_url_on_ecs": "http://127.0.0.1:8080",
+      "publication_evidence_date": "2026-10-20",
+      "published_graph_verified_at": "2026-10-20T05:21:23.084Z",
+      "apps": {
+        "host": "b1f6f41d-eb34-4cba-b126-d08ca73052a3",
+        "situation": "b68a7ef3-f411-49fe-9a9f-92bdfcf40ce4",
+        "preview": "695710b2-b79e-4d8f-ab2f-6cfc543e7674"
+      },
+      "knowledge": {
+        "dataset_id": "923e8e72-56cb-45c5-9eb4-486a6d5afed3",
+        "document_id": "ea3a4ca1-1efa-44a4-a412-8e94daf13a4c",
+        "indexing_technique": "economy",
+        "segmentation": {
+          "separator": "\n\n",
+          "max_tokens": 1024,
+          "chunk_overlap": 1
+        }
+      },
+      "published_graph_hashes": {
+        "host": "d357550934c9db7c8fe195bc356fc44fb66f45a91859e0ce6955f904b8d7ef90",
+        "situation": "c4433accfa39e7c44c1e095b2e6cd70ba50e89d4a97a2eadffce2740fc961ca9",
+        "preview": "2062de0b9cd123bc9e7401a222453d159551d859c516650493fed3c9e04e60bb"
+      },
+      "last_release": "2026-10-20T05-17-33-943Z-ecs"
+    },
+    "alibaba-test": {
+      "role": "Testing",
+      "dify_version": "1.17.1",
+      "api_base_url_local": "http://127.0.0.1:8081",
+      "apps": {
+        "host": "b8bff994-d397-484e-8ccd-11851e6cc460",
+        "situation": "6e3c5968-1a66-443d-9a2d-a6c62ff248eb",
+        "preview": "aa30333f-4a8d-4d89-9d6f-557ee7296263"
+      },
+      "knowledge": {
+        "dataset_id": "387156dd-5587-43ec-87ae-4976ca04c18a",
+        "document_id": "37c487ee-15be-4ffd-8176-01a1ca28e181",
+        "indexing_technique": "economy",
+        "segmentation": { "separator": "\n\n", "max_tokens": 1024, "chunk_overlap": 1 }
+      },
+      "created_at": "2026-10-20T05:01:52.548Z"
+    }
+  },
+  "situation_retrieval_node_ids": [
+    "3000000000010",
+    "3000000000024"
+  ],
+  "retrieval": {
+    "top_k": 3,
+    "reranking_enable": false
+  },
+  "server_credentials": {
+    "host": "DIFY_CHATFLOW_API_KEY",
+    "situation": "DIFY_SITUATION_API_KEY",
+    "preview": "DIFY_PREVIEW_API_KEY"
+  }
+}

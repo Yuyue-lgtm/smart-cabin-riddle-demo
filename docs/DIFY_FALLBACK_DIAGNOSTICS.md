@@ -1,5 +1,22 @@
 # 主持人兜底诊断
 
+## 本机链路优先检查（2026-10-20）
+
+先执行 `node tools/dify.mjs doctor`，核对固定8081的后台SSH隧道、测试应用Key及环境绑定。隧道与模型问题分开定位；`502`且没有运行ID时，查看 `proxy_failure.stage/api_origin/error_name/error_code/cause_code`，不要据此猜测模型守卫失败。`diagnose-chatflow-run.mjs --latest`已直接显示该字段。完整连接配置和10次真实测试、1.7秒自动恢复证据见 [连接与诊断](DIFY_CONNECTION.md)。
+
+## 阿里云生产排查入口（2026-10-20）
+
+公开Demo现使用ECS自托管Dify，三套目标App ID及最近运行证据见[生产部署记录](ALIBABA_CLOUD_PRODUCTION.md)。本机Cloud连接器、日志目录与`--cloud`命令不会自动切换到ECS；不要把本机旧日志或Cloud运行当作线上刚发生的问题。
+
+1. 先确认体验页面来源及`/api/health`的`runtime`、`workflow_proxy`中的三个App ID、`local_diagnostics.server_instance_id`。对照[Dify当前状态](DIFY_CURRENT_STATE.md)，区分本机Cloud、ECS生产或其他端口。
+2. 线上请求先查ECS的`journalctl -u smart-cabin-demo`和服务目录`/opt/smart-cabin-demo/tmp/workflow-diagnostics.ndjson`（及轮转`.1`），按时间、`diagnostic_id`、`event_id`、`workflow_run_id`、局/题关联。日志使用字段白名单，不记录Key、原话或谜底；不要要求用户提供密钥或下载完整环境文件。
+3. 如需原始节点执行详情，在正确的自托管Dify应用内，按对应run ID核对输入标准化、实际模型最终输出/推理字段、首次校验、单次重试及最终守卫。当前Cloud维护连接器未迁移为ECS连接器；现有Cloud刷新令牌不能当作ECS凭证使用。不能通过直接读数据库绕过认证。
+4. 公网`POST /api/client-diagnostic`关闭并返回404，仅本地模式开放。健康信息`local_diagnostics.enabled=true`表示服务端有成功写入脱敏诊断，不代表向公网开放日志或已启用浏览器换题等待诊断。没有收到相应客户端记录时，不可编造前端阻塞结论。
+
+`agent_backend`此前的ServerSettings失败已确认为Agent Stub专用密钥长度不合规，授权修复后运行正常、0次重启。它与“我陪你慢慢想”等模型守卫兜底不是同一个故障；修复Agent容器不能替代读取失败的Chatflow节点。另有换题保护已部署，但`context_verified=true`只证明返回范围匹配，不证明属性回答正确。两项的证据与保留问题见[修复与维护边界](ALIBABA_CLOUD_PRODUCTION.md#已知问题与维护边界)。
+
+以上为已完成部署和代码核对结果，不代表本次文档整理重新登录服务器或测试了新一轮模型输出。下文为Cloud阶段的详细诊断方法，执行前先确认实例及权限。
+
 ## 2026-10-18 最新修复已发布
 
 以 [可靠性修复与验收](DIFY_RELIABILITY_20261018.md) 和 [当前状态](DIFY_CURRENT_STATE.md) 为准。三个应用已发布并读回：推理字段分离，只解析最终文本，关闭提供商 JSON 模式和 Dify 原生提前解析；最终仍严格校验 JSON Schema、业务字段及安全约束，失败最多一次修正。已修复参与事件白名单和清醒状态表，诊断同时读取 `node.error` 与 `outputs.error_message`。49次草稿回归、13次发布API和真实浏览器环境串词验证通过。下面“未修改白名单”及JSON模式开启等表述是更早阶段的历史状态，不能用于当前配置。
@@ -123,3 +140,10 @@ rg '"phase":"client_runtime"' tmp/workflow-diagnostics.ndjson | tail -20
 解读快照时保留以下边界：`deferred_reply_count` 包含当前题的全部来源，不等于 `deferred_chat_reply` 阻塞数；答后反馈 `shown` 表示已交给话术发布逻辑，仍可能在队列中；`next_round_timer_active` 是检查回调内的瞬时值，回调会先清空引用再安排重试，不能仅凭 `false` 断定计时器丢失。模型请求全部完成也不能单独证明画面或下一题已推进。
 
 此次新增诊断没有确认旧卡住会话内部的具体阻塞项。后续体验日志已观察到第 1→2→3 题的调度检查通过，题号提示缺失则另外由浏览器复现并修复，详见 [测试记录](TEST_SCRIPT.md)。
+# 当前日常维护：阿里云测试环境（2026-10-20）
+
+本机Demo当前连接独立ECS测试应用，入口4175；Cloud只保留历史。先运行 `node tools/dify.mjs status` 核对目标，管理会话使用独立 `.env.ecs` 自动刷新，不再要求每次粘贴Cloud Cookie。若确实被撤销，使用 `node tools/dify.mjs login` 的本机表单重新登录，密码不保存。
+
+新维护代码入口为 `tools/dify-workflow-mcp/src/ecs-console.mjs` 的 `createEcsConsole()`，从 `dify/environments.json` 选择测试/正式App ID后读取 `/apps/<id>/workflow-runs/<run_id>` 与 `/node-executions`。旧Cloud连接器和下文 `--cloud` 命令不能用来读取ECS运行ID；已驻留的旧MCP进程也可能缓存Cloud配置，不应继续用于日常写操作。
+
+发布流程会将本次虚构回归的run ID、失败阶段与只含白名单字段的报告保存在版本目录，不把Cookie、Key或密码写入日志。完整命令、例外和保留问题见 [DIFY_ECS_ITERATION.md](DIFY_ECS_ITERATION.md)。

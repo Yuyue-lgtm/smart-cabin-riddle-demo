@@ -17,6 +17,11 @@ test("local workflow diagnostics retain correlation and guard codes without priv
     workflow_run_id: "run-1",
     app_id: "app-1",
     fixed_soft_fallback: true,
+    proxy_failure: {
+      stage: "chatflow_fetch", api_origin: "http://127.0.0.1:8081",
+      error_name: "TypeError", error_code: "", cause_code: "ECONNREFUSED",
+      private_message: "must not persist",
+    },
     diagnostic: {
       status: "reason_recorded",
       reason_codes: ["upstream_validation_failed"],
@@ -40,6 +45,10 @@ test("local workflow diagnostics retain correlation and guard codes without priv
   const saved = fs.readFileSync(logPath, "utf8");
   const record = JSON.parse(saved);
   assert.equal(record.workflow_run_id, "run-1");
+  assert.deepEqual(record.proxy_failure, {
+    stage: "chatflow_fetch", api_origin: "http://127.0.0.1:8081",
+    error_name: "TypeError", error_code: "", cause_code: "ECONNREFUSED",
+  });
   assert.deepEqual(record.diagnostic.reason_codes, ["upstream_validation_failed"]);
   assert.equal(record.diagnostic.model_nodes[0].format, "think_only");
   assert.equal(record.diagnostic.model_retry_count, 1);
@@ -48,7 +57,7 @@ test("local workflow diagnostics retain correlation and guard codes without priv
   assert.deepEqual(record.diagnostic.event_context, {
     valid: false, event_type: "passenger_inactive", situation_status: "invalid_event_handoff",
   });
-  assert.doesNotMatch(saved, /private question|private answer|private conversation|private reply|private model|private prompt/);
+  assert.doesNotMatch(saved, /private question|private answer|private conversation|private reply|private model|private prompt|must not persist/);
   assert.equal(fs.statSync(logPath).mode & 0o777, 0o600);
 });
 

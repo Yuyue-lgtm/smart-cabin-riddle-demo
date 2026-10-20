@@ -32,6 +32,7 @@ if (latest && (!process.argv.includes('--cloud') || !uuid.test(latest.workflow_r
     diagnostic_status: diagnosticStatus,
     http_status: latest.status,
     error: latest.error || null,
+    proxy_failure: latest.proxy_failure || null,
     fallback_origin: diagnostic.fallback_origin || null,
     guard_status: guardStatus,
     fallback_reason_codes: diagnostic.reason_codes || [],

@@ -3,13 +3,14 @@ import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import dotenv from 'dotenv';
 
-export function createConsoleClient({ envPath, env = process.env, fetchImpl = (...args) => fetch(...args) }) {
+export function createConsoleClient({ envPath, env = process.env, fetchImpl = (...args) => fetch(...args),
+  allowedOrigin = 'https://cloud.dify.ai' }) {
   const readConfig = () => {
     const disk = fs.existsSync(envPath) ? dotenv.parse(fs.readFileSync(envPath, 'utf8')) : {};
     const values = { ...env, ...disk };
-    const origin = new URL(values.DIFY_BASE_URL || 'https://cloud.dify.ai');
-    if (origin.protocol !== 'https:' || origin.hostname !== 'cloud.dify.ai') {
-      throw new Error('This connector is restricted to https://cloud.dify.ai.');
+    const origin = new URL(values.DIFY_BASE_URL || allowedOrigin);
+    if (origin.origin !== allowedOrigin || origin.username || origin.password) {
+      throw new Error(`This connector is restricted to ${allowedOrigin}.`);
     }
     const prefix = (values.DIFY_CSRF_COOKIE_NAME || 'csrf_token').startsWith('__Host-') ? '__Host-' : '';
     return {
@@ -22,7 +23,8 @@ export function createConsoleClient({ envPath, env = process.env, fetchImpl = (.
   };
 
   async function send(url, { raw = false, ...options } = {}) {
-    const response = await fetchImpl(url, { ...options, signal: AbortSignal.timeout(30_000) });
+    const response = await fetchImpl(url, { ...options, redirect: 'error',
+      signal: options.signal || AbortSignal.timeout(90_000) });
     if (response.ok && raw) return response;
     const text = await response.text();
     let data;

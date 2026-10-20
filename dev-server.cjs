@@ -2,22 +2,30 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { once } = require("events");
 const { handleWorkflowBody, getBffHealth } = require("./api/dify-bff");
-const { appendWorkflowDiagnostic } = require("./api/local-diagnostics");
+const { appendWorkflowDiagnostic, sanitizeRecord } = require("./api/local-diagnostics");
+const { synthesizeCosyVoice } = require("./api/cosyvoice-websocket.cjs");
 
+const ROOT = __dirname;
+loadEnvFile(path.join(ROOT, ".env.local"));
+loadEnvFile(path.join(ROOT, ".env"));
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "127.0.0.1";
-const ROOT = __dirname;
+const RUNTIME = process.env.RUNTIME_ENV || "local";
 const TIMEOUT_MS = 60000;
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
+const MAX_TTS_TEXT_CHARS = 600;
+const TTS_RATE_LIMIT_WINDOW_MS = 60_000;
+const TTS_RATE_LIMIT_REQUESTS = 20;
 const DEFAULT_CHATFLOW_APP_ID = "74bef8bd-22bd-4e19-91da-5e8d645dd8ed";
 const RELEASE_INFO_PATH = path.join(ROOT, "release-info.json");
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
 let diagnosticLastWriteAt = null;
 let diagnosticLastError = null;
-
-loadEnvFile(path.join(ROOT, ".env.local"));
-loadEnvFile(path.join(ROOT, ".env"));
+const ttsRateLimits = new Map();
+let activeTtsRequests = 0;
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -31,15 +39,20 @@ const MIME_TYPES = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
 };
-const MEDIA_EXTENSIONS = new Set([".mp4", ".webm", ".mp3"]);
+const MEDIA_EXTENSIONS = new Set([".mp4", ".webm", ".mp3", ".m4a", ".wav", ".ogg"]);
+const PUBLIC_FILES = new Set(["index.html", "client-app.js", "styles.css", "release-info.json"]);
+const ASSET_EXTENSIONS = new Set(Object.keys(MIME_TYPES).filter(ext => ![".html", ".js", ".css"].includes(ext)));
 
 const server = http.createServer(async (req, res) => {
   try {
     if (req.url === "/api/health" && req.method === "GET") {
-      sendJson(res, 200, buildHealthPayload("local"));
+      sendJson(res, 200, buildHealthPayload(RUNTIME));
       return;
     }
 
@@ -48,7 +61,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/api/tts" && req.method === "POST") {
+      await proxyCosyVoice(req, res);
+      return;
+    }
+
     if (req.url === "/api/client-diagnostic" && req.method === "POST") {
+      if (RUNTIME !== "local") {
+        sendJson(res, 404, { error: "NOT_FOUND" });
+        return;
+      }
       const body = await readJsonBody(req);
       if (!body || body.type !== "round_advance_wait" && body.type !== "round_advance_started" && body.type !== "round_advance_completed") {
         sendJson(res, 400, { error: "INVALID_CLIENT_DIAGNOSTIC" });
@@ -66,19 +88,101 @@ const server = http.createServer(async (req, res) => {
 
     serveStatic(req, res);
   } catch (error) {
-    sendJson(res, 500, {
-      error: "LOCAL_SERVER_ERROR",
-      message: error.message,
+    const status = error.statusCode || 500;
+    sendJson(res, status, {
+      error: status === 413 ? "REQUEST_TOO_LARGE" : "SERVER_ERROR",
+      message: RUNTIME === "local" ? error.message : status === 413 ? "Request exceeds 2 MiB." : "Request failed.",
     });
   }
 });
+
+async function proxyCosyVoice(req, res) {
+  const apiKey = process.env.COSYVOICE_API_KEY;
+  if (!apiKey) {
+    sendJson(res, 503, { error: "TTS_NOT_CONFIGURED" });
+    return;
+  }
+
+  const body = await readJsonBody(req);
+  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  if (!text || Array.from(text).length > MAX_TTS_TEXT_CHARS) {
+    sendJson(res, 400, { error: "INVALID_TTS_TEXT", max_characters: MAX_TTS_TEXT_CHARS });
+    return;
+  }
+
+  const clientIp = String(req.socket.remoteAddress || "unknown").slice(0, 80);
+  const now = Date.now();
+  const rate = ttsRateLimits.get(clientIp) || { startedAt: now, count: 0 };
+  if (now - rate.startedAt >= TTS_RATE_LIMIT_WINDOW_MS) {
+    rate.startedAt = now;
+    rate.count = 0;
+  }
+  rate.count += 1;
+  ttsRateLimits.set(clientIp, rate);
+  if (rate.count > TTS_RATE_LIMIT_REQUESTS) {
+    sendJson(res, 429, { error: "TTS_RATE_LIMITED" });
+    return;
+  }
+  if (activeTtsRequests >= 3) {
+    sendJson(res, 503, { error: "TTS_BUSY" });
+    return;
+  }
+
+  activeTtsRequests += 1;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45_000);
+  const abortUpstream = () => {
+    if (!res.writableEnded) controller.abort();
+  };
+  res.on("close", abortUpstream);
+
+  try {
+    const audio = await synthesizeCosyVoice({
+      apiKey,
+      text,
+      baseUrl: process.env.COSYVOICE_API_BASE_URL || "https://dashscope-intl.aliyuncs.com",
+      signal: controller.signal,
+      onAudio: chunk => {
+        if (!res.headersSent) {
+          res.writeHead(200, {
+            "Content-Type": "audio/mpeg",
+            "Cache-Control": "no-store, no-transform",
+            "X-Content-Type-Options": "nosniff",
+            "X-Accel-Buffering": "no",
+          });
+        }
+        res.write(chunk);
+      },
+    });
+    if (!res.headersSent) {
+      if (!audio) sendJson(res, 502, { error: "TTS_AUDIO_MISSING" });
+      else {
+        res.writeHead(200, { "Content-Type": "audio/mpeg", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+        res.end(audio);
+      }
+    } else if (!res.destroyed) res.end();
+  } catch (error) {
+    if (!res.headersSent) sendJson(res, 502, { error: "TTS_UPSTREAM_FAILED" });
+    else if (!res.destroyed) res.end();
+    if (error.name !== "AbortError") console.warn("CosyVoice request failed.", error.message);
+  } finally {
+    clearTimeout(timeout);
+    res.off("close", abortUpstream);
+    activeTtsRequests = Math.max(0, activeTtsRequests - 1);
+    if (ttsRateLimits.size > 5000) {
+      for (const [ip, entry] of ttsRateLimits) {
+        if (now - entry.startedAt > TTS_RATE_LIMIT_WINDOW_MS) ttsRateLimits.delete(ip);
+      }
+    }
+  }
+}
 
 server.listen(PORT, HOST, () => {
   persistWorkflowDiagnostic({
     phase: "server_start", timestamp: SERVER_STARTED_AT,
     server_instance_id: SERVER_INSTANCE_ID, diagnostics_version: 2,
   });
-  console.log(`Smart cabin demo running at http://${HOST}:${PORT}`);
+  console.log(`Smart cabin demo running at http://${HOST}:${server.address().port}`);
 });
 
 function loadEnvFile(filePath) {
@@ -113,7 +217,7 @@ async function proxyWorkflow(req, res) {
     timestamp: new Date().toISOString(),
     ...requestInfo,
   };
-  console.info("[workflow-diagnostic]", JSON.stringify(startDiagnostic));
+  logWorkflowDiagnostic(startDiagnostic);
   persistWorkflowDiagnostic(startDiagnostic);
 
   try {
@@ -144,13 +248,14 @@ async function proxyWorkflow(req, res) {
       fixed_soft_fallback: reply === "我陪你慢慢想，按你的节奏来。",
       reply_fingerprint: fingerprint(reply),
       error: response.payload?.error || "",
+      proxy_failure: response.payload?.proxy_failure || null,
       app_id: response.payload?.app_id || "",
     };
-    console.info("[workflow-diagnostic]", JSON.stringify({
+    logWorkflowDiagnostic({
       ...finishDiagnostic,
       ai_reply_text: reply,
       decision_trace: trace,
-    }));
+    });
     persistWorkflowDiagnostic(finishDiagnostic);
     sendJson(res, response.status, { ...response.payload, diagnostic_id: diagnosticId });
   } catch (error) {
@@ -167,12 +272,16 @@ async function proxyWorkflow(req, res) {
       round_id: requestInfo.round_id,
       status: 500,
       elapsed_ms: Date.now() - startedAt,
-      error: String(error.message || error),
+      error: RUNTIME === "local" ? String(error.message || error) : "WORKFLOW_PROXY_ERROR",
     };
-    console.info("[workflow-diagnostic]", JSON.stringify(finishDiagnostic));
+    logWorkflowDiagnostic(finishDiagnostic);
     persistWorkflowDiagnostic(finishDiagnostic);
     throw error;
   }
+}
+
+function logWorkflowDiagnostic(record) {
+  console.info("[workflow-diagnostic]", JSON.stringify(RUNTIME === "local" ? record : sanitizeRecord(record)));
 }
 
 function persistWorkflowDiagnostic(record) {
@@ -223,69 +332,107 @@ function fingerprint(value) {
   return crypto.createHash("sha256").update(String(value || "")).digest("hex").slice(0, 12);
 }
 
-function serveStatic(req, res) {
-  const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
-  const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, "");
-  const filePath = path.join(ROOT, safePath === "/" ? "index.html" : safePath);
+function isPublicPath(relativePath) {
+  return PUBLIC_FILES.has(relativePath)
+    || relativePath.startsWith("assets/") && ASSET_EXTENSIONS.has(path.extname(relativePath));
+}
 
-  if (!filePath.startsWith(ROOT)) {
-    res.writeHead(403);
-    res.end("Forbidden");
+function serveStatic(req, res) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { Allow: "GET, HEAD" });
+    res.end();
+    return;
+  }
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+  } catch {
+    res.writeHead(400);
+    res.end();
+    return;
+  }
+  const relativePath = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
+  const filePath = path.resolve(ROOT, relativePath);
+  const relative = path.relative(ROOT, filePath);
+
+  if (urlPath.includes("\\") || relative.startsWith("..") || path.isAbsolute(relative)
+    || relativePath.split("/").some(part => part.startsWith("."))) {
+    res.writeHead(404);
+    res.end("Not Found");
+    return;
+  }
+  // Production serves only the page and its assets, never the repository or backend source.
+  if (RUNTIME !== "local" && !isPublicPath(relativePath)) {
+    res.writeHead(404);
+    res.end("Not Found");
     return;
   }
 
-  fs.stat(filePath, (error, stats) => {
-    if (error || !stats.isFile()) {
+  fs.realpath(filePath, (pathError, actualPath) => {
+    const actualRelative = pathError ? "" : path.relative(ROOT, actualPath);
+    if (pathError || actualRelative.startsWith("..") || path.isAbsolute(actualRelative)
+      || actualRelative.split(path.sep).some(part => part.startsWith("."))
+      || RUNTIME !== "local" && !isPublicPath(actualRelative)) {
       res.writeHead(404);
       res.end("Not Found");
       return;
     }
+    fs.stat(actualPath, (error, stats) => {
+      if (error || !stats.isFile()) {
+        res.writeHead(404);
+        res.end("Not Found");
+        return;
+      }
 
-    const ext = path.extname(filePath);
-    const contentType = MIME_TYPES[ext] || "application/octet-stream";
-    const isMedia = MEDIA_EXTENSIONS.has(ext);
-    const range = isMedia ? parseByteRange(req.headers.range, stats.size) : null;
+      const ext = path.extname(filePath);
+      const contentType = MIME_TYPES[ext] || "application/octet-stream";
+      const isMedia = MEDIA_EXTENSIONS.has(ext);
+      const range = isMedia ? parseByteRange(req.headers.range, stats.size) : null;
 
-    if (req.headers.range && isMedia && !range) {
-      res.writeHead(416, {
-        "Content-Range": `bytes */${stats.size}`,
-      });
-      res.end();
-      return;
-    }
+      if (req.headers.range && isMedia && !range) {
+        res.writeHead(416, { "Content-Range": `bytes */${stats.size}` });
+        res.end();
+        return;
+      }
 
-    if (range) {
-      const { start, end } = range;
-      res.writeHead(206, {
-        "Accept-Ranges": "bytes",
-        "Content-Length": end - start + 1,
-        "Content-Range": `bytes ${start}-${end}/${stats.size}`,
+      if (range) {
+        const { start, end } = range;
+        res.writeHead(206, {
+          "Accept-Ranges": "bytes",
+          "Content-Length": end - start + 1,
+          "Content-Range": `bytes ${start}-${end}/${stats.size}`,
+          "Content-Type": contentType,
+        });
+        if (req.method === "HEAD") res.end();
+        else fs.createReadStream(actualPath, { start, end }).pipe(res);
+        return;
+      }
+
+      res.writeHead(200, {
+        "Accept-Ranges": isMedia ? "bytes" : "none",
+        "Content-Length": stats.size,
         "Content-Type": contentType,
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
       });
-      fs.createReadStream(filePath, { start, end }).pipe(res);
-      return;
-    }
-
-    res.writeHead(200, {
-      "Accept-Ranges": isMedia ? "bytes" : "none",
-      "Content-Length": stats.size,
-      "Content-Type": contentType,
-      "Cache-Control": "no-store, max-age=0, must-revalidate",
+      if (req.method === "HEAD") res.end();
+      else fs.createReadStream(actualPath).pipe(res);
     });
-    fs.createReadStream(filePath).pipe(res);
   });
 }
 
 function parseByteRange(rangeHeader, size) {
-  if (!rangeHeader) return null;
+  if (!rangeHeader || size === 0) return null;
   const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
   if (!match) return null;
 
   const requestedStart = match[1] ? Number(match[1]) : null;
   const requestedEnd = match[2] ? Number(match[2]) : null;
   if (requestedStart === null && requestedEnd === null) return null;
+  if (requestedStart !== null && !Number.isSafeInteger(requestedStart)
+    || requestedEnd !== null && !Number.isSafeInteger(requestedEnd)) return null;
 
   if (requestedStart === null) {
+    if (requestedEnd === 0) return null;
     const suffixLength = Math.min(requestedEnd, size);
     return { start: size - suffixLength, end: size - 1 };
   }
@@ -298,12 +445,21 @@ function parseByteRange(rangeHeader, size) {
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
-    let data = "";
+    const chunks = [];
+    let bytes = 0;
+    let oversized = false;
     req.on("data", (chunk) => {
-      data += chunk;
+      if (oversized) return;
+      bytes += chunk.length;
+      if (bytes > MAX_BODY_BYTES) {
+        oversized = true;
+        reject(Object.assign(new Error("Request exceeds 2 MiB."), { statusCode: 413 }));
+        return;
+      }
+      chunks.push(chunk);
     });
     req.on("end", () => {
-      resolve(parseMaybeJson(data || "{}"));
+      if (!oversized) resolve(parseMaybeJson(Buffer.concat(chunks).toString("utf8") || "{}"));
     });
     req.on("error", reject);
   });
@@ -346,6 +502,7 @@ function buildHealthPayload(runtime) {
       timeout_ms: TIMEOUT_MS,
       ...getBffHealth(),
     },
+    host_voice_configured: Boolean(process.env.COSYVOICE_API_KEY),
     checked_at: new Date().toISOString(),
   };
 }

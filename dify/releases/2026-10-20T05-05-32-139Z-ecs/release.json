@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "version": "2026-10-20T05-05-32-139Z-ecs",
+  "created_at": "2026-10-20T05:05:32.139Z",
+  "instance": "alibaba",
+  "phase": "test_failed_before_production_write",
+  "failure": "The regression incorrectly required every passenger_inactive event to retrieve HK28; actual workflow validly skipped optional retrieval. Replaced with independent direct-knowledge hit testing. No production draft or publication was changed.",
+  "diagnostic_test_run_id": "8311875b-1b5d-4b43-b3b9-ad630e52918c",
+  "applied": {},
+  "published": {},
+  "no_secrets": true,
+  "knowledge_changed": false,
+  "diff": {
+    "host": {
+      "changed": false,
+      "added_nodes": [],
+      "removed_nodes": [],
+      "changed_nodes": [],
+      "edges_changed": false,
+      "features_changed": false,
+      "variables_changed": false
+    },
+    "situation": {
+      "changed": false,
+      "added_nodes": [],
+      "removed_nodes": [],
+      "changed_nodes": [],
+      "edges_changed": false,
+      "features_changed": false,
+      "variables_changed": false
+    },
+    "preview": {
+      "changed": false,
+      "added_nodes": [],
+      "removed_nodes": [],
+      "changed_nodes": [],
+      "edges_changed": false,
+      "features_changed": false,
+      "variables_changed": false
+    }
+  }
+}

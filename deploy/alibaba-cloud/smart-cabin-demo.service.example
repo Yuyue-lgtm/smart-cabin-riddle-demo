@@ -1,0 +1,26 @@
+[Unit]
+Description=Smart Cabin Riddle Demo
+After=network.target
+
+[Service]
+Type=simple
+User=smartcabin
+Group=smartcabin
+WorkingDirectory=/opt/smart-cabin-demo
+Environment=NODE_ENV=production
+Environment=RUNTIME_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4173
+EnvironmentFile=/etc/smart-cabin-demo.env
+ExecStart=/usr/local/bin/node /opt/smart-cabin-demo/dev-server.cjs
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/smart-cabin-demo/tmp
+
+[Install]
+WantedBy=multi-user.target

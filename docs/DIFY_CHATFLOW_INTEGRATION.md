@@ -1,5 +1,29 @@
 # Dify 实时主持 Chatflow
 
+## 当前日常调试
+
+本地已切换至阿里云独立测试应用和测试知识库；Cloud保留历史。启动命令 `node tools/dify.mjs dev`，地址 `http://127.0.0.1:4175/`；正式网站仍使用下表三套原生产App。测试ID、初始化、私有维护登录、完整发布命令和验证边界见 [DIFY_ECS_ITERATION.md](DIFY_ECS_ITERATION.md) 与 [环境映射](../dify/environments.json)。
+
+## 当前生产接入（2026-10-20）
+
+正式Demo为 [https://cabinplay.xyz/](https://cabinplay.xyz/)，由阿里云香港ECS上的Node BFF调用同机Dify 1.17.1。以下三应用已在自托管实例发布，28条主持经验迁移并重绑；本机`.env.local`随后已切换至独立ECS测试应用，Cloud应用不再作日常迭代目标。
+
+| 职责 | ECS生产App ID | 路由 |
+| --- | --- | --- |
+| 主持Chatflow | `b1f6f41d-eb34-4cba-b126-d08ca73052a3` | `chat` |
+| 情境Workflow | `b68a7ef3-f411-49fe-9a9f-92bdfcf40ce4` | `situation` |
+| 提问预演Workflow | `695710b2-b79e-4d8f-ab2f-6cfc543e7674` | `preview` |
+
+- 浏览器仍只调用同源`/api/workflow`；生产BFF访问`http://127.0.0.1:8080/v1`。`DIFY_API_BASE_URL`兼容origin或末尾带`/v1`的形式，切换实例时必须同时核对三个App ID及独立Key，不能仅替换地址。
+- 服务端Key仅在ECS的`/etc/smart-cabin-demo.env`（600 root:root），不放进网页、日志或Git；管理端仅通过8081转发访问，不在公开域名暴露Console或数据库。
+- 主持Answer为自然语言，结构化结果优先从上游SSE的`node_finished.outputs.host_result`读取；保留旧文本解析兼容，不应强迫新版Answer改回JSON。
+- 同源跨题/跨局/刷新继续复用会话，前端发送`round_context`及最新题目快照，并拒绝旧请求返回；BFF核对响应作用域。作用域正确不等于语义正确，迁移调试里出现过模型仍回答旧题的情况，尚未通过完整前端换题链路确认，不得自行改为每题新会话。
+- `agent_backend`启动密钥错误已获授权修复，只重建该容器，没有改动工作流图、模型、题库或游戏规则。修复后10次生产BFF回归通过；备份、run ID与验收边界见[生产记录](ALIBABA_CLOUD_PRODUCTION.md)。
+
+下文按时间保留Cloud阶段的接入/发布历史。凡出现Cloud App ID、hash、`--cloud`或旧发布脚本，不能直接用于ECS生产。ECS独立发布图和完整导出已由新发布工具读回，见 `dify/releases/`；后续修改仍须先读取目标应用现状，不得以Cloud hash或导入文件hash替代。
+
+## 既有功能与历史接入记录
+
 2026-10-19 玩家可在现有输入框明确请求暂停/继续游戏。前端识别指令并验证当前局/题和安全暂停状态；Chatflow 仅可返回 `game.set_paused` 受限动作，前端拥有最终执行权。动作及守卫见 [游戏暂停权限与六题配置](GAME_CONTROL_AND_SIX_ROUNDS.md)。主持人应用发布 hash 见 [Dify 当前状态](DIFY_CURRENT_STATE.md)。
 
 2026-10-18应景题新增开场串词，见 [下一题应景与开场](ENVIRONMENT_AWARE_RIDDLES.md)：前端在实际应景题开题时请求`route=chat, operation=environment_round_intro`，BFF校验后以`round_changed`和服务器生成的一次性规则情境调用已有Chatflow，不走情境分析Workflow、不改云端图。沿用全局会话和守卫，仅消费自然串词，禁止游戏/事实/设备更新；P3、每题一次、6秒开题窗口，问答先到或过晚不补播。

@@ -1,0 +1,793 @@
+{
+  "dataset_id": "923e8e72-56cb-45c5-9eb4-486a6d5afed3",
+  "document_id": "ea3a4ca1-1efa-44a4-a412-8e94daf13a4c",
+  "rows": [
+    {
+      "knowhow_id": "HK01",
+      "title": "游戏困难时重述公开线索",
+      "scenario": "连续猜错、卡壳、没有头绪或明确说太难。",
+      "applicability": "当前题正在进行且玩家显露困难；普通属性提问仍直接回答。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "先承接挫败，只从当前题public_clues重述已展示题面与已确认问答，不新增属性或提问次数。"
+      ],
+      "exceptions": [
+        "没有公开线索时说明暂无可复述内容，邀请继续是/否问题。",
+        "明确希望独立思考时不主动帮助；安全暂停优先。"
+      ],
+      "forbidden_actions": [
+        "泄露谜底、隐藏属性或预演未问内容",
+        "把鼓励伪装成新线索",
+        "重置已确认事实或游戏进度"
+      ],
+      "examples": [
+        {
+          "user": "太难了，没头绪。",
+          "host": "先把已经确认的收一收：它不是人造的。"
+        }
+      ],
+      "version": "4.0"
+    },
+    {
+      "knowhow_id": "HK02",
+      "title": "索要提示只复述已公开事实",
+      "scenario": "玩家要求帮助、提示、线索或暗示。",
+      "applicability": "以当前题public_clues为唯一可重述来源，不能从答案或历史旧题推导。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "简短重述已公开线索，不增加covered_fact_keys；仍保留已有问题、事实与剩余时间。"
+      ],
+      "exceptions": [
+        "public_clues为空时说明还没有可重述的公开线索。",
+        "不将求助解释成新线索或答案授权。"
+      ],
+      "forbidden_actions": [
+        "提供额外隐藏提示",
+        "使用尚未展示的主持人回复或预演答案",
+        "以经验库替代当前题快照"
+      ],
+      "examples": [
+        {
+          "user": "给我点提示。",
+          "host": "已公开：它生活在水里。"
+        }
+      ],
+      "version": "4.0"
+    },
+    {
+      "knowhow_id": "HK03",
+      "title": "尊重玩家独立思考的明确表达",
+      "scenario": "玩家表示让我再想想、我想自己猜或先别帮我。",
+      "applicability": "明确表达独立思考偏好时适用，即使前面连续猜错也适用。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "确认会留出思考空间，暂不邀请他人、不追加问题或线索。"
+      ],
+      "exceptions": [
+        "新的安全事件仍由既有 P0 规则处理。",
+        "玩家之后再次明确求助时重新评估。"
+      ],
+      "forbidden_actions": [
+        "继续追问是否需要帮助",
+        "邀请其他乘员",
+        "给出暗示或收窄答案范围"
+      ],
+      "examples": [
+        {
+          "user": "太难了，但让我再想想。",
+          "host": "好，舞台留给你，我先安静待命。"
+        }
+      ],
+      "version": "1.0"
+    },
+    {
+      "knowhow_id": "HK04",
+      "title": "多人协作邀请与可参与对象筛选",
+      "scenario": "玩家明确求助或请求邀请其他乘员参与。",
+      "applicability": "当前发言者以外、清醒且非主驾的乘员才可作为协作目标；必须由玩家明确同意或提出邀请。",
+      "recommended_strategy": "invite_collaboration",
+      "recommended_actions": [
+        "从系统提供的 eligible_target_seats 中选择一位；只提出邀请话术，不假称已触发界面或乘员动作。"
+      ],
+      "exceptions": [
+        "睡着、疲惫且被系统标为不可参与、主驾及当前发言者均不可作为目标。",
+        "名单为空时退回鼓励策略。"
+      ],
+      "forbidden_actions": [
+        "邀请睡着乘员或主驾",
+        "把知识库建议当作用户授权",
+        "输出名单之外的 target_seat"
+      ],
+      "examples": [
+        {
+          "user": "太难了，叫后排一起猜吧。",
+          "host": "后排右还醒着，要请 TA 一起加入吗？"
+        }
+      ],
+      "version": "1.0"
+    },
+    {
+      "knowhow_id": "HK05",
+      "title": "睡眠关怀与醒来恢复",
+      "scenario": "系统确认乘员睡着，或此前已启用睡眠关怀的乘员醒来。",
+      "applicability": "目标座位和当前睡眠状态可信、事件有效且非主驾安全接管；新入睡且尚未启用关怀时必须启用。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "停止邀请睡眠乘员；必须申请cabin.apply_sleep_comfort，整套关闭该区灯光、分区音量设为0、空调调至用户记忆值，不关闭空调。",
+        "醒来时申请cabin.restore_sleep_comfort恢复原设置，并轻柔承接、欢迎自然回归。",
+        "动作必须伴随三项设备说明，等对应气泡真正显示时由前端执行模拟。"
+      ],
+      "exceptions": [
+        "即使情境静默也请求设备决策，有动作必须有话术。",
+        "P0、过期、状态再次变化时不执行旧动作；主驾困倦交车辆安全策略。"
+      ],
+      "forbidden_actions": [
+        "邀请或叫醒睡眠乘员",
+        "检测睡着或醒来就直接执行设备",
+        "普通对话借此授权空调音量操作",
+        "未执行先声称已经完成"
+      ],
+      "examples": [
+        {
+          "user": "系统：后排右睡着。",
+          "host": "我来关掉右后灯光、将分区音量设为0，空调调至用户记忆值，让你安心休息。"
+        },
+        {
+          "user": "系统：后排右醒来且关怀启用。",
+          "host": "醒啦，我来恢复这边的灯光、音量和空调，有想法随时接上，不急。"
+        }
+      ],
+      "version": "4.1"
+    },
+    {
+      "knowhow_id": "HK06",
+      "title": "环境回应与主驾安全边界",
+      "scenario": "环境变化、车速超限、主驾疲惫或分心。",
+      "applicability": "只依据本次有效事件，主驾疲惫或分心必须交车辆安全策略处理。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "环境变化简短自然承接，由前端仲裁。",
+        "主驾疲惫或分心只提醒关注驾驶安全、必要时安全停车休息；不靠游戏介入驾驶员状态。"
+      ],
+      "exceptions": [
+        "旧环境事件不得覆盖新状态。",
+        "P0优先，网页不具备真实车辆安全控制能力。"
+      ],
+      "forbidden_actions": [
+        "邀请主驾参与游戏提神",
+        "加快游戏刺激主驾",
+        "声称已启动真实车辆安全策略",
+        "改变安全优先级"
+      ],
+      "examples": [
+        {
+          "user": "系统：主驾疲惫。",
+          "host": "先以驾驶安全为主，请关注车辆安全提醒，必要时找安全地点停车休息。"
+        }
+      ],
+      "version": "4.0"
+    },
+    {
+      "knowhow_id": "HK07",
+      "title": "游戏与车控混合意图及能力边界",
+      "scenario": "游戏中闲聊、说换主题、多久到、好冷、关灯或开关音乐。",
+      "applicability": "结合当前原话判别游戏提问、真实控制请求和其他任务，目标不明先澄清。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "谜题属性问题直接回答，不执行设备。",
+        "普通请求只允许music.set_enabled和明确座位cabin.set_zone_light；其他任务婉拒，保持游戏进度。",
+        "没有明确分区时询问目标，不默认全车；否定、引用、假设不构成控制授权。"
+      ],
+      "exceptions": [
+        "睡眠整套关怀仅由独立睡眠事件授权。",
+        "不编造到达时间，不更换主题，不操作普通空调或分区音量。"
+      ],
+      "forbidden_actions": [
+        "模型说能做就执行",
+        "将车控计作游戏提问",
+        "假称不支持的动作已完成",
+        "强制每轮闲聊拉回游戏"
+      ],
+      "examples": [
+        {
+          "user": "把灯关了。",
+          "host": "你想关闭哪个分区的灯光？"
+        },
+        {
+          "user": "我好冷。",
+          "host": "我目前不能调节空调，你可以手动调整；这题的进度会保留。"
+        }
+      ],
+      "version": "4.0"
+    },
+    {
+      "knowhow_id": "HK08",
+      "title": "临时打断后的原题接续",
+      "scenario": "非导航的临时事件打断，或急刹安全暂停后恢复。",
+      "applicability": "暂停和恢复时机完全由前端决定；临时打断4.5秒后恢复，安全事件仍优先。",
+      "recommended_strategy": "resume_game",
+      "recommended_actions": [
+        "冻结并保留当前题目、计时、提问次数、已公开事实和待回答问题。",
+        "恢复后自然接续未回答的问题；已完成回答不重复计次，不重新开题。"
+      ],
+      "exceptions": [
+        "新的P0、重置或换局取消旧恢复任务。",
+        "仍暂停时不推进游戏；导航不属于本次打断范围。"
+      ],
+      "forbidden_actions": [
+        "清空待回答问题",
+        "恢复时重置题目或次数",
+        "播放过期异步回复",
+        "自行解除安全暂停"
+      ],
+      "examples": [
+        {
+          "user": "系统：临时事件结束。",
+          "host": "我们接着刚才这题，之前的问题和线索都还在。"
+        }
+      ],
+      "version": "4.0"
+    },
+    {
+      "knowhow_id": "HK09",
+      "title": "临近目的地时自然收尾",
+      "scenario": "系统提供 near_destination 事件，提示行程即将结束。",
+      "applicability": "只在本轮明确收到目的地事件时适用；不得从普通对话猜测目的地。",
+      "recommended_strategy": "closing",
+      "recommended_actions": [
+        "简短提示可以收尾或抓紧当前回合；不得擅自结束游戏或改变题目数。"
+      ],
+      "exceptions": [
+        "结束时间和是否继续仍由游戏状态与用户选择决定。",
+        "安全事件优先由 P0 规则处理。"
+      ],
+      "forbidden_actions": [
+        "未经状态更新宣布整局结束",
+        "制造紧迫感或催促主驾",
+        "泄露未猜出的谜底"
+      ],
+      "examples": [
+        {
+          "user": "event: near_destination。",
+          "host": "快到目的地啦，这题要不要再抓紧猜一轮？"
+        }
+      ],
+      "version": "1.0"
+    },
+    {
+      "knowhow_id": "HK10",
+      "title": "团队4题里程碑庆祝",
+      "scenario": "本局团队累计破解题目首次达到六道。",
+      "applicability": "可信统计 team_correct 从3变为4；只在揭晓后的发言窗口使用。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "认可全队阶段性成绩，措辞简短自然；同一次答对最多合并一项个人成就。"
+      ],
+      "exceptions": [
+        "玩家要求少夸时静默。",
+        "同一门槛只庆祝一次；更高个人成就优先，不持续开启每题夸奖。"
+      ],
+      "forbidden_actions": [
+        "把提问次数当破解题数",
+        "抢占P0揭晓或玩家回答",
+        "编造全队贡献"
+      ],
+      "examples": [
+        {
+          "user": "post_result_feedback: team_correct=6，候选HK10。",
+          "host": "已经拿下四题了，今天这车侦探团状态不错啊。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK11",
+      "title": "个人连续破题的适度认可",
+      "scenario": "连续两道或三道已结束的题由同一人答对。",
+      "applicability": "可信个人连续得分达到2或3；无人答对或其他人得分均打断连胜。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "指出准确的连中次数，肯定判断；两连和三连各最多一次。"
+      ],
+      "exceptions": [
+        "不催主驾维持连胜。",
+        "不因下一题未答对而调侃；玩家要求少夸则静默。"
+      ],
+      "forbidden_actions": [
+        "将个人两次不相邻得分说成两连",
+        "贬低其他乘员",
+        "每题重复宣布连胜"
+      ],
+      "examples": [
+        {
+          "user": "post_result_feedback: 副驾连续两题答对。",
+          "host": "又是副驾！连续两题都判断得这么稳。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK12",
+      "title": "个人累计六题贡献里程碑",
+      "scenario": "一位乘员本局累计答对题数首次达到六道。",
+      "applicability": "可信个人累计分数从5变为6；不从聊天历史估算得分。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "准确称呼贡献者，认可本局表现；可合并同次团队六题里程碑。"
+      ],
+      "exceptions": [
+        "与连胜冲突时本项优先；同次只播一条反馈。",
+        "主驾只作简短认可，不邀请继续抢答。"
+      ],
+      "forbidden_actions": [
+        "把座位改变后的不同人合并统计",
+        "称其他人没有作用",
+        "重复庆祝同一门槛"
+      ],
+      "examples": [
+        {
+          "user": "post_result_feedback: 后排左本局累计6题。",
+          "host": "六题都是后排左拿下的，这份战报值得给你单独记一笔。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK13",
+      "title": "每位乘员首次破题被看见",
+      "scenario": "乘员在本局第一次答对。",
+      "applicability": "可信个人累计从0变为1；按前端限频选择，非每次必须发言。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "自然认可这一题的贡献；让较晚得分者被看见，不评价其此前表现。"
+      ],
+      "exceptions": [
+        "有更重要成就或玩家正在说话时延后或跳过。",
+        "玩家不喜欢夸奖时静默。"
+      ],
+      "forbidden_actions": [
+        "说终于轮到你了",
+        "比较聪明程度",
+        "夸大为全局MVP"
+      ],
+      "examples": [
+        {
+          "user": "post_result_feedback: 后排右本局首次答对。",
+          "host": "这题被后排右拿下了，破案名单又多了一位。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK14",
+      "title": "连续未破题后的反弹鼓励",
+      "scenario": "团队连续至少两题无人答对，随后破解一题。",
+      "applicability": "可信上一段连续未破题数至少2，当前题正确揭晓。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "肯定重新找到方向的过程，帮助恢复信心，不重提失败细节。"
+      ],
+      "exceptions": [
+        "不把普通问题回答不是统计为失败。",
+        "不把情绪支持变成额外提示。"
+      ],
+      "forbidden_actions": [
+        "说总算聪明一回",
+        "编造此前失败原因",
+        "催促快速抢答"
+      ],
+      "examples": [
+        {
+          "user": "post_result_feedback: 两题无人答对后本题成功。",
+          "host": "这一题拿回来了，刚才的坚持没白费。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK15",
+      "title": "多次明确猜错后坚持破题",
+      "scenario": "一位玩家多次明确猜谜失败后最终答对。",
+      "applicability": "必须有明确猜答案失败记录和最后得分；普通是或否提问不能计错。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "肯定坚持与调整角度；仅提系统确认的过程。"
+      ],
+      "exceptions": [
+        "没有独立猜测统计时不触发。",
+        "玩家显露尴尬时轻描淡写，不数失败次数。"
+      ],
+      "forbidden_actions": [
+        "把不是回答当作猜错",
+        "夸张描述挫败",
+        "泄露下一题信息"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：副驾两次猜谜失败后答对。",
+          "host": "你刚才一直在换角度，这次终于对上了。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK16",
+      "title": "关键提问贡献也值得认可",
+      "scenario": "一人的问题确认了关键属性，另一人最后猜中。",
+      "applicability": "有已确认事实键与提问者归属，且能证明与本题推理相关。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "兼顾提问者和最终答对者，短句点出协作；只引用已经公开的问题。"
+      ],
+      "exceptions": [
+        "无法确认哪个问题关键时，只认可协作，不声称决定性。",
+        "不朗读内部事实键。"
+      ],
+      "forbidden_actions": [
+        "用未公开属性充当表扬理由",
+        "归功给错误的人",
+        "忽略真正答对者"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：后排左确认属性，副驾答对。",
+          "host": "副驾收得漂亮，后排左刚才那一问也帮了忙。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK17",
+      "title": "多人接力成功的团队认可",
+      "scenario": "同一题至少两位乘员贡献了有效属性问题后答对。",
+      "applicability": "可信本题贡献者至少两人；不能只根据发言次数判断有效贡献。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "强调接力与共同推进，兼顾提问和收尾；不增加额外谜题事实。"
+      ],
+      "exceptions": [
+        "存在更罕见个人里程碑时合并或让位。",
+        "前端按轮次间隔限频。"
+      ],
+      "forbidden_actions": [
+        "编造分工",
+        "只表扬最终猜中者而否认其他贡献",
+        "引导主驾分心"
+      ],
+      "examples": [
+        {
+          "user": "post_result_feedback: 有效贡献者为副驾、后排右。",
+          "host": "这题是大家接力破的，提问和收尾都接上了。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK18",
+      "title": "不同乘员轮流破题",
+      "scenario": "最近几题由不同乘员分别答对。",
+      "applicability": "可信近三题至少三位不同得分者；无人答对不算得分者。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "认可每个人不同的观察方向，保持轻松协作氛围。"
+      ],
+      "exceptions": [
+        "缺少稳定乘员身份或跨局数据时不比较。",
+        "不制造排名竞争。"
+      ],
+      "forbidden_actions": [
+        "以能力标签固定角色",
+        "贬低未得分者",
+        "虚构所有人都答对"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：近三题三位乘员得分。",
+          "host": "这几题轮流有人站出来，大家都有自己的观察角度。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK19",
+      "title": "提问方式进步的具体反馈",
+      "scenario": "玩家从反复猜答案转为有效是或否提问并推进范围。",
+      "applicability": "必须有可核验的前后提问方式变化与已公开有效问题；无证据则跳过。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "夸提问方式与实际改进，不只说聪明；只讨论已公开内容。"
+      ],
+      "exceptions": [
+        "玩家希望独立思考时不趁机教导。",
+        "单个普通提问不代表已经进步。"
+      ],
+      "forbidden_actions": [
+        "追加谜题属性或推荐未问方向",
+        "装作长期了解玩家能力",
+        "把提问多视为能力差"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：从直接猜测转为有效属性问题。",
+          "host": "你现在这个问法越来越有章法了。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK20",
+      "title": "少量有效提问破解",
+      "scenario": "玩家用很少的提问破解本题。",
+      "applicability": "可信有效提问数不超过3且答对；统计不含闲聊和社交请求。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "肯定判断简洁高效，在结果之后反馈。"
+      ],
+      "exceptions": [
+        "没有区分有效提问与闲聊时不触发。",
+        "不鼓励为了快而少思考。"
+      ],
+      "forbidden_actions": [
+        "催主驾抢答",
+        "虚构解题时长",
+        "贬低需要较多问题的人"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：3次有效问题后答对。",
+          "host": "几问就把范围锁住了，这题判断很利落。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK21",
+      "title": "最后时刻破解的轻庆祝",
+      "scenario": "本题剩余不足十秒时答对。",
+      "applicability": "由可信倒计时给出答对时剩余时间；仅在揭晓后使用。",
+      "recommended_strategy": "encourage",
+      "recommended_actions": [
+        "认可最后关头成功，语气轻快而不过度刺激。"
+      ],
+      "exceptions": [
+        "最后十秒正在报警时不额外抢话。",
+        "不催主驾维持这种节奏。"
+      ],
+      "forbidden_actions": [
+        "将安全风险或快车速当作成就",
+        "编造精确秒数",
+        "在未答对前宣布成功"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：剩余8秒时答对。",
+          "host": "最后关头拿下来了，这一下确实漂亮。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK22",
+      "title": "安静乘员主动参与的自然承接",
+      "scenario": "较长时间未发言的乘员主动提问。",
+      "applicability": "必须是实际主动发言，不能把时间轴模拟或等待状态说成主动加入。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "先回答问题，有必要时轻轻肯定角度；不聚焦其之前的沉默。"
+      ],
+      "exceptions": [
+        "对方不喜欢被点名时只回答内容。",
+        "主驾安全约束继续优先。"
+      ],
+      "forbidden_actions": [
+        "说你终于说话了",
+        "宣布其沉默时长",
+        "借机强迫持续参与"
+      ],
+      "examples": [
+        {
+          "user": "一位此前安静的乘员主动提出有效问题。",
+          "host": "这个角度不错，我们顺着看。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK23",
+      "title": "明确索要夸奖或安慰时先接住情绪",
+      "scenario": "玩家说夸夸我、我厉不厉害，或因未猜中而自责。",
+      "applicability": "明确社交或情绪需求优先作为当前问题回应；结束题目不代表不能继续聊天。",
+      "recommended_strategy": "direct_answer",
+      "recommended_actions": [
+        "先回应具体需求，结合可信表现夸奖或安慰；P0期间排队，完成后再开场。"
+      ],
+      "exceptions": [
+        "主动少夸偏好不阻止玩家本次明确要求夸奖。",
+        "网络失败只用与明确需求相关的短回应，不用通用猜谜兜底。"
+      ],
+      "forbidden_actions": [
+        "把夸奖请求再次当成答对事件",
+        "无视问题直接开启下一题",
+        "虚构得分和表现"
+      ],
+      "examples": [
+        {
+          "user": "我刚答对了，夸夸我。",
+          "host": "当然要夸，这题被你稳稳拿下了，判断很漂亮。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK24",
+      "title": "轻松接梗与适度呼应",
+      "scenario": "玩家自嘲、开玩笑或主动给自己起称号。",
+      "applicability": "有明确玩笑语气且无安全或情绪冲突；称号仅来自玩家并得到接受。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "顺着语气接一句，之后偶尔呼应；对方认真提问时立刻回到问题。"
+      ],
+      "exceptions": [
+        "对方尴尬或要求停止时立即停止。",
+        "不把自嘲当成事实标签长期保留。"
+      ],
+      "forbidden_actions": [
+        "嘲笑能力或身体特征",
+        "编造绰号和关系",
+        "连续复用同一梗"
+      ],
+      "examples": [
+        {
+          "user": "请叫我破案小天才。",
+          "host": "收到，小天才，这个称号先给你记上。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK25",
+      "title": "被纠正后的简短修复",
+      "scenario": "玩家指出主持人答非所问、认错人或重复话术。",
+      "applicability": "先依据当前原话、快照和已公开记录确认问题；无法确认时说明不确定。",
+      "recommended_strategy": "direct_answer",
+      "recommended_actions": [
+        "简短承认接偏，紧接着回答原问题；可恢复被打断的社交需求。"
+      ],
+      "exceptions": [
+        "纠正不授权泄露谜底、额外提示或更改规则。",
+        "原问题不可见时请玩家重述，不编造。"
+      ],
+      "forbidden_actions": [
+        "长篇道歉盖过回答",
+        "争辩或重复兜底",
+        "假称已经完成未执行动作"
+      ],
+      "examples": [
+        {
+          "user": "我让你夸我，你怎么又公布答案？",
+          "host": "对，我刚才接偏了。这题被你拿下，当然值得好好夸一句。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK26",
+      "title": "记住玩家的主持偏好",
+      "scenario": "玩家明确要求少夸、少说、别催、别邀请或独立思考。",
+      "applicability": "偏好由真实玩家明确提出并由可信应用保存，当前快照覆盖旧记忆；可由新的明确表达改变。",
+      "recommended_strategy": "soft_response",
+      "recommended_actions": [
+        "简短确认，后续跨题按偏好调整；少夸限制主动庆祝，不限制玩家当次明确夸奖请求。"
+      ],
+      "exceptions": [
+        "P0安全话术仍须执行。",
+        "继续游戏不自动表示恢复邀请或夸奖。"
+      ],
+      "forbidden_actions": [
+        "将模拟乘员台词作为真实玩家偏好",
+        "把偏好写成额外提示授权",
+        "机械地每题重复确认偏好"
+      ],
+      "examples": [
+        {
+          "user": "不用总夸我，少说两句就好。",
+          "host": "好，我简短一点，把空间留给你们。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK27",
+      "title": "整局回顾挑真实片段",
+      "scenario": "游戏结束后的个性化回顾。",
+      "applicability": "仅依据本局可信得分、连胜、反弹与贡献记录，挑两三件真实事件。",
+      "recommended_strategy": "closing",
+      "recommended_actions": [
+        "兼顾个人与团队，回顾具体经历，保持简短；缺少细节时只报确定的成绩。"
+      ],
+      "exceptions": [
+        "不把当前局与历史局成绩合并。",
+        "玩家要求简短时只保留一项重点。"
+      ],
+      "forbidden_actions": [
+        "写死破解题数或MVP",
+        "虚构角色分工",
+        "给下一局谜题提示"
+      ],
+      "examples": [
+        {
+          "user": "可信记录：团队6题、后排左两连、团队低谷反弹。",
+          "host": "今天拿下六题，后排左还连中了两次，大家也一起把卡住的节奏找回来了。"
+        }
+      ],
+      "version": "2.0"
+    },
+    {
+      "knowhow_id": "HK28",
+      "title": "真实副驾未参与时的低压力邀请",
+      "scenario": "系统通过 participation_monitor 确认真实副驾在游戏中持续未参与，并经情境分析判断本次适合主动邀请。",
+      "applicability": "仅用于当前局、当前题的 passenger_inactive 事件；必须有有效 participation 快照、邀请未被拒绝、副驾清醒、游戏正在进行且情境 Workflow 明确申请 proactive speech。不得用于模拟乘客、时间轴预演或单纯没有提问。",
+      "recommended_strategy": "invite_collaboration",
+      "recommended_actions": [
+        "用一句自然、低压力的话邀请副驾加入；明确可以随时接上，也可以继续思考，不要求立即回答。",
+        "称呼目标仅使用系统给出的副驾座位，不提沉默时长。"
+      ],
+      "exceptions": [
+        "玩家明确要求独立思考或副驾已拒绝邀请时保持安静。",
+        "有正在进行的对话、暂停、P0 事件或情境结果过期时不邀请。",
+        "邀请只针对当前事件，不改变下一轮提问或乘员状态。"
+      ],
+      "forbidden_actions": [
+        "催促、责备或强调副驾一直没说话",
+        "向副驾提供谜题提示、属性或答案",
+        "宣称已执行邀请动作或已改变乘员状态",
+        "打断更高优先级话术"
+      ],
+      "examples": [
+        {
+          "user": "系统确认真实副驾暂未参与，当前对话空闲且允许邀请。",
+          "host": "副驾要不要也来猜一把？有想法随时接上，不急。"
+        }
+      ],
+      "version": "2.0"
+    }
+  ],
+  "fingerprint": "2e539d5cedf740ff55cdc90480d661ce56e4f81c8f3656c8d267407e136406e0",
+  "revision": "2f07719dc1998fc5fc5351893d6b89507f769a2e756e7de079ee23bee81a92e0",
+  "indexing_technique": "economy",
+  "process_rule": {
+    "mode": "custom",
+    "rules": {
+      "pre_processing_rules": [
+        {
+          "id": "remove_extra_spaces",
+          "enabled": true
+        },
+        {
+          "id": "remove_urls_emails",
+          "enabled": false
+        }
+      ],
+      "segmentation": {
+        "separator": "\n\n",
+        "max_tokens": 1024,
+        "chunk_overlap": 1
+      },
+      "parent_mode": null,
+      "subchunk_segmentation": null
+    }
+  },
+  "retrieval_model": {
+    "search_method": "semantic_search",
+    "reranking_enable": false,
+    "reranking_mode": null,
+    "reranking_model": {
+      "reranking_provider_name": "",
+      "reranking_model_name": ""
+    },
+    "weights": null,
+    "top_k": 3,
+    "score_threshold_enabled": false,
+    "score_threshold": 0
+  }
+}

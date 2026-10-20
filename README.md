@@ -1,5 +1,7 @@
 # 智能座舱 AI 猜谜 Demo
 
+2026-10-20 日常迭代已切到 **阿里云 Dify 的三套独立测试应用和测试知识库**，Cloud 保留历史备份。网站继续使用原三套正式应用；本地入口为 `http://127.0.0.1:4175/`。启动 `node tools/dify.mjs dev`，上线 Dify 改动使用 `node tools/dify.mjs release --publish`；完整命令、备份、回归与回退说明见 [阿里云测试与发布](./docs/DIFY_ECS_ITERATION.md)。
+
 当前仓库的 `V1.0` 是一个可部署的静态网页骨架，用于演示：
 
 - 上帝视角输入座舱状态
@@ -12,17 +14,33 @@
 
 实时主持使用同一个 Dify Chatflow 会话跨题、跨局延续。乘客问答走 Chatflow；重要座舱事件先走情境 Workflow，再由前端接续 Chatflow。请求直接携带最新快照，常规 `sync_state` 会话变量同步已停用。三应用最近记录的发布版本、权限及后续子对话入口见 [DIFY_CURRENT_STATE.md](./docs/DIFY_CURRENT_STATE.md)，具体接入见 [DIFY_CHATFLOW_INTEGRATION.md](./docs/DIFY_CHATFLOW_INTEGRATION.md)。
 
+2026-10-20 部署与维护更新：正式入口为 **[https://cabinplay.xyz/](https://cabinplay.xyz/)**，使用阿里云香港 ECS 自托管 Dify 1.17.1；三套应用及28条主持经验已迁移、发布。`agent_backend` 的专用密钥长度错误已修复，仅重建该容器，复查运行正常、重启0次；其他容器和游戏逻辑未改。修复后10次生产接口回归、161项Node测试及5项修复脚本测试通过。完整记录、生产App ID、备份及尚未验收的范围见 [生产部署记录](./docs/ALIBABA_CLOUD_PRODUCTION.md)。这次记录不代表新增Git提交。
+
 2026-10-19 本地增量：每局六题，玩家可经输入框请求暂停/继续；新增答对后未推进的前端诊断，修复题号提示启动计时却未立即刷新的问题。新题开始显示“第 N 题”3 秒，之后恢复提示、倒计时和剩余提问次数。诊断说明见 [DIFY_FALLBACK_DIAGNOSTICS.md](./docs/DIFY_FALLBACK_DIAGNOSTICS.md)，复现及验证记录见 [TEST_SCRIPT.md](./docs/TEST_SCRIPT.md)。本次诊断和题号修复未修改 Dify 云端、未部署 Vercel。
 
 V1.1 之后的产品方向已升级为“可分享体验版”：通过时间轴模拟多模态事件，并由 Workflow 驱动 AI 主持人与半自主模拟乘客参与游戏。
 
 最新需求、路线图和接口契约以 [docs/README.md](./docs/README.md) 为准。
 
+工作流、知识库原文和版本说明已集中保存到 [dify/](./dify/README.md)，含三套 Cloud 完整 DSL、ECS 迁移导入副本、28 条经验、环境绑定和 SHA-256 校验。迁移基线与当前线上状态分开标注，不含 API Key；后续恢复或迁移从此目录开始。
+
 ## 本地运行
 
 如果只看页面，不接 Workflow，直接打开 `index.html` 即可。
 
-如果需要本地联调 Dify Chatflow，请先在 `.env.local` 中配置服务端 API Key：
+当前日常调试使用阿里云测试环境，已由 `node tools/dify.mjs setup` 配置 `.env.local`；本机已安装后台自动重连SSH隧道，启动时自动检查隧道和测试Key，运行：
+
+```sh
+node tools/dify.mjs dev
+```
+
+打开 `http://127.0.0.1:4175/`，通过 `/api/health` 核对 `workflow_proxy.environment=alibaba-test` 和三个测试 App ID。测试原文和正式原文分别维护；线上网站不依赖本机运行或这条转发。新电脑初始化及正式发布见 [迭代说明](./docs/DIFY_ECS_ITERATION.md)。
+
+遇到连接问题先运行 `node tools/dify.mjs doctor`，一键真实接口验收使用 `node tools/dify.mjs smoke`。详见 [连接与诊断](./docs/DIFY_CONNECTION.md)。
+
+下面保留原 Cloud 联调记录，仅作历史参考，不是当前默认环境：
+
+下面示例是原Dify Cloud配置，旧配置已私有备份。阿里云测试和生产分别使用独立App ID及Key，见[环境映射](./dify/environments.json)；不能只改API地址而继续使用Cloud的应用ID、Key或会话ID。
 
 ```text
 DIFY_CHATFLOW_API_KEY=replace_with_your_dify_chatflow_api_key
@@ -63,9 +81,11 @@ http://localhost:4173/api/health
 
 ## 部署方式
 
-当前推荐使用 Vercel，因为项目已经包含 `/api/workflow` Dify 代理。
+当前阿里云正式入口为 [https://cabinplay.xyz/](https://cabinplay.xyz/)（www也可用），Demo服务端通过ECS本机API访问自托管Dify1.17.1，三应用已发布。配置、验收、备份及已知问题见 [生产部署记录](./docs/ALIBABA_CLOUD_PRODUCTION.md)，历史方案和工具见 [阿里云部署指南](./deploy/alibaba-cloud/README.md)。Cloud应用保留历史，本机已切独立ECS测试环境；换题语义问题按用户选择暂未修复。API Key只在私有环境文件，不进入浏览器或Git。Vercel作为历史部署方案保留，不是此次上线目标。
 
-部署时需要在 Vercel 环境变量里配置：
+Vercel 部署时需要在项目环境变量里配置：
+
+以下仅为历史Cloud配置，不适用于当前阿里云生产实例：
 
 ```text
 DIFY_CHATFLOW_API_KEY=replace_with_your_dify_chatflow_api_key

@@ -1,9 +1,22 @@
 # 文档索引
 
+当前日常 Dify 迭代入口：[阿里云测试与正式发布](DIFY_ECS_ITERATION.md)。本地 Demo 已切到独立 ECS 测试三应用/测试知识库，地址4175；Cloud仅作历史备份。统一命令 `node tools/dify.mjs` 完成状态检查、初始化、测试与发布；生产应用ID继续保留。
+
+主持人语音播报接入配置：[CosyVoice 新加坡 / 龙华 `longhua_v3`](COSYVOICE_TTS.md)。密钥仅配置在 Demo 服务端环境中。
+
 开始新的 Dify 子对话时，先读 [DIFY_CURRENT_STATE.md](./DIFY_CURRENT_STATE.md)。该文件记录最近确认的云端版本、应用职责、当前运行边界和安全迭代步骤；细节再查对应专题文档。
 
+工作流和知识库的正式版本资料见 [dify/README.md](../dify/README.md)：已保存三套 Cloud 完整 DSL、三套 ECS 迁移导入副本、28 条知识库原文、环境绑定及 SHA-256 清单。当前归档是 2026-10-19 来源/2026-10-20 上线的迁移基线，不是新做的 ECS 发布图回读；后续稳定版本另建目录保留历史。
+
+阿里云香港 ECS / 自托管 Dify 已上线 [https://cabinplay.xyz/](https://cabinplay.xyz/)，三套目标应用已发布、28条经验已迁移。当前配置、备份、验收和已知问题见 [生产部署记录](ALIBABA_CLOUD_PRODUCTION.md)；准备和迁移历史见 [部署与迁移记录](../deploy/alibaba-cloud/README.md)。换题语义问题按用户选择暂未修复，本机Cloud配置仍保留，勿混用两套App ID或维护脚本。
+
+2026-10-20 最近维护：`agent_backend` 密钥长度错误已修复，仅重建该容器，其他运行容器未变；复查重启0次，三应用10次生产接口回归及161+5项本地测试通过。[修复详情与私有备份位置](ALIBABA_CLOUD_PRODUCTION.md#agent-启动配置修复2026-10-20)。测试次数是当次结果，不代表持续监控；本次文档整理不重新运行线上请求。
+
+- [ALIBABA_CLOUD_PRODUCTION.md](./ALIBABA_CLOUD_PRODUCTION.md)：当前线上入口、三应用ID、服务与安全配置、两轮正式API验收、Agent修复、备份/回退及待办。
+- [DIFY_CONNECTION.md](./DIFY_CONNECTION.md)：固定8081直接SSH、Mac后台自动重连、启动前鉴权检查、一键doctor/smoke与断线恢复证据。
+- [部署工具与迁移历史](../deploy/alibaba-cloud/README.md)：已完成的导入、知识库重绑、执行工具及分阶段授权边界；历史“未发布/未修复”不代表现状。
 - [DIFY_CHATFLOW_INTEGRATION.md](./DIFY_CHATFLOW_INTEGRATION.md)：当前接入、节点职责、动作权限、草稿生成与发布。
-- [DIFY_CURRENT_STATE.md](./DIFY_CURRENT_STATE.md)：Dify 云端版本和跨子对话交接入口。
+- [DIFY_CURRENT_STATE.md](./DIFY_CURRENT_STATE.md)：ECS生产与Cloud来源的区别、最近已确认状态、跨子对话接手顺序和未解决事项。
 - [CABIN_SCENARIO_POLICY.md](./CABIN_SCENARIO_POLICY.md)：入睡必启关怀与空调用户记忆值、普通分区灯光权限、公开线索重述、临时打断与主驾安全边界。
 - [HOST_EVENT_QUEUE.md](./HOST_EVENT_QUEUE.md)：多事件优先级/FIFO、按座位合并、局部失效、P0后重新分析、设备去重与控制台诊断。
 - [SIMULATION_FREEZE.md](./SIMULATION_FREEZE.md)：暂停时冻结三分区画面、音频、计时和异步结果，恢复后从原位置继续。

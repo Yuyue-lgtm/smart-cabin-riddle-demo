@@ -1,0 +1,78 @@
+{
+  "ok": true,
+  "fictional_test_user": "release-test-1792472632532-fictional",
+  "report": [
+    {
+      "label": "passenger_question",
+      "http": 200,
+      "route": "chat",
+      "workflow_run_id": "3c3edb3f-00bc-4fbc-ab1d-1ec8137e8aa0",
+      "elapsed_ms": 2256
+    },
+    {
+      "label": "same_conversation",
+      "http": 200,
+      "route": "chat",
+      "workflow_run_id": "21902241-8f99-460e-9cb3-ab81482fb32c",
+      "elapsed_ms": 2857
+    },
+    {
+      "label": "environment_change",
+      "http": 200,
+      "route": "situation",
+      "workflow_run_id": "40c8d2a9-5418-465d-a0bb-4b008ebe05b2",
+      "elapsed_ms": 1181
+    },
+    {
+      "label": "environment_change_reply",
+      "http": 200,
+      "route": "chat",
+      "workflow_run_id": "75f1c93c-573a-4a69-9215-947ed78b9a9a",
+      "elapsed_ms": 2892
+    },
+    {
+      "label": "hard_brake",
+      "http": 200,
+      "route": "situation",
+      "workflow_run_id": "644ca7da-c70f-4924-aba3-2ee77e1aeb51",
+      "elapsed_ms": 1346
+    },
+    {
+      "label": "passenger_sleep",
+      "http": 200,
+      "route": "situation",
+      "workflow_run_id": "b7905a92-d2b4-4ac0-a308-93c3b4d90b35",
+      "elapsed_ms": 2466
+    },
+    {
+      "label": "passenger_sleep_reply",
+      "http": 200,
+      "route": "chat",
+      "workflow_run_id": "6d19fd88-e98d-45b3-8ed4-bd7fe5157e81",
+      "elapsed_ms": 3152
+    },
+    {
+      "label": "passenger_wake",
+      "http": 200,
+      "route": "situation",
+      "workflow_run_id": "9c5bbc32-f005-41a8-95f4-3d31a9e9d785",
+      "elapsed_ms": 1907
+    },
+    {
+      "label": "passenger_wake_reply",
+      "http": 200,
+      "route": "chat",
+      "workflow_run_id": "50041d3e-0bb7-48b8-937f-64887a440966",
+      "elapsed_ms": 2453
+    },
+    {
+      "label": "question_preview",
+      "http": 200,
+      "route": "preview",
+      "workflow_run_id": "0672cf50-794c-49ed-be16-de325fefed46",
+      "elapsed_ms": 2440
+    }
+  ],
+  "preview_steps": 4,
+  "limitation": "Does not resolve the previously recorded ambiguous cross-round semantic issue."
+}

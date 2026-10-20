@@ -84,7 +84,7 @@ function createSimulationRuntime(host = globalThis) {
 }
 
 const simulationRuntime = createSimulationRuntime();
-const simulationFreeze = { previousTimelineStatus: null, animations: [], media: [], audioWasRunning: false };
+const simulationFreeze = { previousTimelineStatus: null, animations: [], media: [], audioWasRunning: false, autoPaused: false };
 const roundAdvanceDiagnostic = { lastKey: "", lastAt: 0, waitingSince: 0 };
 
 const SEATS = {
@@ -239,6 +239,7 @@ const HOST_SPRITE_FRAME_WIDTH = 720;
 const HOST_SPRITE_FRAME_HEIGHT = 720;
 const HOST_SPRITE_COLUMNS = 6;
 const HOST_SPRITE_FRAME_DURATION_MS = 100;
+const HOST_TTS_MAX_TEXT_CHARS = 600;
 const HOST_SPEECH_PRIORITIES = Object.freeze({
   P0: 5,
   P1: 4,
@@ -974,6 +975,7 @@ const DEFAULT_STATE = {
     focus: "",
     proxyConfigured: null,
     statusText: DEFAULT_DEPLOY_STATUS,
+    hostVoiceConfigured: false,
   },
 };
 
@@ -1130,6 +1132,8 @@ function cacheElements() {
     "timelineName",
     "startTimeline",
     "pauseTimeline",
+    "inactivePauseOverlay",
+    "resumeInactiveSimulation",
     "prestartPanel",
     "decisionPerception",
     "decisionPriority",
@@ -1154,6 +1158,16 @@ function cacheElements() {
 }
 
 function bindEvents() {
+  const pauseWhenInactive = () => {
+    if (document.visibilityState === "hidden" || !document.hasFocus()) {
+      if (!simulationRuntime.paused && (state.timeline.status !== "idle" || state.game.status !== "idle")) {
+        simulationFreeze.autoPaused = true;
+        toggleTimelinePause();
+      }
+    }
+  };
+  document.addEventListener("visibilitychange", pauseWhenInactive);
+  window.addEventListener("blur", pauseWhenInactive);
   window.addEventListener("resize", () => {
     if (simulationRuntime.paused) return;
     resizeStage();
@@ -1177,6 +1191,7 @@ function bindEvents() {
   els.readyStartButton.addEventListener("click", startGoldenTimeline);
   els.startTimeline.addEventListener("click", startGoldenTimeline);
   els.pauseTimeline.addEventListener("click", toggleTimelinePause);
+  els.resumeInactiveSimulation.addEventListener("click", toggleTimelinePause);
   els.sendQuestion.addEventListener("click", sendQuestion);
   els.playerInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1667,6 +1682,7 @@ async function loadHealthStatus() {
     state.health.runtime = payload.runtime || "";
     state.health.focus = payload.focus || "";
     state.health.proxyConfigured = Boolean(payload.workflow_proxy?.configured);
+    state.health.hostVoiceConfigured = Boolean(payload.host_voice_configured);
     state.health.statusText = formatDeployStatus(payload);
   } catch {
     await simulationRuntime.waitUntilRunning();
@@ -1674,6 +1690,7 @@ async function loadHealthStatus() {
     state.health.runtime = "";
     state.health.focus = "";
     state.health.proxyConfigured = null;
+    state.health.hostVoiceConfigured = false;
     state.health.statusText = "版本状态不可用";
   }
   render();
@@ -1915,6 +1932,7 @@ function pickQuestionVariantForSeat(step, seat) {
 
 function toggleTimelinePause() {
   if (simulationRuntime.paused) {
+    simulationFreeze.autoPaused = false;
     state.timeline.status = simulationFreeze.previousTimelineStatus;
     document.body.classList.remove("simulation-frozen");
     simulationRuntime.resume();
@@ -3821,7 +3839,8 @@ function describeSituationReplyFailure(output) {
 }
 
 function isHostBusy() {
-  return state.workflow.inFlight;
+  const speech = state.workflow.hostSpeech;
+  return state.workflow.inFlight || speech.voicePending || speech.voicePlaying;
 }
 
 function beginWorkflowRequest(input) {
@@ -3857,7 +3876,8 @@ function scheduleHostThinkingForRequest(requestId, input) {
   const visibleForMs = hasVisibleHostBubble && state.workflow.hostSpeech.visibleAt
     ? simulationRuntime.now() - state.workflow.hostSpeech.visibleAt
     : HOST_MIN_BUBBLE_DISPLAY_MS;
-  const thinkingDelayMs = Math.max(
+  const voiceActive = state.workflow.hostSpeech.voicePending || state.workflow.hostSpeech.voicePlaying;
+  const thinkingDelayMs = voiceActive ? HOST_THINKING_WAIT_DELAY_MS : Math.max(
     HOST_THINKING_WAIT_DELAY_MS,
     HOST_MIN_BUBBLE_DISPLAY_MS - visibleForMs,
     hasVisibleHostBubble ? state.workflow.hostSpeech.expiresAt - simulationRuntime.now() : 0,
@@ -3872,6 +3892,10 @@ function scheduleHostThinkingForRequest(requestId, input) {
       return;
     }
     state.workflow.hostThinkingTimer = null;
+    if (isHostBubbleProtectedFromThinking()) {
+      scheduleHostThinkingForRequest(requestId, input);
+      return;
+    }
     beginHostThinkingCycle();
   }, thinkingDelayMs);
 }
@@ -3881,7 +3905,7 @@ function isHostBubbleProtectedFromThinking() {
   return Boolean(
     String(state.host.text || "").trim()
     && ((speech.visibleAt > 0 && simulationRuntime.now() - speech.visibleAt < HOST_MIN_BUBBLE_DISPLAY_MS)
-      || speech.expiresAt > simulationRuntime.now()),
+      || speech.expiresAt > simulationRuntime.now() || speech.voicePending || speech.voicePlaying),
   );
 }
 
@@ -3982,6 +4006,7 @@ async function processNextPendingChat() {
   const intro = state.workflow.environmentRoundIntro;
   if (intro?.status === "pending" && isCurrentEnvironmentRoundIntro(intro)
     && state.workflow.hostSpeech.expiresAt <= simulationRuntime.now()
+    && !state.workflow.hostSpeech.voicePending && !state.workflow.hostSpeech.voicePlaying
     && !state.workflow.deferredHostReplies.some(reply => normalizeHostSpeechPriority(reply.options.priority) >= HOST_SPEECH_PRIORITIES.P3)
     && (!eventTask || normalizeHostSpeechPriority(eventTask.event.priority) < HOST_SPEECH_PRIORITIES.P3
       || normalizeHostSpeechPriority(eventTask.event.priority) === HOST_SPEECH_PRIORITIES.P3 && eventTask.sequence > intro.sequence)) {
@@ -5023,7 +5048,7 @@ function publishHostLine(text, {
       Math.max(HOST_MIN_BUBBLE_DISPLAY_MS, Number(requestedLockDurationMs) || HOST_SPEECH_DEFAULT_LOCK_MS),
     );
   const now = simulationRuntime.now();
-  const activeLock = speech.expiresAt > now;
+  const activeLock = speech.expiresAt > now || speech.voicePending || speech.voicePlaying;
   const earlier = state.workflow.deferredHostReplies[0];
   const higherTask = !(source === "game_control" && isPlayerGamePaused()) && (hasHigherPendingEnvironmentIntro(nextPriority) || state.workflow.situationEvents.some(record => record.event.id !== sceneScope?.eventId
     && ["pending_analysis", "analyzing", "ready", "generating"].includes(record.status)
@@ -5034,6 +5059,7 @@ function publishHostLine(text, {
       sceneScope, eventValue, startActions, publicClue });
   }
 
+  cancelHostVoiceSpeech();
   if (speech.timer) {
     recordExecutionReceipt(speech.traceId, "speech", "interrupted", "主持话术：被P0话术替换");
     simulationRuntime.clearTimeout(speech.timer);
@@ -5054,6 +5080,9 @@ function publishHostLine(text, {
   speech.startActions = startActions;
   speech.sceneScope = sceneScope;
   speech.publicClue = publicClue;
+  speech.voiceRequested = false;
+  speech.voicePending = false;
+  speech.voicePlaying = false;
   recordExecutionReceipt(traceId, "speech", "pending_render", "主持话术：等待显示");
   speech.expiresAt = lockDurationMs === Infinity
     ? Infinity
@@ -5063,27 +5092,32 @@ function publishHostLine(text, {
   state.host.text = normalizedText;
   recordParticipationActivity();
 
-  if (lockDurationMs > 0 && lockDurationMs !== Infinity) {
-    const speechId = speech.id;
-    speech.timer = simulationRuntime.setTimeout(() => {
-      if (speech.id !== speechId) return;
-      recordExecutionReceipt(speech.traceId, "speech", speech.wasVisible ? "completed" : "expired", speech.wasVisible ? "主持话术：显示结束" : "主持话术：未显示，已到期");
-      speech.timer = null;
-      speech.priority = 0;
-      speech.source = "";
-      speech.expiresAt = 0;
-      speech.startActions = null;
-      const eventRecord = findSituationEvent(speech.sceneScope?.eventId);
-      if (eventRecord && !isSituationEventFinished(eventRecord)) setSituationEventStatus(eventRecord, "completed", "事件回应已显示结束");
-      speech.sceneScope = null;
-      state.host.text = "";
-      recordParticipationActivity();
-      resumeDeferredHostReply();
-      simulationRuntime.setTimeout(processNextPendingChat, 0);
-      render();
-    }, lockDurationMs);
-  }
+  if (lockDurationMs > 0 && lockDurationMs !== Infinity) scheduleHostSpeechExpiration(speech, speech.id, lockDurationMs);
   return true;
+}
+
+function scheduleHostSpeechExpiration(speech, speechId, delayMs) {
+  speech.timer = simulationRuntime.setTimeout(() => {
+    if (speech.id !== speechId) return;
+    if (speech.voicePending || speech.voicePlaying) {
+      scheduleHostSpeechExpiration(speech, speechId, 200);
+      return;
+    }
+    recordExecutionReceipt(speech.traceId, "speech", speech.wasVisible ? "completed" : "expired", speech.wasVisible ? "主持话术：显示结束" : "主持话术：未显示，已到期");
+    speech.timer = null;
+    speech.priority = 0;
+    speech.source = "";
+    speech.expiresAt = 0;
+    speech.startActions = null;
+    const eventRecord = findSituationEvent(speech.sceneScope?.eventId);
+    if (eventRecord && !isSituationEventFinished(eventRecord)) setSituationEventStatus(eventRecord, "completed", "事件回应已显示结束");
+    speech.sceneScope = null;
+    state.host.text = "";
+    recordParticipationActivity();
+    resumeDeferredHostReply();
+    simulationRuntime.setTimeout(processNextPendingChat, 0);
+    render();
+  }, delayMs);
 }
 
 function startHostSpeechActions() {
@@ -5135,7 +5169,9 @@ function resumeDeferredHostReply() {
   const higherTask = !playerPaused && first && (hasHigherPendingEnvironmentIntro(first.options.priority) || state.workflow.situationEvents.some(record => ["pending_analysis", "analyzing", "ready", "generating"].includes(record.status)
     && !getSituationEventInvalidReason(record)
     && normalizeHostSpeechPriority(record.event.priority) > normalizeHostSpeechPriority(first.options.priority)));
-  if (state.workflow.hostSpeech.expiresAt > simulationRuntime.now() || higherTask || state.game.status === "paused" && !playerPaused) {
+  if (state.workflow.hostSpeech.expiresAt > simulationRuntime.now()
+    || state.workflow.hostSpeech.voicePending || state.workflow.hostSpeech.voicePlaying
+    || higherTask || state.game.status === "paused" && !playerPaused) {
     if (state.workflow.deferredHostReplies.length) state.workflow.deferredHostRepliesTimer = simulationRuntime.setTimeout(
       resumeDeferredHostReply, getDeferredReplyDelay());
     return;
@@ -5164,6 +5200,7 @@ function resumeDeferredHostReply() {
 
 function getDeferredReplyDelay() {
   const speech = state.workflow.hostSpeech;
+  if (speech.voicePending || speech.voicePlaying) return 250;
   return Math.max(250, speech.expiresAt - simulationRuntime.now()) + 40;
 }
 
@@ -5228,6 +5265,7 @@ function clearHostSpeechLock(source = "") {
   if (!source || state.workflow.pendingMinimumSpeech?.source === source) {
     clearPendingMinimumSpeech("主持话术状态重置");
   }
+  cancelHostVoiceSpeech();
   if (speech.timer || speech.expiresAt > simulationRuntime.now()) {
     recordExecutionReceipt(speech.traceId, "speech", "cancelled", "主持话术：已取消");
   }
@@ -5238,6 +5276,9 @@ function clearHostSpeechLock(source = "") {
   speech.source = "";
   speech.expiresAt = 0;
   speech.startActions = null;
+  speech.voiceRequested = false;
+  speech.voicePending = false;
+  speech.voicePlaying = false;
 }
 
 function clearSummarySpeechTimer() {
@@ -5423,7 +5464,8 @@ function showResultFeedback(entry) {
   }
   if (state.timeline.status === "paused" || state.workflow.inFlight || state.workflow.pendingChats.length
     || state.workflow.deferredHostReplies.length || state.workflow.pendingMinimumSpeech
-    || state.workflow.hostSpeech.expiresAt > simulationRuntime.now()) {
+    || state.workflow.hostSpeech.expiresAt > simulationRuntime.now()
+    || state.workflow.hostSpeech.voicePending || state.workflow.hostSpeech.voicePlaying) {
     entry.timer = simulationRuntime.setTimeout(() => showResultFeedback(entry), 150);
     return;
   }
@@ -6294,7 +6336,8 @@ function getDecisionQueuePresentation() {
     && !getSituationEventInvalidReason(record));
   const focus = state.workflow.situationEvents.find(record => record.traceId === trace.id);
   const speech = state.workflow.hostSpeech;
-  const active = speech.expiresAt > simulationRuntime.now() && String(state.host.text || "").trim();
+  const active = (speech.expiresAt > simulationRuntime.now() || speech.voicePending || speech.voicePlaying)
+    && String(state.host.text || "").trim();
   const activeRecord = active ? findSituationEvent(speech.sceneScope?.eventId) : null;
   const activePriority = Object.keys(HOST_SPEECH_PRIORITIES).find(key => HOST_SPEECH_PRIORITIES[key] === speech.priority);
   const pending = records.filter(record => record.event.id !== activeRecord?.event.id && record.status !== "showing")
@@ -7006,6 +7049,17 @@ function render() {
   if (state.game.status === "playing" && !questionIntroVisible && !state.ui.showAnswer
     && !state.game.publicClues.includes(riddle.hint)) state.game.publicClues.push(riddle.hint);
   els.riddleTitle.classList.toggle("question-intro", questionIntroVisible);
+  if (!questionIntroVisible) {
+    scheduleAdaptiveTextFit(els.riddleTitle, els.riddleTitle.textContent, {
+      fontSize: 46,
+      minFontSize: 38,
+      lineHeight: 80,
+      maxLines: 3,
+    });
+  } else {
+    els.riddleTitle.style.removeProperty("font-size");
+    els.riddleTitle.style.removeProperty("line-height");
+  }
   els.riddleHint.textContent = getRiddleSupportText(riddle);
   els.remainingQuestions.parentElement.classList.toggle("hidden", questionIntroVisible);
   renderQuestionClock();
@@ -7021,21 +7075,32 @@ function render() {
   els.summaryTotal.textContent = state.game.totalRounds;
   els.summarySolved.textContent = getSummarySolvedCount();
   els.summaryMvp.textContent = SEATS[getSummaryMvpSeat()] || "副驾";
-  const hostBubbleLength = Array.from(hostBubbleText).length;
-  const hostBubbleVariant =
-    hostBubbleLength > 46 ? "long-text" : hostBubbleLength > 28 ? "medium-text" : "";
   els.hostBubble.classList.remove("thinking");
   els.hostBubble.classList.toggle("hidden", hostBubbleHidden);
-  els.hostBubble.classList.toggle(
-    "medium-text",
-    !hostBubbleHidden && hostBubbleVariant === "medium-text",
-  );
-  els.hostBubble.classList.toggle(
-    "long-text",
-    !hostBubbleHidden && hostBubbleVariant === "long-text",
-  );
+  els.hostBubble.classList.remove("medium-text", "long-text");
+  els.hostBubble.style.height = "167px";
+  if (!els.hostBubble.dataset.baseTop) {
+    els.hostBubble.dataset.baseTop = getComputedStyle(els.hostBubble).top;
+  }
+  els.hostBubble.style.top = els.hostBubble.dataset.baseTop;
   els.hostBubble.setAttribute("aria-busy", hostBusy ? "true" : "false");
   const hostBubbleTextElement = setHostBubbleText(hostBubbleText);
+  if (!hostBubbleHidden) {
+    simulationRuntime.requestAnimationFrame(() => {
+      if (!hostBubbleTextElement.isConnected || hostBubbleTextElement.textContent !== hostBubbleText) return;
+      fitAdaptiveText(hostBubbleTextElement, { fontSize: 34, minFontSize: 28, lineHeight: 52 });
+      fitBubbleHeight(els.hostBubble, hostBubbleTextElement, {
+        maxHeight: 167,
+        minHeight: 100,
+        paddingY: 48,
+        anchorLines: 2,
+        anchorLineHeight: 52,
+      });
+    });
+  } else {
+    hostBubbleTextElement.style.removeProperty("font-size");
+    hostBubbleTextElement.style.removeProperty("line-height");
+  }
   if (hostSpeechVisible && !state.workflow.hostSpeech.wasVisible) {
     state.workflow.hostSpeech.visibleAt = simulationRuntime.now();
     const intro = state.workflow.environmentRoundIntro;
@@ -7048,6 +7113,7 @@ function render() {
     const eventRecord = findSituationEvent(state.workflow.hostSpeech.sceneScope?.eventId);
     if (eventRecord && !isSituationEventFinished(eventRecord)) setSituationEventStatus(eventRecord, "showing", "事件回应已开始显示");
     startHostSpeechActions();
+    void startHostVoiceSpeech(state.workflow.hostSpeech.id, hostBubbleText);
     const clue = state.workflow.hostSpeech.publicClue;
     if (clue && !clue.includes(getCurrentRiddle().answer) && !state.game.publicClues.includes(clue)) state.game.publicClues.push(clue);
   }
@@ -7056,13 +7122,6 @@ function render() {
     speech.wasVisible ||= hostSpeechVisible;
     recordExecutionReceipt(speech.traceId, "speech", hostSpeechVisible ? "showing" : "hidden",
       hostSpeechVisible ? "主持话术：显示中" : "主持话术：等待当前处理完成");
-  }
-  if (!hostBubbleHidden && hostBubbleVariant) {
-    scheduleTextClamp(
-      hostBubbleTextElement,
-      hostBubbleText,
-      hostBubbleVariant === "long-text" ? 4 : 3,
-    );
   }
   els.hostAvatar.classList.toggle("thinking", hostThinking);
   els.hostAvatar.dataset.avatarState = mediaHostState;
@@ -7388,6 +7447,224 @@ function resetHostSprite() {
 }
 
 const hostAudioCache = new Map();
+const hostVoicePlayback = { speechId: 0, audio: null, mediaSource: null, objectUrl: "", abortController: null };
+
+function cancelHostVoiceSpeech() {
+  hostVoicePlayback.abortController?.abort();
+  hostVoicePlayback.abortController = null;
+  if (hostVoicePlayback.audio) {
+    hostVoicePlayback.audio.pause();
+    hostVoicePlayback.audio.removeAttribute("src");
+    hostVoicePlayback.audio.load();
+    hostVoicePlayback.audio.remove();
+  }
+  if (hostVoicePlayback.objectUrl) URL.revokeObjectURL(hostVoicePlayback.objectUrl);
+  hostVoicePlayback.audio = null;
+  hostVoicePlayback.mediaSource = null;
+  hostVoicePlayback.objectUrl = "";
+}
+
+function setHostVoiceState(speechId, { pending, playing }) {
+  const speech = state.workflow.hostSpeech;
+  if (speech.id !== speechId) return;
+  speech.voicePending = pending;
+  speech.voicePlaying = playing;
+}
+
+async function startHostVoiceSpeech(speechId, text) {
+  const speech = state.workflow.hostSpeech;
+  if (!state.health.hostVoiceConfigured || speech.id !== speechId || speech.voiceRequested
+    || speech.priority >= HOST_SPEECH_PRIORITIES.P0) return;
+  speech.voiceRequested = true;
+  if (!text || Array.from(text).length > HOST_TTS_MAX_TEXT_CHARS) return;
+
+  speech.voicePending = true;
+  const controller = new AbortController();
+  hostVoicePlayback.speechId = speechId;
+  hostVoicePlayback.abortController = controller;
+  const audioChunks = [];
+  let audio = null;
+  let mediaSource = null;
+  let sourceBuffer = null;
+  let usingMediaSource = Boolean(window.MediaSource?.isTypeSupported?.("audio/mpeg"));
+  let started = false;
+  let idleTimer = null;
+  const refreshIdleTimer = () => {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => controller.abort(), 8_000);
+  };
+  const isCurrent = () => !controller.signal.aborted
+    && hostVoicePlayback.speechId === speechId
+    && state.workflow.hostSpeech.id === speechId;
+
+  const createAudio = () => {
+    if (audio) return audio;
+    audio = document.createElement("audio");
+    audio.hidden = true;
+    audio.preload = "auto";
+    document.body.append(audio);
+    hostVoicePlayback.audio = audio;
+    audio.addEventListener("ended", () => {
+      if (!isCurrent()) return;
+      setHostVoiceState(speechId, { pending: false, playing: false });
+      audio.remove();
+    }, { once: true });
+    audio.addEventListener("error", () => {
+      if (isCurrent()) setHostVoiceState(speechId, { pending: false, playing: false });
+    }, { once: true });
+    return audio;
+  };
+
+  const playAudio = async () => {
+    if (!isCurrent()) throw new Error("stale_voice_request");
+    if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
+    if (!isCurrent()) throw new Error("stale_voice_request");
+    await audio.play();
+    if (!isCurrent()) {
+      audio.pause();
+      throw new Error("stale_voice_request");
+    }
+    started = true;
+    setHostVoiceState(speechId, { pending: false, playing: true });
+  };
+
+  try {
+    refreshIdleTimer();
+    const response = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) throw new Error(`tts_http_${response.status}`);
+
+    if (response.headers.get("content-type")?.startsWith("audio/")) {
+      if (usingMediaSource) {
+        mediaSource = new MediaSource();
+        const player = createAudio();
+        hostVoicePlayback.mediaSource = mediaSource;
+        hostVoicePlayback.objectUrl = URL.createObjectURL(mediaSource);
+        player.src = hostVoicePlayback.objectUrl;
+        await new Promise((resolve, reject) => {
+          mediaSource.addEventListener("sourceopen", resolve, { once: true });
+          mediaSource.addEventListener("error", reject, { once: true });
+        });
+        if (!isCurrent()) return;
+        sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+        const reader = response.body.getReader();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done || !isCurrent()) break;
+          refreshIdleTimer();
+          if (sourceBuffer.updating) await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+          sourceBuffer.appendBuffer(value);
+          await new Promise((resolve, reject) => {
+            sourceBuffer.addEventListener("updateend", resolve, { once: true });
+            sourceBuffer.addEventListener("error", reject, { once: true });
+          });
+          if (!started) await playAudio();
+        }
+        if (!started) throw new Error("tts_audio_missing");
+        if (mediaSource.readyState === "open") mediaSource.endOfStream();
+      } else {
+        const blob = await response.blob();
+        if (!blob.size) throw new Error("tts_audio_missing");
+        const player = createAudio();
+        hostVoicePlayback.objectUrl = URL.createObjectURL(blob);
+        player.src = hostVoicePlayback.objectUrl;
+        await playAudio();
+      }
+      return;
+    }
+
+    if (usingMediaSource) {
+      mediaSource = new MediaSource();
+      const player = createAudio();
+      hostVoicePlayback.mediaSource = mediaSource;
+      hostVoicePlayback.objectUrl = URL.createObjectURL(mediaSource);
+      player.src = hostVoicePlayback.objectUrl;
+      await new Promise((resolve, reject) => {
+        mediaSource.addEventListener("sourceopen", resolve, { once: true });
+        mediaSource.addEventListener("error", reject, { once: true });
+      });
+      if (!isCurrent()) return;
+      sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+    }
+
+    const appendAudio = async (encoded) => {
+      const binary = atob(encoded);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      if (!sourceBuffer) {
+        audioChunks.push(bytes);
+        return;
+      }
+      if (sourceBuffer.updating) await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+      if (!isCurrent()) return;
+      sourceBuffer.appendBuffer(bytes);
+      await new Promise((resolve, reject) => {
+        sourceBuffer.addEventListener("updateend", resolve, { once: true });
+        sourceBuffer.addEventListener("error", reject, { once: true });
+      });
+      if (!started) await playAudio();
+    };
+
+    const decoder = new TextDecoder();
+    let pendingText = "";
+    const consumeBlock = async (block) => {
+      const data = block.split("\n").filter(line => line.startsWith("data:"))
+        .map(line => line.slice(5).trim()).join("\n");
+      if (!data || data === "[DONE]") return;
+      let event;
+      try { event = JSON.parse(data); } catch { return; }
+      const encoded = event?.output?.audio?.data;
+      if (typeof encoded === "string" && encoded) {
+        refreshIdleTimer();
+        await appendAudio(encoded);
+      }
+    };
+
+    const reader = response.body.getReader();
+    refreshIdleTimer();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done || !isCurrent()) break;
+      pendingText += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+      const blocks = pendingText.split("\n\n");
+      pendingText = blocks.pop() || "";
+      for (const block of blocks) await consumeBlock(block);
+    }
+    pendingText += decoder.decode();
+    if (pendingText.trim()) await consumeBlock(pendingText);
+
+    if (!isCurrent()) return;
+    clearTimeout(idleTimer);
+    if (sourceBuffer) {
+      if (!started) throw new Error("tts_audio_missing");
+      if (mediaSource.readyState === "open") mediaSource.endOfStream();
+    } else if (audioChunks.length) {
+      const player = createAudio();
+      const blob = new Blob(audioChunks, { type: "audio/mpeg" });
+      hostVoicePlayback.objectUrl = URL.createObjectURL(blob);
+      player.src = hostVoicePlayback.objectUrl;
+      await playAudio();
+    } else {
+      throw new Error("tts_audio_missing");
+    }
+  } catch (error) {
+    clearTimeout(idleTimer);
+    if (hostVoicePlayback.speechId === speechId && state.workflow.hostSpeech.id === speechId) {
+      setHostVoiceState(speechId, { pending: false, playing: false });
+      cancelHostVoiceSpeech();
+      if (error.name !== "AbortError" && error.message !== "stale_voice_request") {
+        console.warn("Host voice playback unavailable; keeping the text bubble.");
+      }
+    }
+  } finally {
+    clearTimeout(idleTimer);
+    if (hostVoicePlayback.abortController === controller) hostVoicePlayback.abortController = null;
+  }
+}
 
 async function playHostSpriteAudio(audioMeta) {
   if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
@@ -7870,43 +8147,65 @@ function setHostBubbleText(text) {
   return textElement;
 }
 
-function scheduleTextClamp(element, text, maxLines) {
+function scheduleAdaptiveTextFit(element, text, options) {
   simulationRuntime.requestAnimationFrame(() => {
-    if (
-      !els.hostBubble.classList.contains("medium-text") &&
-      !els.hostBubble.classList.contains("long-text")
-    ) {
-      return;
-    }
-    if (element.textContent !== text) return;
-    clampTextToLines(element, text, maxLines);
+    if (!element.isConnected || element.textContent !== text) return;
+    fitAdaptiveText(element, options);
   });
 }
 
-function clampTextToLines(element, text, maxLines) {
-  const chars = Array.from(String(text || ""));
-  if (!chars.length) return;
-
+function fitAdaptiveText(element, { fontSize, minFontSize, lineHeight, maxLines = Infinity }) {
   const style = getComputedStyle(element);
-  const toNumber = (value) => Number(String(value).replace("px", "")) || 0;
-  const lineHeight = toNumber(style.lineHeight) || toNumber(style.fontSize) * 1.4;
-  const maxHeight = Math.ceil(lineHeight * maxLines + 1);
+  const paddingY = (Number.parseFloat(style.paddingTop) || 0)
+    + (Number.parseFloat(style.paddingBottom) || 0);
+  const availableHeight = Math.max(0, element.clientHeight - paddingY);
+  const fits = () => {
+    const currentStyle = getComputedStyle(element);
+    const currentLineHeight = Number.parseFloat(currentStyle.lineHeight) || fontSize;
+    const contentHeight = Math.max(0, element.scrollHeight - paddingY);
+    return element.scrollWidth <= element.clientWidth + 1
+      && contentHeight <= availableHeight + 1
+      && Math.ceil(contentHeight / currentLineHeight) <= maxLines;
+  };
 
-  element.textContent = chars.join("");
-  if (element.scrollHeight <= maxHeight) return;
+  for (let size = fontSize; size >= minFontSize; size -= 0.5) {
+    element.style.fontSize = `${size}px`;
+    element.style.lineHeight = `${lineHeight * size / fontSize}px`;
+    if (fits()) return;
+  }
 
-  let low = 0;
-  let high = chars.length;
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2);
-    element.textContent = `${chars.slice(0, mid).join("")}…`;
-    if (element.scrollHeight <= maxHeight) {
-      low = mid;
-    } else {
-      high = mid - 1;
+  element.style.fontSize = `${minFontSize}px`;
+  const minLineHeight = lineHeight * minFontSize / fontSize;
+  if (Number.isFinite(maxLines) && availableHeight > 0) {
+    element.style.lineHeight = `${Math.min(minLineHeight, availableHeight / maxLines)}px`;
+  } else {
+    element.style.lineHeight = `${minLineHeight}px`;
+  }
+}
+
+function fitBubbleHeight(container, textElement, {
+  maxHeight,
+  minHeight,
+  paddingY,
+  anchorLines,
+  anchorLineHeight,
+}) {
+  const range = document.createRange();
+  range.selectNodeContents(textElement);
+  const lineTops = [...range.getClientRects()]
+    .map((rect) => Math.round(rect.top))
+    .filter((top, index, tops) => tops.indexOf(top) === index);
+  const lineHeight = Number.parseFloat(getComputedStyle(textElement).lineHeight) || 0;
+  const contentHeight = lineTops.length * lineHeight;
+  const height = Math.min(maxHeight, Math.max(minHeight, contentHeight + paddingY));
+  container.style.height = `${height}px`;
+  if (anchorLines && anchorLineHeight) {
+    const baseTop = Number.parseFloat(container.dataset.baseTop || getComputedStyle(container).top);
+    if (Number.isFinite(baseTop)) {
+      const anchorHeight = Math.min(maxHeight, Math.max(minHeight, anchorLines * anchorLineHeight + paddingY));
+      container.style.top = `${baseTop + anchorHeight - height - 10}px`;
     }
   }
-  element.textContent = `${chars.slice(0, low).join("")}…`;
 }
 
 function renderSeats() {
@@ -7932,6 +8231,18 @@ function renderSeats() {
 
     bubble.textContent = seatState.bubble;
     bubble.classList.toggle("visible", Boolean(seatState.bubble));
+    if (seatState.bubble) {
+      bubble.style.height = "104px";
+      simulationRuntime.requestAnimationFrame(() => {
+        if (!bubble.isConnected || bubble.textContent !== seatState.bubble) return;
+        fitAdaptiveText(bubble, { fontSize: 20, minFontSize: 18, lineHeight: 26 });
+        fitBubbleHeight(bubble, bubble, { maxHeight: 104, minHeight: 58, paddingY: 32 });
+      });
+    } else {
+      bubble.style.removeProperty("height");
+      bubble.style.removeProperty("font-size");
+      bubble.style.removeProperty("line-height");
+    }
     status.textContent =
       (effectiveActivity !== "idle" ? seatState.activityLabel : "")
       || PASSENGER_ACTIVITY_LABELS[effectiveActivity]
@@ -7974,6 +8285,7 @@ function renderControls() {
   const isTimelinePaused = state.timeline.status === "paused";
   const hasStarted = state.timeline.status !== "idle" || state.game.status !== "idle";
 
+  els.inactivePauseOverlay.hidden = !simulationFreeze.autoPaused;
   document.body.classList.toggle("has-started", hasStarted);
   document.body.classList.toggle("timeline-paused", isTimelinePaused);
   els.prestartPanel.classList.toggle("hidden", hasStarted);

@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-20T05:27:32.308Z",
+  "instance": "alibaba",
+  "live_exports": true,
+  "secrets_exported": false,
+  "files": [
+    {
+      "path": "VERSION.md",
+      "bytes": 637,
+      "sha256": "9099e1741957afb7bc0c6c086c7197fb136cb30286fb7d4c1f052d01828e1051"
+    },
+    {
+      "path": "production-host.json",
+      "bytes": 587411,
+      "sha256": "c4c6c1ee1dc05a20e07b21f6e27a30bbdb60a9b4f97158c59a6fae45d74fe343"
+    },
+    {
+      "path": "production-host.yml",
+      "bytes": 310428,
+      "sha256": "712dd3b771439e9ca033c1cde6c47e0adc540799aa36bcb27b190e172e1fcc91"
+    },
+    {
+      "path": "production-knowledge.json",
+      "bytes": 30978,
+      "sha256": "d875288318d7c5897255e9a9c0359f7c550dfa0df62b0ba2dcec5e2dc9ada65f"
+    },
+    {
+      "path": "production-knowledge.jsonl",
+      "bytes": 23662,
+      "sha256": "6a2cdd4d3c55479efe55978e002effbb553a5d583f728dae91e7f0294b920421"
+    },
+    {
+      "path": "production-knowledge.md",
+      "bytes": 23689,
+      "sha256": "ec95e81ab6a016a45bbcee285ddcf9d42327fb5251677c3a4fe528bb9f1e5267"
+    },
+    {
+      "path": "production-preview.json",
+      "bytes": 52083,
+      "sha256": "b1cb71cde6dbffe175a68cc1dc4dcb5f969253c831906d2b08e1dc12672a81dd"
+    },
+    {
+      "path": "production-preview.yml",
+      "bytes": 25734,
+      "sha256": "2c049e967582582ff9b322e490b9c483a997649bea3484d9578a99832ade5338"
+    },
+    {
+      "path": "production-situation.json",
+      "bytes": 452421,
+      "sha256": "9cf6a5e20dae35c4790386f1b899dd1d065f9b76b3a60b51bfb034f663ee1c3e"
+    },
+    {
+      "path": "production-situation.yml",
+      "bytes": 232177,
+      "sha256": "6b488f5ca759f8c4341396abde6b57131cd385802adb5928d352d2eebae19bdf"
+    },
+    {
+      "path": "test-regression.json",
+      "bytes": 2056,
+      "sha256": "96d2997fad1f42caeac37bf1652d1aa8c8c072cc5e09c8d46a827082e5529243"
+    }
+  ]
+}

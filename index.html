@@ -8,7 +8,7 @@
     <link rel="preload" as="image" href="./assets/cabin-env-garage.png" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/host-normal.webp" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20261019-game-control-six-rounds-v1" />
+  <link rel="stylesheet" href="./styles.css?v=20261020-focus-pause-v2" />
   </head>
   <body>
     <div class="stage-viewport">
@@ -333,6 +333,10 @@
       </main>
     </div>
 
-<script src="./client-app.js?v=20261019-question-intro-render-v1"></script>
+    <div class="inactive-pause-overlay" id="inactivePauseOverlay" hidden>
+      <button class="inactive-pause-resume" id="resumeInactiveSimulation" type="button">继续模式</button>
+    </div>
+
+<script src="./client-app.js?v=20261020-focus-pause-v2"></script>
   </body>
 </html>

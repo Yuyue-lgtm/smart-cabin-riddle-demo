@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
 import dotenv from 'dotenv';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -17,7 +18,16 @@ const proxyUrl = process.env.DIFY_PROXY_URL ?? 'http://127.0.0.1:7897';
 if (proxyUrl) setGlobalDispatcher(new ProxyAgent(proxyUrl));
 
 const BASE_URL = process.env.DIFY_BASE_URL || 'https://cloud.dify.ai';
-export const requestConsoleJson = createConsoleClient({ envPath });
+const cloudConsole = createConsoleClient({ envPath });
+export async function requestConsoleJson(pathname, options = {}) {
+  const profilesPath = path.resolve(here, '../../../dify/environments.json');
+  const profiles = fs.existsSync(profilesPath) ? JSON.parse(fs.readFileSync(profilesPath, 'utf8')) : null;
+  if (profiles?.environments?.cloud?.role?.startsWith('Historical')
+    && (options.method || 'GET') !== 'GET' && process.env.DIFY_ALLOW_HISTORICAL_CLOUD_WRITES !== '1') {
+    throw new Error('Cloud is a historical backup and is read-only. Use node tools/dify.mjs for ECS development.');
+  }
+  return cloudConsole(pathname, options);
+}
 const DEFAULT_APP_IDS = [
   'bf81cd44-a49f-4048-901f-e95e941dc429',
   'dddd27b9-e7c5-4936-90da-8640d7ac8991',

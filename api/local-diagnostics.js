@@ -41,6 +41,13 @@ function sanitizeRecord(record) {
     }
   }
 
+  if (record.proxy_failure && typeof record.proxy_failure === "object") {
+    const failureFields = ["stage", "api_origin", "error_name", "error_code", "cause_code"];
+    safe.proxy_failure = Object.fromEntries(failureFields
+      .filter((field) => typeof record.proxy_failure[field] === "string")
+      .map((field) => [field, record.proxy_failure[field].slice(0, 120)]));
+  }
+
   if (record.diagnostic && typeof record.diagnostic === "object") {
     const diagnosticFields = [
       "status", "source", "observed_fixed_fallback", "guard_status", "fallback_origin",
@@ -113,4 +120,4 @@ function sanitizeRecord(record) {
   return safe;
 }
 
-module.exports = { appendWorkflowDiagnostic, DEFAULT_LOG_PATH };
+module.exports = { appendWorkflowDiagnostic, DEFAULT_LOG_PATH, sanitizeRecord };

@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "version": "2026-10-20-migration-baseline",
+  "archived_at": "2026-10-20T03:18:35.418Z",
+  "source_captured_at": "2026-10-19T14:55:55.006Z",
+  "secrets_exported": false,
+  "provenance": {
+    "cloud": "Published Cloud export verified at source_captured_at; not a new live readback.",
+    "alibaba_import": "Dependency-adapted migration inputs; NOT an export of the published ECS graph. Knowledge bindings are intentionally empty.",
+    "knowledge": "Verified Cloud segments used for the ECS migration; historical authoring JSONL is preserved separately in docs."
+  },
+  "target_dify_version": "1.17.1",
+  "target_plugin": "langgenius/deepseek:0.0.25@32f56796c4f9c3949f2a8cde44a5912f347b5a141dd7daf100048aeefd5e6593",
+  "cloud_published_hashes": {
+    "host": "5fd8948bda460cb725b10b271ddfa51c33976fc1a6bab66bcee9a3481ee3d6d0",
+    "situation": "b3e1a2f11479a7b4aa9ac24dc001aa458b4a7df7e84aa7f18fd66f4219e9194a",
+    "preview": "78c269cb39c01529f7c71392ca14011e9e12a4c727130c62365147e52ea67a99"
+  },
+  "ecs_published_hashes": null,
+  "files": [
+    {
+      "path": "cloud/host.yml",
+      "bytes": 310464,
+      "sha256": "606e910afd9965247c6401f3a5be157adfef8a7086c60f59464f2e8a086037c3"
+    },
+    {
+      "path": "alibaba-import/host.yml",
+      "bytes": 310464,
+      "sha256": "ef382eb5d1411d36c7d5d1b2c2b0844f3ad273c3c65e9a6ec247af3a2e3fae2b"
+    },
+    {
+      "path": "cloud/situation.yml",
+      "bytes": 232175,
+      "sha256": "f9d8379cc38e628327e196fb00e7ee47f21070eebd320984705b6573b5ab5308"
+    },
+    {
+      "path": "alibaba-import/situation.yml",
+      "bytes": 232079,
+      "sha256": "f4c90af1e3df86e3f31a14ecf5d8bc6a57d73cb9bbb6a9735874ceefb9a8820b"
+    },
+    {
+      "path": "cloud/preview.yml",
+      "bytes": 25731,
+      "sha256": "bb45417fa77092f9365f09782f240efd8e2fcdc5ec55b5c6040ab6dddd224af4"
+    },
+    {
+      "path": "alibaba-import/preview.yml",
+      "bytes": 25731,
+      "sha256": "cc4c4a8d2b48755fbcd531306b1dd68c05971decca4626f6dda101cdf8837e38"
+    },
+    {
+      "path": "knowledge/knowhow-source.jsonl",
+      "bytes": 23662,
+      "sha256": "6a2cdd4d3c55479efe55978e002effbb553a5d583f728dae91e7f0294b920421"
+    },
+    {
+      "path": "knowledge/knowhow-source.md",
+      "bytes": 23689,
+      "sha256": "ec95e81ab6a016a45bbcee285ddcf9d42327fb5251677c3a4fe528bb9f1e5267"
+    },
+    {
+      "path": "evidence/cloud-migration-manifest.json",
+      "bytes": 5683,
+      "sha256": "72347b8480bc8d2b8b9240f4756489f8b5e6b377f2e0a6de6115ec795cdfa90a"
+    },
+    {
+      "path": "evidence/alibaba-import-manifest.json",
+      "bytes": 1328,
+      "sha256": "a5ebc193952f1f512f5bbcb4e53766262eff7176885c247f80c994b91952ac99"
+    }
+  ]
+}

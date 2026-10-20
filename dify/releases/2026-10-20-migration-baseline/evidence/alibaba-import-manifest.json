@@ -1,0 +1,35 @@
+{
+  "created_at": "2026-10-19T15:03:25.074Z",
+  "source_manifest": "manifest.json",
+  "target_plugin": "langgenius/deepseek:0.0.25@32f56796c4f9c3949f2a8cde44a5912f347b5a141dd7daf100048aeefd5e6593",
+  "changes": "dependency-only; graph unchanged; retrieval bindings still required",
+  "apps": [
+    {
+      "kind": "host",
+      "file": "host.target.yml",
+      "name": "主持人工作流",
+      "source_published_hash": "5fd8948bda460cb725b10b271ddfa51c33976fc1a6bab66bcee9a3481ee3d6d0",
+      "sha256": "ef382eb5d1411d36c7d5d1b2c2b0844f3ad273c3c65e9a6ec247af3a2e3fae2b",
+      "graph_unchanged": true,
+      "node_count": 17
+    },
+    {
+      "kind": "situation",
+      "file": "situation.target.yml",
+      "name": "情景分析 v1",
+      "source_published_hash": "b3e1a2f11479a7b4aa9ac24dc001aa458b4a7df7e84aa7f18fd66f4219e9194a",
+      "sha256": "f4c90af1e3df86e3f31a14ecf5d8bc6a57d73cb9bbb6a9735874ceefb9a8820b",
+      "graph_unchanged": true,
+      "node_count": 26
+    },
+    {
+      "kind": "preview",
+      "file": "preview.target.yml",
+      "name": "提问预演",
+      "source_published_hash": "78c269cb39c01529f7c71392ca14011e9e12a4c727130c62365147e52ea67a99",
+      "sha256": "cc4c4a8d2b48755fbcd531306b1dd68c05971decca4626f6dda101cdf8837e38",
+      "graph_unchanged": true,
+      "node_count": 5
+    }
+  ]
+}

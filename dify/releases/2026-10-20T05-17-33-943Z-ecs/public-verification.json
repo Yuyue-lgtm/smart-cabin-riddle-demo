@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "verified_date": "2026-10-20",
+  "base_url": "https://cabinplay.xyz",
+  "command": "node deploy/alibaba-cloud/verify-live.cjs https://cabinplay.xyz",
+  "test_user": "ecs-acceptance-1792473772811-fictional-user",
+  "requests_passed": 10,
+  "preview_status": "ready",
+  "preview_steps": 4,
+  "same_conversation_verified": true,
+  "host_context_and_guard_verified": true,
+  "report": [
+    { "label": "passenger_question", "http": 200, "workflow_run_id": "1329deb6-f76a-46a2-848b-a3e29e1de4a9" },
+    { "label": "same_conversation", "http": 200, "workflow_run_id": "48422979-fee2-4795-8cd1-bc82764b5993" },
+    { "label": "environment_change", "http": 200, "workflow_run_id": "d59b6b85-ac46-45a1-abdb-5dcbb569dc0c" },
+    { "label": "environment_change_reply", "http": 200, "workflow_run_id": "9ae06920-fb78-49d8-b050-cd927de39811" },
+    { "label": "hard_brake", "http": 200, "workflow_run_id": "3db74aa8-7c1f-4c0b-b95a-90ec15ae4372" },
+    { "label": "passenger_sleep", "http": 200, "workflow_run_id": "194a6da5-52a1-4bce-9b71-892c54b462b3" },
+    { "label": "passenger_sleep_reply", "http": 200, "workflow_run_id": "a4a0081d-52e0-49f6-adca-13a931409c63" },
+    { "label": "passenger_wake", "http": 200, "workflow_run_id": "bdb17003-dbfe-4cc3-8440-487a40cf3876" },
+    { "label": "passenger_wake_reply", "http": 200, "workflow_run_id": "76517ee2-0d1c-41f6-a001-d648f31446b2" },
+    { "label": "question_preview", "http": 200, "workflow_run_id": "487bb386-e692-4882-bfd2-bcb86047adcd" }
+  ],
+  "limitation": "Does not resolve or fully revalidate the historical cross-round semantic issue."
+}
