@@ -215,6 +215,7 @@ const HOST_THINKING_WAIT_DELAY_MS = 300;
 const LOCAL_FALLBACK_REPLY_DELAY_MS = 500;
 const PAUSED_ROUND_POLL_MS = 300;
 const QUESTION_DURATION_MS = 90_000;
+const MIN_TIMELINE_STEP_GAP_MS = 5_000;
 const ANSWER_LENGTH_HINT_DELAY_MS = 10_000;
 const QUESTION_INTRO_DURATION_MS = 3_000;
 const QUESTION_TIMER_TICK_MS = 100;
@@ -698,145 +699,185 @@ const ROUND_GOLDEN_TIMELINES = [
     id: "round_collaborative",
     name: "轮流破题",
     steps: [
-      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
-      { delay: 14000, type: "passenger_question", label: "另一位乘客接力提问" },
-      { delay: 32000, type: "passenger_question", label: "乘客继续缩小范围" },
-      { delay: 44000, type: "passenger_question", label: "乘客补充关键一问" },
+      { delay: 10000, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 30000, type: "passenger_question", label: "另一位乘客接力提问" },
+      { delay: 50000, type: "passenger_question", label: "乘客继续缩小范围" },
+      { delay: 70000, type: "passenger_question", label: "乘客补充关键一问" },
     ],
   },
   {
     id: "round_cabin_mood",
     name: "轻松玩梗",
     steps: [
-      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
-      { delay: 12000, type: "cabin_laughing", label: "舱内出现轻松笑声" },
-      { delay: 20000, type: "passenger_question", label: "乘客顺势接力提问" },
-      { delay: 30000, type: "passenger_question", label: "乘客换个方向提问" },
+      { delay: 10000, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 30000, type: "passenger_question", label: "乘客顺势接力提问" },
+      { delay: 70000, type: "passenger_question", label: "乘客换个方向提问" },
     ],
   },
   {
     id: "round_safety_interrupt",
     name: "安全控场",
     steps: [
-      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
-      { delay: 13000, type: "driver_tired", label: "检测到主驾疲惫" },
-      { delay: 21000, type: "passenger_question", label: "安全座位接力提问" },
-      { delay: 30000, type: "hard_brake", label: "突发急刹打断" },
-      { delay: 41000, type: "passenger_question", label: "恢复后乘客继续提问" },
+      { delay: 10000, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 50000, type: "passenger_question", label: "安全座位接力提问" },
+      { delay: 70000, type: "passenger_question", label: "恢复后乘客继续提问" },
     ],
   },
   {
     id: "round_quiet_care",
     name: "安静照顾",
     steps: [
-      { delay: 4500, type: "passenger_question", label: "乘客开始提问" },
-      { delay: 13000, type: "passenger_sleep", label: "检测到有乘客睡着" },
-      { delay: 22000, type: "passenger_question", label: "清醒乘客继续提问" },
-      { delay: 40000, type: "passenger_question", label: "乘客补充关键一问" },
+      { delay: 10000, type: "passenger_question", label: "乘客开始提问" },
+      { delay: 30000, type: "passenger_question", label: "清醒乘客继续提问" },
+      { delay: 50000, type: "passenger_question", label: "乘客补充关键一问" },
     ],
   },
 ];
 
 const GOLDEN_TIMELINES = [
   {
-    id: "family_highway_disney",
-    name: "高速亲子出行",
+    id: "golden_city_scenic_family",
+    name: "城市风景亲子游",
     speed: 80,
     destination: "迪士尼",
     relationship: "父母+小孩",
     environment: "车库",
-    environmentAfter: "高速路晴天白天",
-    environmentChangeDelay: 20000,
+    previewEnvironment: "城区晴天白天",
+    personas: { driver: "dad", front: "mom", rear_left: "boy", rear_right: "girl" },
+    durationMs: 300_000,
+    steps: [
+      { delay: 20000, type: "environment_change", value: "城区晴天白天", label: "切换至城市白天" },
+      { delay: 120000, type: "environment_change", value: "风景区晴天白天", label: "切换至风景区" },
+      { delay: 140000, type: "passenger_sleep", label: "有乘客睡着" },
+      { delay: 160000, type: "hard_brake", label: "急刹，安全暂停" },
+      { delay: 220000, type: "passenger_wake", label: "有乘客醒来" },
+      { delay: 240000, type: "driver_tired", label: "主驾疲惫" },
+      { delay: 260000, type: "cabin_laughing", label: "车内欢笑" },
+      { delay: 280000, type: "near_destination", label: "快到目的地" },
+    ],
     riddleIndex: 1,
     trace: {
-      perception: "载入高速亲子出行场景",
+      perception: "载入城市风景亲子游体验线",
       decision: "默认副驾为真实用户，后排小朋友可自动加入",
-      execution: "设置高速晴天、目的地迪士尼、谜底安全带",
-      strategyId: "V1.2-A",
+      execution: "从车库出发，先城市白天、再风景区",
+      strategyId: "GOLDEN-A",
       priority: "P3",
     },
   },
   {
-    id: "city_night_friends",
-    name: "城区夜景朋友出行",
+    id: "golden_cyber_city_friends",
+    name: "赛博城市朋友夜游",
     speed: 50,
     destination: "夜市",
     relationship: "年轻朋友",
     environment: "城区夜晚",
+    previewEnvironment: "城区夜晚",
+    personas: { driver: "maleYoung", front: "femaleYoung", rear_left: "maleYoung", rear_right: "femaleYoung" },
+    durationMs: 300_000,
+    steps: [
+      { delay: 60000, type: "cabin_laughing", label: "车内欢笑" },
+      { delay: 120000, type: "environment_change", value: "隧道", label: "进入隧道" },
+      { delay: 140000, type: "passenger_sleep", label: "有乘客睡着" },
+      { delay: 160000, type: "temporary_interruption", reason: "complex_road", label: "进入复杂路段，暂停互动" },
+      { delay: 180000, type: "environment_change", value: "城区夜晚", label: "回到城市夜晚" },
+      { delay: 220000, type: "speed_overspeed", label: "超速提醒" },
+      { delay: 240000, type: "passenger_wake", label: "有乘客醒来" },
+      { delay: 260000, type: "driver_tired", label: "主驾疲惫" },
+      { delay: 280000, type: "near_destination", label: "快到目的地" },
+    ],
     riddleIndex: 6,
     trace: {
-      perception: "载入城区夜景朋友出行场景",
-      decision: "朋友局采用轻松节奏，结合夜间城市环境出题",
-      execution: "切换城市夜景、目的地夜市、谜底红绿灯",
-      strategyId: "V1.2-D",
+      perception: "载入赛博城市朋友夜游体验线",
+      decision: "朋友局采用轻松节奏，同时守住夜间驾驶安全",
+      execution: "从城市夜晚出发，经隧道后回到城市夜晚",
+      strategyId: "GOLDEN-B",
       priority: "P3",
     },
   },
   {
-    id: "rainy_city_hotpot_friends",
-    name: "雨天朋友聚会",
-    speed: 50,
-    destination: "火锅店",
-    relationship: "年轻朋友",
-    environment: "车库",
-    environmentAfter: "城区雨天白天",
-    environmentChangeDelay: 20000,
-    riddleIndex: 0,
-    trace: {
-      perception: "载入雨天朋友聚会场景",
-      decision: "朋友局采用轻松玩梗风格，副驾仍为真实用户",
-      execution: "设置城区出行、目的地火锅店、谜底雨伞",
-      strategyId: "V1.2-B",
-      priority: "P3",
-    },
-  },
-  {
-    id: "scenic_sunset_family",
-    name: "风景区傍晚家庭出行",
+    id: "golden_snow_rain_elder_family",
+    name: "雪景雨天长辈同行",
     speed: 50,
     destination: "草原",
     relationship: "中老年+儿女",
-    environment: "风景区傍晚",
-    riddleIndex: 9,
-    trace: {
-      perception: "载入风景区傍晚家庭出行场景",
-      decision: "以轻松节奏融入风景与家庭出行氛围",
-      execution: "切换风景晚霞、目的地草原、谜底草原",
-      strategyId: "V1.2-E",
-      priority: "P3",
-    },
-  },
-  {
-    id: "scenic_snow_family",
-    name: "风景区雪景家庭",
-    speed: 50,
-    destination: "草原",
-    relationship: "中老年+儿女",
-    environment: "车库",
-    environmentAfter: "风景区雪景白天",
-    environmentChangeDelay: 20000,
+    environment: "风景区雪景白天",
+    previewEnvironment: "风景区雪景白天",
+    personas: { driver: "maleYoung", front: "femaleYoung", rear_left: "grandpa", rear_right: "grandma" },
+    durationMs: 300_000,
+    steps: [
+      { delay: 40000, type: "passenger_sleep", label: "有乘客睡着" },
+      { delay: 120000, type: "environment_change", value: "隧道", label: "进入隧道" },
+      { delay: 140000, type: "hard_brake", label: "急刹，安全暂停" },
+      { delay: 180000, type: "environment_change", value: "雨天", label: "切换至白天下大雨" },
+      { delay: 240000, type: "passenger_wake", label: "有乘客醒来" },
+      { delay: 260000, type: "driver_tired", label: "主驾疲惫" },
+      { delay: 280000, type: "near_destination", label: "快到目的地" },
+    ],
     riddleIndex: 5,
     trace: {
-      perception: "载入风景区雪景家庭场景",
-      decision: "用更稳重的语气主持，并避免打扰睡着乘客",
-      execution: "设置雪景环境、家庭乘客、谜底雪人",
-      strategyId: "V1.2-C",
+      perception: "载入雪景雨天长辈同行体验线",
+      decision: "放慢节奏，优先照顾休息乘员与驾驶安全",
+      execution: "从白天雪景出发，经隧道后进入雨天",
+      strategyId: "GOLDEN-C",
       priority: "P3",
     },
   },
   {
-    id: "scenic_deep_night_family",
-    name: "风景区深夜家庭出行",
+    id: "golden_sunset_night_family_return",
+    name: "傍晚深夜家庭返程",
     speed: 50,
     destination: "观星营地",
-    relationship: "中老年+儿女",
-    environment: "风景区晴天深夜",
+    relationship: "父母+小孩",
+    environment: "风景区傍晚",
+    previewEnvironment: "风景区傍晚",
+    personas: { driver: "dad", front: "maleYoung", rear_left: "mom", rear_right: "baby" },
+    durationMs: 300_000,
+    steps: [
+      { delay: 20000, type: "driver_tired", label: "主驾疲惫" },
+      { delay: 60000, type: "passenger_sleep", label: "有乘客睡着" },
+      { delay: 120000, type: "environment_change", value: "风景区晴天深夜", label: "切换至深夜" },
+      { delay: 140000, type: "temporary_interruption", reason: "complex_road", label: "进入复杂路段，暂停互动" },
+      { delay: 240000, type: "passenger_wake", label: "有乘客醒来" },
+      { delay: 260000, type: "cabin_laughing", label: "车内欢笑" },
+      { delay: 280000, type: "near_destination", label: "快到目的地" },
+    ],
     riddleIndex: 8,
     trace: {
-      perception: "载入风景区深夜家庭出行场景",
-      decision: "保持夜间出行节奏，优先照顾主驾注意力",
-      execution: "切换风景区深夜、目的地观星营地、谜底方向盘",
-      strategyId: "V1.2-F",
+      perception: "载入傍晚深夜家庭返程体验线",
+      decision: "保持安静节奏，保护疲惫主驾和休息乘员",
+      execution: "从风景区傍晚出发，夜间继续返程",
+      strategyId: "GOLDEN-D",
+      priority: "P3",
+    },
+  },
+  {
+    id: "golden_scenic_city_family",
+    name: "风景归城家人同行",
+    speed: 50,
+    destination: "草原",
+    relationship: "年轻朋友",
+    environment: "风景区晴天白天",
+    previewEnvironment: "风景区晴天白天",
+    personas: { driver: "mom", front: "femaleYoung", rear_left: "maleYoung", rear_right: "femaleYoung" },
+    durationMs: 300_000,
+    steps: [
+      { delay: 20000, type: "cabin_laughing", label: "车内欢笑" },
+      { delay: 60000, type: "speed_overspeed", label: "超速提醒" },
+      { delay: 80000, type: "environment_change", value: "隧道", label: "进入隧道" },
+      { delay: 120000, type: "temporary_interruption", reason: "complex_road", label: "进入复杂路段，暂停互动" },
+      { delay: 160000, type: "environment_change", value: "城区晴天白天", label: "切换至城市白天" },
+      { delay: 180000, type: "passenger_sleep", label: "有乘客睡着" },
+      { delay: 220000, type: "hard_brake", label: "急刹，安全暂停" },
+      { delay: 240000, type: "driver_tired", label: "主驾疲惫" },
+      { delay: 275000, type: "passenger_wake", label: "有乘客醒来" },
+      { delay: 280000, type: "near_destination", label: "快到目的地" },
+    ],
+    riddleIndex: 9,
+    trace: {
+      perception: "载入风景归城家人同行体验线",
+      decision: "多事件重叠时优先安全并保留有效待答状态",
+      execution: "从风景区出发，经隧道后回到城市白天",
+      strategyId: "GOLDEN-E",
       priority: "P2",
     },
   },
@@ -916,6 +957,7 @@ const DEFAULT_STATE = {
     lastRoundTimelineId: "",
     roundTimelineHistory: [],
     lastPassengerSeat: "",
+    goldenSleepingSeat: "",
     currentEventType: "",
     status: "idle",
     runId: 0,
@@ -1023,6 +1065,8 @@ const DEFAULT_STATE = {
 };
 
 const state = structuredClone(DEFAULT_STATE);
+let goldenExperience = null;
+let lastPresetStartedAt = null;
 try {
   const preferences = JSON.parse(localStorage.getItem(HOST_PREFERENCES_STORAGE_KEY) || "null");
   for (const key of Object.keys(state.host.preferences)) {
@@ -1298,12 +1342,14 @@ function startBackgroundPreloading() {
   void preloadHostSpriteImages();
   const images = new Set();
   for (const scenario of GOLDEN_TIMELINES) {
-    for (const environment of [scenario.environment, scenario.environmentAfter].filter(Boolean)) {
+    const environments = [scenario.environment, scenario.previewEnvironment,
+      ...(scenario.steps || []).filter(step => step.type === "environment_change").map(step => step.value)];
+    for (const environment of new Set(environments.filter(Boolean))) {
       const assets = resolveEnvironmentAssets(environment);
       images.add(assets.screen);
       images.add(assets.cabin);
     }
-    for (const persona of Object.values(RESOURCE_CONFIG.relationshipSeats[scenario.relationship])) {
+    for (const persona of getScenarioPersonaKeys(scenario)) {
       images.add(RESOURCE_CONFIG.passengers[persona].normal);
     }
   }
@@ -2092,6 +2138,58 @@ function shouldShowPlayerInputGuide(screenMode) {
   return screenMode === "playing" && !playerInputGuideDismissed;
 }
 
+function presetStepWaitMs(dueAt) {
+  const earliestStart = lastPresetStartedAt === null ? dueAt
+    : Math.max(dueAt, lastPresetStartedAt + MIN_TIMELINE_STEP_GAP_MS);
+  return Math.max(0, earliestStart - simulationRuntime.now());
+}
+
+function stopGoldenExperience() {
+  if (goldenExperience?.timer != null) simulationRuntime.clearTimeout(goldenExperience.timer);
+  goldenExperience = null;
+  lastPresetStartedAt = null;
+}
+
+// Cabin events follow the trip clock, not question boundaries or host/network latency.
+function startGoldenExperience() {
+  const line = getActiveGoldenLine();
+  if (goldenExperience?.gameId === state.workflow.gameId && goldenExperience.lineId === line.id) return;
+  stopGoldenExperience();
+  const session = { gameId: state.workflow.gameId, lineId: line.id,
+    startedAt: simulationRuntime.now(), nextIndex: 0, timer: null, completed: false };
+  goldenExperience = session;
+  const scheduleNext = () => {
+    const step = line.steps[session.nextIndex];
+    const dueAt = session.startedAt + (step?.delay ?? line.durationMs);
+    session.timer = simulationRuntime.setTimeout(() => {
+      session.timer = null;
+      if (goldenExperience !== session) return;
+      if (session.gameId !== state.workflow.gameId || session.lineId !== getActiveGoldenLine().id
+        || state.game.status === "summary") {
+        stopGoldenExperience();
+        return;
+      }
+      if (presetStepWaitMs(dueAt) > 0) {
+        scheduleNext();
+        return;
+      }
+      if (!step) {
+        session.completed = true;
+        return;
+      }
+      lastPresetStartedAt = simulationRuntime.now();
+      session.nextIndex += 1;
+      state.timeline.elapsedSeconds = Math.round((lastPresetStartedAt - session.startedAt) / 1000);
+      state.timeline.currentEventType = step.type;
+      state.timeline.currentEvent = step.label;
+      render();
+      void runRoundTimelineStep(step).catch(() => console.warn("Golden event dispatch failed:", step.type));
+      scheduleNext();
+    }, presetStepWaitMs(dueAt));
+  };
+  scheduleNext();
+}
+
 async function startRoundGoldenTimeline() {
   const preparation = ensureCurrentRoundPreparation();
   const roundTimeline = ROUND_GOLDEN_TIMELINES.find((item) => item.id === preparation.timelineId);
@@ -2107,7 +2205,8 @@ async function startRoundGoldenTimeline() {
   });
   state.timeline.status = "running";
   state.timeline.startedAt = simulationRuntime.now();
-  state.timeline.elapsedSeconds = 0;
+  state.timeline.elapsedSeconds = goldenExperience
+    ? Math.round((simulationRuntime.now() - goldenExperience.startedAt) / 1000) : 0;
   state.timeline.currentEventType = "start_game";
   state.timeline.currentEvent = `第 ${state.game.roundIndex} 题 · ${roundTimeline.name}`;
   render();
@@ -2119,19 +2218,23 @@ async function startRoundGoldenTimeline() {
   startQuestionClock();
   startQuestionIntro();
   state.timeline.startedAt = simulationRuntime.now();
-  scheduleGoldenEnvironmentTransition(runId, getActiveGoldenLine());
-  for (const step of roundTimeline.steps) {
+  startGoldenExperience();
+  const steps = roundTimeline.steps;
+  for (let index = 0; index < steps.length;) {
+    const step = steps[index];
     if (state.timeline.runId !== runId) return;
     for (;;) {
       await waitUntilRoundTimelineReady(runId);
       if (state.timeline.runId !== runId || ["victory", "summary", "failed"].includes(state.game.status)) return;
-      const waitMs = state.timeline.startedAt + step.delay - simulationRuntime.now();
+      const waitMs = presetStepWaitMs(state.timeline.startedAt + step.delay);
       if (waitMs <= 0) break;
       await sleep(waitMs);
     }
     if (state.timeline.runId !== runId) return;
     if (["victory", "summary", "failed"].includes(state.game.status)) return;
-    state.timeline.elapsedSeconds = Math.round((simulationRuntime.now() - state.timeline.startedAt) / 1000);
+    index += 1;
+    state.timeline.elapsedSeconds = Math.round((simulationRuntime.now() - goldenExperience.startedAt) / 1000);
+    lastPresetStartedAt = simulationRuntime.now();
     state.timeline.currentEventType = step.type;
     state.timeline.currentEvent = step.label;
     render();
@@ -2189,17 +2292,28 @@ function pickRoundGoldenTimeline(previousTimelineId = state.timeline.lastRoundTi
 }
 
 async function runRoundTimelineStep(step) {
+  if (step.type === "environment_change") {
+    await runScriptedEnvironment(step.value);
+    return;
+  }
+  if (step.type === "speed_overspeed") {
+    await runScriptedSpeed(130);
+    return;
+  }
   if (step.type === "passenger_question") {
     await runRandomTimelinePassengerQuestion();
     return;
   }
-  if (["passenger_sleep", "cabin_laughing"].includes(step.type)) {
-    const rearSeat = selectRandomSimulatedSeat({ rearOnly: true });
+  if (["passenger_sleep", "passenger_wake", "cabin_laughing"].includes(step.type)) {
+    const rearSeat = step.type === "passenger_wake"
+      ? (state.timeline.goldenSleepingSeat && state.passengers.seats[state.timeline.goldenSleepingSeat]?.mood === "睡着"
+        ? state.timeline.goldenSleepingSeat : getManualWakeSeat())
+      : selectRandomSimulatedSeat({ rearOnly: true, includeNonSpeakers: step.type === "passenger_sleep" });
     if (!rearSeat) return;
-    await runScriptedEvent(step.type, step.label, rearSeat);
+    await runScriptedEvent(step.type, step.label, rearSeat, step.reason);
     return;
   }
-  await runScriptedEvent(step.type, step.label, "driver");
+  await runScriptedEvent(step.type, step.label, "driver", step.reason);
 }
 
 async function runRandomTimelinePassengerQuestion() {
@@ -2213,7 +2327,7 @@ async function runRandomTimelinePassengerQuestion() {
   await runScriptedQuestion(seat, preparedQuestion.text, preparedQuestion.step);
 }
 
-function selectRandomSimulatedSeat({ rearOnly = false } = {}) {
+function selectRandomSimulatedSeat({ rearOnly = false, includeNonSpeakers = false } = {}) {
   const sleepingSeats = new Set(getSleepingSeats());
   const driverUnavailable =
     state.car.speed >= 100
@@ -2221,9 +2335,13 @@ function selectRandomSimulatedSeat({ rearOnly = false } = {}) {
     || ["疲惫", "睡着"].includes(state.passengers.seats.driver.mood)
     || ["safety_pause", "driver_focus"].includes(state.ui.cabinMode);
   const baseSeats = rearOnly ? ["rearLeft", "rearRight"] : ["driver", "rearLeft", "rearRight"];
-  let candidates = baseSeats.filter(
-    (seat) => !sleepingSeats.has(seat) && (seat !== "driver" || !driverUnavailable),
-  );
+  let candidates = baseSeats.filter((seat) => !sleepingSeats.has(seat)
+    && (seat !== "driver" || !driverUnavailable)
+    && (includeNonSpeakers || getPassengerPersona(seat)?.can_guess !== false));
+  if (!rearOnly) {
+    const rearSeats = candidates.filter((seat) => seat === "rearLeft" || seat === "rearRight");
+    if (rearSeats.length) candidates = rearSeats;
+  }
   if (candidates.length > 1 && state.timeline.lastPassengerSeat) {
     candidates = candidates.filter((seat) => seat !== state.timeline.lastPassengerSeat);
   }
@@ -2332,6 +2450,7 @@ function toggleTimelinePause() {
 }
 
 function stopTimeline(message) {
+  stopGoldenExperience();
   if (state.timeline.status === "running" || state.timeline.status === "paused") {
     state.timeline.runId += 1;
   }
@@ -2360,6 +2479,7 @@ function finishTimelineSilently() {
 }
 
 function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = false) {
+  stopGoldenExperience();
   const preparedGame = state.game.status === "summary"
     && nextGamePreparation?.scenarioId === timeline.id
     ? nextGamePreparation
@@ -2393,6 +2513,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.timeline.lastRoundTimelineId = "";
   state.timeline.roundTimelineHistory = [];
   state.timeline.lastPassengerSeat = "";
+  state.timeline.goldenSleepingSeat = "";
   state.timeline.currentEventType = "";
   state.timeline.status = "idle";
   state.timeline.elapsedSeconds = 0;
@@ -2420,7 +2541,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.ui.lightsBeforeSleep = {};
   state.game.publicClues = [];
   state.ui.cabinMode = "normal";
-  state.ui.screenEnvironment = timeline.environment;
+  state.ui.screenEnvironment = timeline.previewEnvironment || timeline.environment;
   state.ui.alert = announce ? `已切换至${timeline.name}` : "";
   state.host.text = "";
   hostSceneMotion.mode = "";
@@ -2590,11 +2711,14 @@ function ensureScriptedVictory(seat, text) {
   startResultFeedback(recordRoundOutcome(seat));
 }
 
-async function runScriptedEvent(type, label, targetSeat = state.passengers.selectedSeat) {
+async function runScriptedEvent(type, label, targetSeat = state.passengers.selectedSeat, reason = "") {
   const seat = targetSeat;
   showImportantEvent(getImportantEventText(type, seat));
   if (type === "hard_brake") {
     applyImmediateSafetyPause();
+  }
+  if (type === "temporary_interruption") {
+    applyTemporaryInterruption({ reason });
   }
   if (type === "driver_tired") {
     applyImmediateDriverTired();
@@ -2603,10 +2727,12 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
     return;
   }
   if (type === "passenger_sleep") {
+    state.timeline.goldenSleepingSeat = seat;
     applyImmediatePassengerSleep(seat);
   }
   if (type === "passenger_wake") {
     applyImmediatePassengerWake(seat);
+    if (state.timeline.goldenSleepingSeat === seat) state.timeline.goldenSleepingSeat = "";
   }
   if (type === "near_destination") {
     applyImmediateNearDestination();
@@ -2642,7 +2768,7 @@ async function runScriptedEvent(type, label, targetSeat = state.passengers.selec
   }
   state.timeline.currentEvent = label;
   scheduleEventRecovery(type);
-  await dispatchWorkflow("event", { type, seat, source: "timeline" });
+  await dispatchWorkflow("event", { type, seat, ...(reason ? { reason } : {}), source: "timeline" });
   scheduleEventRecovery(type);
 }
 
@@ -2994,6 +3120,7 @@ async function startGame() {
     return;
   }
   state.game.status = "opening";
+  state.ui.screenEnvironment = state.car.environment;
   if (!state.game.playedRiddleIndices.includes(state.game.currentRiddleIndex)) {
     state.game.playedRiddleIndices.push(state.game.currentRiddleIndex);
   }
@@ -4540,15 +4667,50 @@ function getPersonaSeatKey(seat) {
   return seatKeys[seat] || seat;
 }
 
-function getPassengerPersonas(relationship = state.passengers.relationship) {
-  return (
+function getPassengerPersonas(relationship = state.passengers.relationship, scenario = getActiveGoldenLine()) {
+  const base = (
     PASSENGER_PERSONAS_BY_RELATIONSHIP[relationship]
     || PASSENGER_PERSONAS_BY_RELATIONSHIP["父母+小孩"]
   );
+  if (!scenario?.personas || scenario.relationship !== relationship) return base;
+  const profiles = {
+    dad: { role: "爸爸", age_group: "adult", persona: "稳重、关注家人和驾驶安全", can_guess: true },
+    mom: { role: "妈妈", age_group: "adult", persona: "细心、善于照顾家人", can_guess: true },
+    boy: { role: "小男孩", age_group: "child", persona: "好奇、喜欢直接提问", can_guess: true },
+    girl: { role: "小女孩", age_group: "child", persona: "好奇、表达简短自然", can_guess: true },
+    maleYoung: { role: "男青年", age_group: "young_adult", persona: "轻松、善于观察", can_guess: true },
+    femaleYoung: { role: "女青年", age_group: "young_adult", persona: "表达自然、观察细致", can_guess: true },
+    grandpa: { role: "爷爷", age_group: "elder", persona: "沉稳、有生活经验", can_guess: true },
+    grandma: { role: "奶奶", age_group: "elder", persona: "耐心、善于从生活经验判断", can_guess: true },
+    baby: { role: "婴儿", age_group: "infant", persona: "只展示状态和表情，不生成完整发言", can_guess: false },
+  };
+  const seatLabels = { driver: "主驾", front: "副驾", rear_left: "后排左", rear_right: "后排右" };
+  const personas = structuredClone(base);
+  for (const [seat, personaKey] of Object.entries(scenario.personas)) {
+    const seatKey = getPersonaSeatKey(seat);
+    const profile = profiles[personaKey];
+    if (!profile) continue;
+    const isRealUser = seatKey === "front";
+    personas[seatKey] = {
+      ...personas[seatKey],
+      name: isRealUser ? "副驾真实用户" : `${seatLabels[seatKey]}${profile.role}`,
+      role: isRealUser ? `真实用户（${profile.role}形象）` : profile.role,
+      age_group: profile.age_group,
+      persona: isRealUser ? "真实用户自行决定发言，不自动模拟" : profile.persona,
+      style: isRealUser ? "由真实用户决定" : personas[seatKey]?.style,
+      can_guess: isRealUser || profile.can_guess,
+      is_real_user: isRealUser,
+    };
+  }
+  return personas;
 }
 
 function getPassengerPersona(seat) {
   return getPassengerPersonas()[getPersonaSeatKey(seat)] || null;
+}
+
+function getScenarioPersonaKeys(scenario) {
+  return [...new Set(Object.values(scenario.personas || {}))];
 }
 
 function getCurrentRoundTimelineTemplate() {
@@ -4568,7 +4730,9 @@ function buildRoundQuestionPlanRequest(event, timeline = getCurrentRoundTimeline
   const personaAgeGroups = [
     ...new Set(
       ["driver", "rearLeft", "rearRight"]
-        .map((seat) => personas[getPersonaSeatKey(seat)]?.age_group)
+        .map((seat) => personas[getPersonaSeatKey(seat)])
+        .filter((persona) => persona?.can_guess !== false)
+        .map((persona) => persona?.age_group)
         .filter(Boolean),
     ),
   ];
@@ -4606,7 +4770,7 @@ function buildRoundPreviewInput(preparation) {
   const riddle = RIDDLES[preparation.riddleIndex];
   const timeline = ROUND_GOLDEN_TIMELINES.find((item) => item.id === preparation.timelineId);
   const scenario = GOLDEN_TIMELINES.find((item) => item.id === preparation.scenarioId);
-  const personas = getPassengerPersonas(preparation.relationship);
+  const personas = getPassengerPersonas(preparation.relationship, scenario);
   const car = preparation.newGame
     ? { speed: scenario.speed, destination: scenario.destination, environment: scenario.environment }
     : { ...input.car };
@@ -7273,6 +7437,7 @@ function logRoundAdvanceDiagnostic(type, completedRound, blockers) {
 }
 
 function finishGameSeries() {
+  stopGoldenExperience();
   clearNextRiddleRefresh();
   invalidateAsyncHostResults();
   clearQuestionClock();
@@ -9074,7 +9239,8 @@ function resolvePassengerAsset(seat, seatState, activity) {
   const relationshipSeats =
     RESOURCE_CONFIG.relationshipSeats[state.passengers.relationship]
     || RESOURCE_CONFIG.relationshipSeats["父母+小孩"];
-  const personaKey = relationshipSeats[seat] || "maleYoung";
+  const scenarioSeats = getActiveGoldenLine().personas || {};
+  const personaKey = scenarioSeats[getPersonaSeatKey(seat)] || relationshipSeats[seat] || "maleYoung";
   const personaAssets = RESOURCE_CONFIG.passengers[personaKey] || RESOURCE_CONFIG.passengers.maleYoung;
   const stateKey = activity === "celebrating" || seatState.mood === "大笑"
     ? "laugh"
