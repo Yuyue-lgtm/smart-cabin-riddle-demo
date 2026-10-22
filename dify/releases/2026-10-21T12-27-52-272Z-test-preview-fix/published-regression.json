@@ -1,0 +1,177 @@
+{
+  "mode": "published",
+  "app_id": "aa30333f-4a8d-4d89-9d6f-557ee7296263",
+  "workflow_hash": "5e802720e7a57ff88d8e0ac7cd50aed234a342ff4fa402f8a30bb87abe4dc58d",
+  "started_at": "2026-10-21T14:04:43.435Z",
+  "fictional_data_only": true,
+  "ok": true,
+  "cases": [
+    {
+      "label": "published-safety-5",
+      "count": 5,
+      "answer": "安全带",
+      "attempts": [
+        {
+          "http": 200,
+          "status": "ready",
+          "diagnostic": {
+            "status": "ready",
+            "repair_attempted": false,
+            "repairable": false,
+            "accepted_step_count": 5,
+            "requested_step_count": 5,
+            "validation_errors": [],
+            "workflow_run_id": "76ba193b-fe85-4c16-a825-e63c85fe3c0e",
+            "upstream_status": "succeeded",
+            "upstream_error": ""
+          },
+          "workflow_run_id": "76ba193b-fe85-4c16-a825-e63c85fe3c0e",
+          "elapsed_ms": 2817
+        }
+      ],
+      "elapsed_ms": 2817,
+      "ready": true,
+      "first_steps": [
+        {
+          "stage": "category",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它是常见的人造物品吗？",
+            "child": "它是平时常见的人造东西吗？",
+            "elder": "它是常见的人造物件吗？"
+          }
+        },
+        {
+          "stage": "location",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它通常在车内使用吗？",
+            "child": "坐车时通常能用到它吗？",
+            "elder": "它一般在车内使用吗？"
+          }
+        },
+        {
+          "stage": "function",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它能保护人吗？",
+            "child": "它能保护人吗？",
+            "elder": "它能起保护作用吗？"
+          }
+        }
+      ]
+    },
+    {
+      "label": "published-safety-6",
+      "count": 6,
+      "answer": "安全带",
+      "attempts": [
+        {
+          "http": 200,
+          "status": "ready",
+          "diagnostic": {
+            "status": "ready",
+            "repair_attempted": false,
+            "repairable": false,
+            "accepted_step_count": 6,
+            "requested_step_count": 6,
+            "validation_errors": [],
+            "workflow_run_id": "cc0d4bac-df7a-4ca8-8219-733e819b6f12",
+            "upstream_status": "succeeded",
+            "upstream_error": ""
+          },
+          "workflow_run_id": "cc0d4bac-df7a-4ca8-8219-733e819b6f12",
+          "elapsed_ms": 2867
+        }
+      ],
+      "elapsed_ms": 2867,
+      "ready": true,
+      "first_steps": [
+        {
+          "stage": "category",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它是常见物品吗？",
+            "child": "它是常见的东西吗？",
+            "elder": "它是常见物品吗？"
+          }
+        },
+        {
+          "stage": "location",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它会在车内使用吗？",
+            "child": "它会在车里用到吗？",
+            "elder": "它会在车内使用吗？"
+          }
+        },
+        {
+          "stage": "function",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它能保护人吗？",
+            "child": "它能保护人吗？",
+            "elder": "它能保护人吗？"
+          }
+        }
+      ]
+    },
+    {
+      "label": "published-repair-6",
+      "count": 6,
+      "answer": "安全带",
+      "attempts": [
+        {
+          "http": 200,
+          "status": "ready",
+          "diagnostic": {
+            "status": "ready",
+            "repair_attempted": true,
+            "repairable": false,
+            "accepted_step_count": 6,
+            "requested_step_count": 6,
+            "validation_errors": [],
+            "workflow_run_id": "55e88d1a-10c4-4207-afac-16286cf88012",
+            "upstream_status": "succeeded",
+            "upstream_error": ""
+          },
+          "workflow_run_id": "55e88d1a-10c4-4207-afac-16286cf88012",
+          "elapsed_ms": 2404
+        }
+      ],
+      "elapsed_ms": 2404,
+      "ready": true,
+      "first_steps": [
+        {
+          "stage": "category",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它是人造物品吗？",
+            "child": "它是人做出来的吗？",
+            "elder": "它是人工制成的吗？"
+          }
+        },
+        {
+          "stage": "location",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它常在车内使用吗？",
+            "child": "在车里能用到它吗？",
+            "elder": "它通常用在车内吗？"
+          }
+        },
+        {
+          "stage": "function",
+          "expected_answer": "yes",
+          "variants": {
+            "default": "它能限制人的活动吗？",
+            "child": "它会拦住人乱动吗？",
+            "elder": "它能约束人的活动吗？"
+          }
+        }
+      ],
+      "accepted_prefix_preserved": true
+    }
+  ],
+  "completed_at": "2026-10-21T14:04:52.067Z"
+}

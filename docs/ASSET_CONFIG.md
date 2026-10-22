@@ -14,7 +14,29 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 6. 人物切片使用 Figma 返回的 `rawImages` 原始透明图片层；不要使用节点 `export` 合成图，避免把画板底色一起带入人物资源。
 7. 运行时固定画布尺寸：主持人 `564×572`、乘客 `287×328`、中控背景 `1440×810`、座舱环境 `810×651`。个别 Figma 节点若少 1px，导入时只补透明边缘，不拉伸人物。
 8. Figma 中同名资源按媒体类型整理；当前运行时主持人动画统一使用透明 Sprite Sheet + Canvas，静态 PNG 只作为加载失败时的 fallback，视频文件不再是主持人动画的运行时依赖。
-9. Sprite Sheet 按 `6 列 × 7 行` 排列，每帧为 `720×720`，运行时显示区域保持主持人 `564×572`；JSON 中的帧数和 fps 用于核对资源，播放时按统一 `100ms` 帧间隔推进。
+9. Sprite Sheet 固定 6 列、行数随帧数变化，每帧为 `720×720`，运行时显示区域保持主持人 `564×572`；JSON 中的帧数和 fps 用于核对资源，播放时按统一 `100ms` 帧间隔推进。
+
+## 游戏图标与网页标签（2026-10-21）
+
+最新来源：`261:12`「Pencil 1:1 / 游戏进行中-第几题」中的 `261:37`「游戏icon」。游戏加载页、游戏中、揭晓页及网页标签 favicon 统一复用 `assets/game-icon-loading.png`（130×130 PNG）；游戏中显示尺寸由 47×47 容器控制，位置(31,39)、圆角12px。通过版本查询参数刷新浏览器图标缓存，不另存游戏图标切片或 favicon 副本。
+
+## 打招呼与庆祝动效（2026-10-21）
+
+准备页时序随后调整：wave 播完再显示欢迎气泡和说话动效，欢迎语音按共用声音开关合成；说话动效在音频结束或失败时回待机，文字可保留。欢迎播放中开始游戏会取消欢迎，不占用游戏主持状态；素材资源本身不变。该项先在本地验证，尚未部署正式网站。
+
+同日更新：打招呼改用用户新提供的 `host-wave-sprites/host-wave.webp`、`host-wave.json`、`host-wave-audio.mp3`；音频在项目内规范为 `host-wave.mp3`，JSON 引用同步修正。仍为 4320×5040、40 帧、10fps/4 秒，播放及开关逻辑不变。WebP 与 MP3 不转码，运行引用增加内容 hash 查询参数，避免浏览器沿用旧素材。
+
+用户提供的 `host-wave/`、`host-cheer/` 原始 WebP 和 MP3 原样导入，不重新转码；JSON 的 `meta.image` 和 `audio.src` 改为对应规范英文文件名。打招呼为 4320×5040、40 帧、4 秒（最后两个格子透明且不在声明帧内）；庆祝为 4320×7200、60 帧、6 秒，100 个声明帧均有效，无须裁帧。
+
+准备页每次进入播放一次打招呼，结算页每次进入播放一次庆祝，完成后回到待机/说话动画。准备页首次默认为静音，点击现有声音开关开启时重新播放打招呼及 MP3，以满足浏览器用户手势要求。音效共用背景音/主持人语音开关，无须调用语音 API；静音、离开页面状态会终止音效，旧异步加载不会串入新状态。模拟暂停同时冻结动画和音效，恢复后续播。结算页移除旧合成提示音，避免与提供的庆祝音效叠加；保留原 6 秒后结算串词流程。
+
+## 准备页招呼动效更新（2026-10-21）
+
+改用用户提供的 `hi-sprites/hi.webp` 与 `hi.json`，规范资源为 `assets/hi.webp`、`assets/hi.json`，4320×7200、60帧、10fps。准备页持续循环该动效，不切换其他主持人动画；不再显示欢迎话术气泡，也不触发欢迎语音。配套 `hi-audio.mp3` 不自动播放。背景音开关始终可见；未关闭过的新手引导气泡在进入准备页4秒后出现，离开准备页隐藏。人偶显示框为 `556×556`，位于中控画布坐标 `(788,251)`；只覆盖准备页，游戏中和结算页保持原尺寸位置。
+
+## 游戏加载页（2026-10-21）
+
+来源 Figma `377:46`「Pencil 1:1 / 游戏加载」。图标节点 `379:74` 原图保存在 `assets/game-icon-loading.png`（130×130），并同时供游戏画面及网页标签复用；加载页显示130×130、圆角30，内容块(441,301)、宽558，标题30px，进度轨558×12。底色及右上渐变由CSS还原，不使用整屏截图。加载范围、20秒失败出口和首题模板缓存见 [GAME_LOADING.md](GAME_LOADING.md)。
 
 ## 座舱分区睡眠关怀（2026-10-18）
 
@@ -36,10 +58,10 @@ Figma 文件：https://www.figma.com/design/gpsQrBcnC7pejnzFVsSbsY/guess-game-de
 | asset_key | 类型 | Figma 页面 | Figma 节点 | Figma 图层名 | 推荐文件名 | 适用状态 | fallback_asset |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `host_yes` | AI_HOST | Assets / AI Host | `214:1920` | 主持人 yes！静态切片 | `host-yes.png` | Sprite Sheet 加载失败时的静态 fallback | `host-normal.png` |
-| `host_cheer` | AI_HOST | Assets / AI Host | `214:1919` | 主持人 欢呼 | `host-cheer.png` | 结算、胜利总结、高情绪价值夸奖 | `host-yes.png` |
+| `host_cheer` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 欢呼 | `host-cheer.json` + `host-cheer.webp` + `host-cheer.mp3` | 结算页播放一次 60 帧庆祝及音效 | `host-cheer.png` |
 | `host_puzzled` | AI_HOST | Assets / AI Host | `214:1915` | 主持人 疑惑 | `host-puzzled.png` | 思考、尴尬、玩家方向偏离 | `host-normal.png` |
 | `host_heart_sprite` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 比心序列动画 | `host-heart.json` + `host-heart.webp` | 鼓励、安抚、亲和表达，Canvas 播放一次 | `host-heart.png` |
-| `host_wave` | AI_HOST | Assets / AI Host | `214:1917` | 主持人 打招呼 | `host-wave.png` | 开场、恢复游戏、欢迎回来 | `host-normal.png` |
+| `host_wave` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 打招呼 | `host-wave.json` + `host-wave.webp` + `host-wave.mp3` | 准备页播放一次 40 帧打招呼及音效 | `host-wave.png` |
 | `host_normal` | AI_HOST_SPRITE | Assets / AI Host | `214:1918` | 主持人 默认待机序列动画 | `host-normal.json` + `host-normal.webp` | 默认状态，Canvas 循环播放，不播放音频 | `host-normal.png` |
 | `host_speak_sprite` | AI_HOST_SPRITE | Assets / AI Host | 用户提供 Sprite Sheet | 主持人 说话序列动画 | `host-speak.json` + `host-speak.webp` | 主持人说话气泡显示期间循环播放有效的 42 帧，无音频；忽略 JSON 中越出大图范围的末尾帧，气泡消失后停止 | `host-normal.png` |
 | `host_thinking_sprite` | AI_HOST_SPRITE | Assets / AI Host | Assets / AI Host | 主持人 思考序列动画 | `host-thinking.json` + `host-thinking.webp` | 主持人思考时播放一次，不显示说话气泡，播放完成后回默认状态 | `host-thinking.png` |

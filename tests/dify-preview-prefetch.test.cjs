@@ -5,14 +5,16 @@ const { webcrypto } = require("node:crypto");
 const test = require("node:test");
 
 const source = fs.readFileSync(require.resolve("../client-app.js"), "utf8")
-  .replace(/\nboot\(\);\s*$/, "\n");
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, "\n");
 
 function client() {
+  let now = 100000;
   let timerId = 0;
   const timers = new Map();
   const storage = new Map();
   const schedule = (callback, delay) => { timers.set(++timerId, { callback, delay }); return timerId; };
   const context = vm.createContext({
+    Date: class extends Date { static now() { return now; } },
     structuredClone, console: { ...console, info() {}, warn() {} }, crypto: webcrypto, AbortController,
     setTimeout: schedule, clearTimeout: (id) => timers.delete(id),
     cancelAnimationFrame() {},
@@ -25,6 +27,7 @@ function client() {
   vm.runInContext(source, context);
   vm.runInContext("render = () => {};", context);
   return {
+    advance(ms) { now += ms; },
     run: (code) => vm.runInContext(code, context),
     value: (code) => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, context)),
     context, timers,
@@ -58,6 +61,57 @@ function replyPreview(request, { failed = false } = {}) {
     },
   });
 }
+
+test("startup scene templates survive switching and are copied into fresh game scopes", async () => {
+  const app = client();
+  const requests = holdRequests(app);
+  app.run(`
+    startupLoading.initialized = true;
+    waitForPreloadForeground = async () => {};
+    pickRoundGoldenTimeline = () => ROUND_GOLDEN_TIMELINES[0];
+    applyGoldenLineDefaults(GOLDEN_TIMELINES[0]);
+    const original = ensureCurrentRoundPreparation();
+  `);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 1);
+  const sourceGame = requests[0].input.game_id;
+  assert.notEqual(sourceGame, app.value("state.workflow.gameId"));
+  app.run("applyGoldenLineDefaults(GOLDEN_TIMELINES[1]);");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].signal.aborted, false);
+  replyPreview(requests[0]);
+  replyPreview(requests[1]);
+  await app.run("Promise.all([...scenarioFirstRoundPreparations.values()].map(entry => entry.promise))");
+  app.run("applyGoldenLineDefaults(GOLDEN_TIMELINES[0]); const reused = ensureCurrentRoundPreparation();");
+  await app.run("reused.promise");
+  assert.equal(requests.length, 2);
+  assert.equal(app.value("reused.status"), "ready");
+  assert.notEqual(app.value("reused.gameId"), app.value("original.gameId"));
+  assert.equal(app.value("reused.plan.id"), app.value("reused.roundId"));
+  assert.equal(app.value("state.game.roundQuestionPlan"), null);
+  app.run('state.game.status = "playing"; applyPreparedRoundPlan(reused);');
+  assert.equal(app.value("state.game.roundQuestionPlan.id"), app.value("reused.roundId"));
+});
+
+test("a new game's different random first-round script does not consume a mismatched template", async () => {
+  const app = client();
+  const requests = holdRequests(app);
+  app.run(`startupLoading.initialized = true; waitForPreloadForeground = async () => {};
+    pickRoundGoldenTimeline = () => ROUND_GOLDEN_TIMELINES[0]; applyGoldenLineDefaults();`);
+  await new Promise(resolve => setImmediate(resolve));
+  replyPreview(requests[0]);
+  await app.run('ensureCurrentRoundPreparation().promise');
+  app.run('pickRoundGoldenTimeline = () => ROUND_GOLDEN_TIMELINES[1]; applyGoldenLineDefaults();');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].signal.aborted, false);
+  assert.notEqual(requests[0].input.timeline.round_timeline_id, requests[1].input.timeline.round_timeline_id);
+  replyPreview(requests[1]);
+  await app.run('ensureCurrentRoundPreparation().promise');
+  assert.equal(app.value('scenarioFirstRoundPreparations.size'), 2);
+  assert.equal(app.value('ensureCurrentRoundPreparation().timelineId'), app.value('ROUND_GOLDEN_TIMELINES[1].id'));
+});
 
 test("future preview snapshots identify the target puzzle and exclude active-round dialogue", () => {
   const app = client();
@@ -150,6 +204,7 @@ test("ready page prefetches once, future replies stay isolated, and only chat st
   const thinkingTimer = app.timers.get(app.value("state.workflow.hostThinkingTimer"));
   assert.ok(thinkingTimer);
   assert.ok(thinkingTimer.delay >= 300);
+  app.advance(thinkingTimer.delay);
   thinkingTimer.callback();
   assert.equal(app.value("state.workflow.hostThinkingActive"), true);
   app.run("abortActiveWorkflow(); cancelPreviewWorkflow();");

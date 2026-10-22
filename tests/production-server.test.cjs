@@ -31,26 +31,49 @@ test("production server protects private files and diagnostics while serving pag
     fs.rmSync(folder, { recursive: true, force: true });
   });
   let serverOutput = "";
+  let serverError = "";
+  child.stderr.on("data", chunk => { serverError += chunk; });
   const url = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Server startup timed out")), 5000);
+    const timer = setTimeout(() => reject(new Error(`Server startup timed out: ${serverError}`)), 5000);
     child.stdout.on("data", chunk => {
       serverOutput += chunk;
       const match = /running at (http:\/\/127\.0\.0\.1:\d+)/.exec(serverOutput);
       if (match) { clearTimeout(timer); resolve(match[1]); }
     });
     child.once("error", error => { clearTimeout(timer); reject(error); });
-    child.once("exit", code => { clearTimeout(timer); reject(new Error(`Server exited (${code})`)); });
+    child.once("exit", code => { clearTimeout(timer); reject(new Error(`Server exited (${code}): ${serverError}`)); });
   });
   assert.equal((await fetch(url)).status, 200);
   assert.equal((await fetch(url + "/client-app.js?version=test")).status, 200);
   const health = await (await fetch(url + "/api/health")).json();
   assert.equal(health.runtime, "production");
+  assert.equal(health.host_voice_configured, false);
+  const unconfiguredVoice = await fetch(url + "/api/tts", { method: "POST", body: JSON.stringify({ text: "虚构语音测试" }) });
+  assert.equal(unconfiguredVoice.status, 503);
+  assert.equal((await unconfiguredVoice.json()).error, "TTS_NOT_CONFIGURED");
   assert.doesNotMatch(JSON.stringify(health), /private-fixture-token/);
   for (const file of ["/.env.local", "/%2eenv.local", "/.git/config", "/api/dify-bff.js",
-    "/dev-server.cjs", "/tools/config.json", "/assets/leak.json", "/tmp/workflow-diagnostics.ndjson"]) {
+    "/dev-server.cjs", "/api/cosyvoice-websocket.cjs", "/tools/config.json", "/assets/leak.json", "/tmp/workflow-diagnostics.ndjson"]) {
     assert.equal((await fetch(url + file)).status, 404, file);
   }
   assert.equal((await fetch(url + "/api/client-diagnostic", { method: "POST", body: "{}" })).status, 404);
+  for (const type of ["host_voice", "workflow_failure", "client_error", "page_state", "player_submission"]) {
+    const logged = await fetch(url + "/api/client-diagnostic", { method:"POST", body:JSON.stringify({
+      type, stage:type === "client_error" ? "script_error" : type === "page_state" ? "layout_recovered" : type === "player_submission" ? "queued" : "failed",
+      reason:type === "host_voice" ? "browser_blocked" : "round_mismatch",
+      source:"client-app.js", line:1117, root_width:800, root_height:454,
+      speech_text:"private-voice-marker", error_message:"private-error-marker",
+    }) });
+    assert.equal(logged.status, 202);
+  }
+  const diagnosticRows = fs.readFileSync(path.join(folder,"tmp/workflow-diagnostics.ndjson"),"utf8");
+  assert.match(diagnosticRows, /browser_blocked/);
+  assert.match(diagnosticRows, /round_mismatch/);
+  assert.match(diagnosticRows, /script_error/);
+  assert.match(diagnosticRows, /layout_recovered/);
+  assert.match(diagnosticRows, /player_submission/);
+  assert.doesNotMatch(diagnosticRows, /private-voice-marker|private-error-marker/);
+  assert.equal((await fetch(url + "/tmp/workflow-diagnostics.ndjson")).status, 404);
   const media = await fetch(url + "/assets/music.m4a", { headers: { Range: "bytes=2-4" } });
   assert.equal(media.status, 206);
   assert.equal(media.headers.get("content-type"), "audio/mp4");

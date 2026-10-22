@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
-const source = fs.readFileSync(require.resolve('../client-app.js'), 'utf8').replace(/\nboot\(\);\s*$/, '\n');
+const source = fs.readFileSync(require.resolve('../client-app.js'), 'utf8')
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, '\n');
 function client() {
   let now = 100000, next = 0;
   const timers = new Map();
@@ -58,7 +59,7 @@ test('manual wake handler sends the chosen seat and sends nothing when nobody is
   const app = client();
   app.run(`const clicks={};
     const control={addEventListener(){}};
-    for(const name of ["backgroundMusicToggle","backgroundMusicToggleGame","switchScenario","resetScenario","summaryContinue","readyStartButton","startTimeline","pauseTimeline","resumeInactiveSimulation","sendQuestion","playerInput"]) els[name]=control;
+    for(const name of ["backgroundMusicToggle","backgroundMusicToggleGame","gameFullscreenButton","switchScenario","resetScenario","summaryContinue","readyStartButton","loadingRetry","loadingContinue","startTimeline","pauseTimeline","resumeInactiveSimulation","sendQuestion","playerInput"]) els[name]=control;
     els.speedChips=[]; els.environmentChips=[];
     els.eventButtons=[{dataset:{event:"passenger_wake"},addEventListener(name,fn){clicks.wake=fn;}}];
     window.addEventListener=()=>{}; globalThis.document={addEventListener(){}};

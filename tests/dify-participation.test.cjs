@@ -6,7 +6,7 @@ const test = require("node:test");
 const { handleWorkflowBody } = require("../api/dify-bff");
 
 const source = fs.readFileSync(require.resolve("../client-app.js"), "utf8")
-  .replace(/\nboot\(\);\s*$/, "\n");
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, "\n");
 
 function client() {
   let now = 100000;

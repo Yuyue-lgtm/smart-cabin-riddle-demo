@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { test } = require('node:test');
 const { webcrypto } = require('node:crypto');
-const source = fs.readFileSync(require.resolve('../client-app.js'), 'utf8').replace(/\nboot\(\);\s*$/, '\n');
+const source = fs.readFileSync(require.resolve('../client-app.js'), 'utf8')
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, '\n');
 
 function client() {
   let now = 100000, id = 0;

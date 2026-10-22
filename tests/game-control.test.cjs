@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { test } = require('node:test');
 const { webcrypto } = require('node:crypto');
-const source = fs.readFileSync(require.resolve('../client-app.js'), 'utf8').replace(/\nboot\(\);\s*$/, '\n');
+const source = fs.readFileSync(require.resolve('../client-app.js'), 'utf8')
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, '\n');
 
 function client() {
   let now = 100000, id = 0;
@@ -12,7 +13,7 @@ function client() {
   const context = vm.createContext({ structuredClone, crypto: webcrypto, AbortController, console: { ...console, info() {}, warn() {} },
     Date: class extends Date { static now() { return now; } }, cancelAnimationFrame() {},
     setTimeout: schedule, clearTimeout: key => timers.delete(key),
-    window: { setTimeout: schedule, clearTimeout: key => timers.delete(key) },
+    window: { addEventListener() {}, setTimeout: schedule, clearTimeout: key => timers.delete(key) },
     localStorage: { getItem: () => null, setItem() {} } });
   vm.runInContext(source, context);
   const run = code => vm.runInContext(code, context);

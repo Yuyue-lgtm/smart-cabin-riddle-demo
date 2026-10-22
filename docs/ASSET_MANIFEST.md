@@ -21,7 +21,7 @@
 | `host-yes.json` + `host-yes.webp` + `host-yes.mp3` | AI 主持人答对后的 40 帧透明序列动画，10fps，Canvas 播放一次；音频延迟 180ms、音量 0.85 | 用户提供 Sprite Sheet 与音频 |
 | `background-music.m4a` | 游戏背景音乐，准备页开关控制，循环播放，默认关闭，音量 25% | 用户提供 `背景音乐.m4a` |
 | `stage-beam.png` | 准备页和结算页光束 | `figma-ready-beam.png`、`figma-summary-beam-right.png` |
-| `game-icon.png` | 游戏图标 | `figma-playing-game-icon.png`、`figma-reveal-game-icon.png` |
+| `game-icon-loading.png` | 游戏加载页、游戏中、揭晓页及网页标签图标 | Figma「游戏加载」节点 `379:74` |
 | `question-icon.svg` | 问题计数图标 | `figma-playing-question-icon.svg`、`figma-reveal-question-icon.svg` |
 | `bubble-tail.svg` | 主持人气泡尾部 | `figma-*-bubble-tail.*` |
 | `cabin-interior.png` | 座舱内饰透明叠层 | Figma `座舱内` |

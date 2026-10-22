@@ -18,6 +18,7 @@
 - `repair-agent-secret.py`：仅修复已确认的无效Agent Stub密钥启动循环；`--apply`前须单独获得生产变更授权。私有备份、原子改单字段、完整Compose比对、仅重建agent_backend和内部就绪校验；已经合规的密钥拒绝轮换，不输出密钥或原始环境。5项本地单元测试见`tests/test_agent_backend_repair.py`。
 - `install-runtime.sh`：官方Node22包与SHA核验、官方Caddy stable APT；不执行整机升级或重装Dify。
 - `install-demo.sh`：核验运行包与逐文件manifest、非root用户、私有环境文件、systemd和Caddy；已有服务目录即停止。
+- `update-demo.py`：现有 Demo 更新工具。默认仅核验运行包、语音配置和原生产绑定；`--apply` 备份完整旧版本后切换，再验收启动，失败自动回退。不提供 `voice-env.json` 时保留原生产配置；只有首次接入或明确更换语音配置时才通过私有暂存文件传输两项配置，不放进命令参数或 Git。
 - `stage-secrets.cjs`：一次性本机回环表单，将UI中已授权生成的Key写入600临时文件，不打印、不缓存到浏览器；传输并比对正式配置后清理临时副本。不是产品接口，不上传到网站。
 - `package-delta.mjs` / `assemble-release.py`：缓慢SSH转发下，复用现有公开GitHub指定提交的相同文件，差异走SSH，按本地manifest逐文件核验后重组；不执行下载仓库脚本。
 - `verify-live.cjs`：显式运行才发送已批准的虚构测试数据；验证生产BFF三路API与会话/动作结构，不读取Key或真实聊天。未来重新执行前仍应确认测试范围。

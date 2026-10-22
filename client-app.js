@@ -100,6 +100,7 @@ const DIFY_CONVERSATION_CONTEXT_STORAGE_KEY = "smart-cabin-dify-conversation-con
 const DIFY_ROUND_SCOPE_STORAGE_KEY = "smart-cabin-dify-round-scope";
 const DIFY_USER_STORAGE_KEY = "smart-cabin-dify-user-id";
 const HOST_PREFERENCES_STORAGE_KEY = "smart-cabin-host-preferences";
+const SOUND_ONBOARDING_DISMISSED_KEY = "smart-cabin-sound-onboarding-dismissed-v2";
 let fallbackDifyUserId = "";
 
 function getPersistentDifyUserId() {
@@ -200,7 +201,7 @@ function createRuntimeId(prefix) {
     : `${simulationRuntime.now()}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}-${random}`;
 }
-const WORKFLOW_CLIENT_TIMEOUT_MS = 25000;
+const WORKFLOW_CLIENT_TIMEOUT_MS = 65000;
 const MIN_BUBBLE_DISPLAY_MS = 1500;
 const HOST_MIN_BUBBLE_DISPLAY_MS = 1500;
 const PASSENGER_BUBBLE_MS = 8000;
@@ -222,7 +223,7 @@ const QUESTION_TIMER_RADIUS_PX = 19;
 const QUESTION_TIMER_STROKE_PX = 8;
 const SCREEN_ENVIRONMENT_DELAY_MS = 2000;
 const ENVIRONMENT_ANNOUNCEMENT_MS = 3000;
-const IMPORTANT_EVENT_DISPLAY_MS = 5000;
+const IMPORTANT_EVENT_DISPLAY_MS = 10000;
 const IMPORTANT_EVENT_EXIT_MS = 320;
 const ROUND_PLAN_EXTRA_STEPS = 2;
 const ENVIRONMENT_RIDDLE_SETTLE_MS = 800;
@@ -321,8 +322,25 @@ const RESOURCE_CONFIG = {
       },
       frameCount: 40,
     },
-    celebration: { kind: "image", src: "./assets/host-cheer.png" },
-    greeting: { kind: "image", src: "./assets/host-wave.png" },
+    celebration: {
+      kind: "sprite",
+      meta: "./assets/host-cheer.json",
+      src: "./assets/host-cheer.webp",
+      fallback: "./assets/host-cheer.png",
+      loop: false,
+      playVictorySound: false,
+      frameCount: 60,
+      audio: { src: "./assets/host-cheer.mp3", delayMs: 0, trimStartMs: 0, volume: 0.85 },
+    },
+    greeting: {
+      kind: "sprite",
+      meta: "./assets/hi.json?v=d9959ca2053e",
+      src: "./assets/hi.webp?v=d9959ca2053e",
+      fallback: "./assets/host-normal.png",
+      loop: true,
+      playVictorySound: false,
+      frameCount: 60,
+    },
   },
   screenBackgrounds: {
     default: "./assets/screen-default.png?v=20260927-screen-default-v2",
@@ -332,9 +350,11 @@ const RESOURCE_CONFIG = {
     scenicSunset: "./assets/screen-scenic-sunset.png",
     snowDay: "./assets/screen-snow-day.png",
     deepNight: "./assets/screen-deep-night.png",
+    rain: "./assets/screen-rain.png",
   },
   cabinEnvironments: {
-    garage: "./assets/cabin-env-garage.png",
+    garage: "./assets/cabin-env-garage.png?v=figma-ce-garage-20261022",
+    rain: "./assets/cabin-env-rain.png",
     tunnel: "./assets/cabin-env-tunnel.png",
     scenicDay: "./assets/cabin-env-scenic-day.png",
     snowDay: "./assets/cabin-env-snow-day.png",
@@ -408,12 +428,29 @@ const RESOURCE_CONFIG = {
     城区雨天白天: { screen: "cityDay", cabin: "cityDay", screenClass: "screen-rain", cabinClass: "env-city-rain" },
     车库: { screen: "default", cabin: "garage", screenClass: "screen-default", cabinClass: "env-garage" },
     隧道: { screen: "default", cabin: "tunnel", screenClass: "screen-default", cabinClass: "env-tunnel" },
+    雨天: { screen: "rain", cabin: "rain", screenClass: "screen-rain", cabinClass: "env-rain" },
     风景区晴天白天: { screen: "scenicDay", cabin: "scenicDay", screenClass: "screen-sunny", cabinClass: "env-scenic-day" },
     风景区傍晚: { screen: "scenicSunset", cabin: "scenicSunset", screenClass: "screen-sunny", cabinClass: "env-scenic-sunset" },
     风景区雪景白天: { screen: "snowDay", cabin: "snowDay", screenClass: "screen-snow", cabinClass: "env-snow-day" },
     风景区晴天深夜: { screen: "deepNight", cabin: "deepNight", screenClass: "screen-night", cabinClass: "env-scenic-night" },
   },
 };
+
+const ENVIRONMENT_DESCRIPTIONS = {
+  车库: { name: "车库", detail: "室内车库" },
+  隧道: { name: "隧道", detail: "室内隧道" },
+  雨天: { name: "雨天", detail: "车外下雨，路面湿润" },
+  风景区雪景白天: { name: "雪景", detail: "白天雪景" },
+  城区晴天白天: { name: "城市白天", detail: "现代城市白天" },
+  城区夜晚: { name: "城市夜晚", detail: "赛博城市" },
+  风景区晴天白天: { name: "风景区", detail: "白天风景" },
+  风景区傍晚: { name: "傍晚", detail: "风景区傍晚" },
+  风景区晴天深夜: { name: "深夜", detail: "寂静深夜" },
+};
+
+function getEnvironmentDescription(environment) {
+  return ENVIRONMENT_DESCRIPTIONS[environment] || { name: environment, detail: environment };
+}
 
 const PASSENGER_ACTIVITY_LABELS = {
   idle: "",
@@ -966,6 +1003,10 @@ const DEFAULT_STATE = {
       visibleAt: 0,
       timer: null,
       startActions: null,
+      voiceRequested: false,
+      voicePending: false,
+      voicePlaying: false,
+      voiceFinished: false,
     },
     pendingChats: [],
   },
@@ -974,6 +1015,8 @@ const DEFAULT_STATE = {
     runtime: "",
     focus: "",
     proxyConfigured: null,
+    workflowTimeoutMs: WORKFLOW_CLIENT_TIMEOUT_MS,
+    workflowReadiness: null,
     statusText: DEFAULT_DEPLOY_STATUS,
     hostVoiceConfigured: false,
   },
@@ -988,6 +1031,10 @@ try {
 } catch { /* Ignore older or malformed preference storage. */ }
 const executionRecords = new Map();
 const roundQuestionPreparations = new Map();
+const scenarioFirstRoundPreparations = new Map();
+const scenarioFirstRoundReservations = new Map();
+const startupLoading = { initialized: false, active: false, tasks: [], timedOut: false,
+  timer: 0, entering: false, backgroundStarted: false };
 let nextGamePreparation = null;
 const persistedDifyRoundScope = loadDifyRoundScope();
 state.workflow.gameId = persistedDifyRoundScope?.gameId || createRuntimeId("game");
@@ -997,12 +1044,19 @@ if (persistedDifyRoundScope) {
 }
 persistDifyRoundScope();
 const els = {};
+let fullscreenHintTimer = 0;
+let fullscreenAskBarParent = null;
+let fullscreenAskBarNextSibling = null;
+let soundOnboardingTimer = 0;
+let playerInputGuideDismissed = false;
 let audioContext = null;
 const backgroundMusic = {
   enabled: false,
   volume: 0.25,
 };
 let lastRenderedScreenMode = "";
+const hostSceneMotion = { mode: "", completed: false };
+const clientRuntimeDiagnostic = { enabled: false, sessionId: "", lastVoiceSkip: "", startedAt: 0, count: 0, runtimeErrorCount: 0 };
 const questionClock = {
   intervalId: 0,
   urgentSoundTimer: 0,
@@ -1030,6 +1084,9 @@ const hostSprite = {
   audioSource: null,
   audioGain: null,
   audioElement: null,
+  audioTimerId: 0,
+  audioGeneration: 0,
+  fallbackTimerId: 0,
   lastTimestamp: 0,
   animationFrameId: 0,
   loading: false,
@@ -1078,28 +1135,198 @@ const SUMMARY_CONFETTI_CONFIG = Object.freeze({
 });
 
 function boot() {
+  clientRuntimeDiagnostic.enabled = true;
   cacheElements();
   bindEvents();
   resizeStage();
+  startupLoading.initialized = true;
+  startupLoading.active = true;
   applyGoldenLineDefaults(getActiveGoldenLine(), false);
   render();
+  recordClientPageState("boot");
   syncBackgroundMusicToggle();
   startBackgroundMusic();
-  preloadHostSpriteImages();
   loadHealthStatus();
+  startStartupLoading();
+}
+
+async function waitForPreloadForeground() {
+  await simulationRuntime.waitUntilRunning();
+  if (document.visibilityState !== "hidden" && document.hasFocus()) return;
+  await new Promise(resolve => {
+    const resume = () => {
+      if (document.visibilityState === "hidden" || !document.hasFocus()) return;
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    resume();
+  });
+  await simulationRuntime.waitUntilRunning();
+}
+
+function loadStartupImage(src) {
+  const request = loadHostSpriteImage(src);
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("asset_timeout")), 20000);
+    request.then(image => image.decode ? image.decode() : undefined)
+      .then(resolve, reject).finally(() => window.clearTimeout(timer));
+  }).catch(error => {
+    if (hostSpriteImageCache.get(src) === request) hostSpriteImageCache.delete(src);
+    throw error;
+  });
+}
+
+async function runPreloadQueue(items, worker, concurrency = 2) {
+  let index = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (index < items.length) {
+      await waitForPreloadForeground();
+      const item = items[index++];
+      if (item !== undefined) await worker(item);
+    }
+  }));
+}
+
+function startStartupLoading() {
+  const images = new Set([
+    RESOURCE_CONFIG.screenBackgrounds.default,
+    RESOURCE_CONFIG.host.greeting.src,
+    ...[...document.querySelectorAll(".ready-stage img, .cabin-region img, .pencil-game-icon img, .question-counter img")]
+      .map(image => image.getAttribute("src")).filter(Boolean),
+  ]);
+  const preparation = ensureCurrentRoundPreparation();
+  const source = preparation.scenarioSource || preparation;
+  const imageTasks = [...images].map(src => ({
+    id: src, weight: src === RESOURCE_CONFIG.host.greeting.src ? 4 : 1,
+    status: "created", attempts: 0, load: () => loadStartupImage(src),
+  }));
+  const previewTask = { id: "first-preview", weight: 8, status: "created", attempts: 0,
+    async load(retry) {
+      if (retry && ["failed", "partial"].includes(source.status) && !source.repairPending) {
+        source.promise = requestPreparedRound(source);
+      }
+      await adoptScenarioPreview(preparation, source);
+      if (preparation.status !== "ready" || !preparation.plan) throw new Error("preview_not_ready");
+    },
+  };
+  const fontTask = { id: "fonts", weight: 1, status: "created", attempts: 0,
+    load: () => document.fonts?.ready || Promise.resolve() };
+  startupLoading.tasks = [...imageTasks, fontTask, previewTask];
+  armStartupDeadline();
+  void runPreloadQueue(imageTasks, runStartupTask, 4);
+  void runStartupTask(fontTask);
+  void runStartupTask(previewTask);
+  updateStartupLoading();
+}
+
+function armStartupDeadline() {
+  simulationRuntime.clearTimeout(startupLoading.timer);
+  startupLoading.timedOut = false;
+  startupLoading.timer = simulationRuntime.setTimeout(() => {
+    startupLoading.timedOut = true;
+    updateStartupLoading();
+  }, 20000);
+}
+
+async function runStartupTask(task) {
+  if (task.status === "pending" || task.status === "ready") return;
+  task.status = "pending";
+  task.attempts += 1;
+  simulationRuntime.defer(updateStartupLoading);
+  try {
+    await task.load(task.attempts > 1);
+    task.status = "ready";
+  } catch (error) {
+    task.status = "failed";
+    task.error = error.message === "asset_timeout" ? "asset_timeout"
+      : task.id === "first-preview" ? "preview_not_ready" : "resource_failed";
+    console.warn("[game-loading]", { task: task.id, reason: task.error, attempt: task.attempts });
+  }
+  simulationRuntime.defer(updateStartupLoading);
+}
+
+function updateStartupLoading() {
+  if (!startupLoading.active || !els.loadingProgress || simulationRuntime.paused) return;
+  const tasks = startupLoading.tasks;
+  const total = tasks.reduce((sum, task) => sum + task.weight, 0);
+  const done = tasks.filter(task => task.status === "ready").reduce((sum, task) => sum + task.weight, 0);
+  const percent = total ? Math.floor(done / total * 100) : 0;
+  const failed = tasks.some(task => task.status === "failed");
+  const complete = tasks.length > 0 && tasks.every(task => task.status === "ready");
+  els.loadingProgress.style.width = `${percent}%`;
+  els.loadingProgress.parentElement.setAttribute("aria-valuenow", String(percent));
+  els.loadingPercent.textContent = `${percent}%`;
+  els.loadingActions.hidden = !failed && !startupLoading.timedOut;
+  els.loadingRetry.disabled = !failed;
+  els.loadingStatus.textContent = complete ? "旅途已就绪"
+    : failed ? "部分加载失败，可重试"
+      : startupLoading.timedOut ? "加载时间较长，可以先进入"
+        : tasks.filter(task => task.id !== "first-preview").every(task => task.status === "ready")
+          ? "正在准备首题…" : "正在加载旅途…";
+  if (complete && !startupLoading.entering) {
+    startupLoading.entering = true;
+    simulationRuntime.setTimeout(enterPreparedGame, 180);
+  }
+}
+
+function retryStartupLoading() {
+  if (!startupLoading.active) return;
+  armStartupDeadline();
+  void runPreloadQueue(startupLoading.tasks.filter(task => task.status === "failed"), runStartupTask, 4);
+  updateStartupLoading();
+}
+
+function enterPreparedGame() {
+  if (!startupLoading.active) return;
+  startupLoading.active = false;
+  simulationRuntime.clearTimeout(startupLoading.timer);
+  render();
+  recordClientPageState("ready");
+  startBackgroundPreloading();
+}
+
+function startBackgroundPreloading() {
+  if (startupLoading.backgroundStarted) return;
+  startupLoading.backgroundStarted = true;
+  const scenarios = GOLDEN_TIMELINES.filter(scenario => scenario.id !== GOLDEN_TIMELINES[0].id);
+  void runPreloadQueue(scenarios, async scenario => {
+    await getScenarioFirstRoundPreparation(scenario).promise;
+  }, 1);
+  void preloadHostSpriteImages();
+  const images = new Set();
+  for (const scenario of GOLDEN_TIMELINES) {
+    for (const environment of [scenario.environment, scenario.environmentAfter].filter(Boolean)) {
+      const assets = resolveEnvironmentAssets(environment);
+      images.add(assets.screen);
+      images.add(assets.cabin);
+    }
+    for (const persona of Object.values(RESOURCE_CONFIG.relationshipSeats[scenario.relationship])) {
+      images.add(RESOURCE_CONFIG.passengers[persona].normal);
+    }
+  }
+  void runPreloadQueue([...images], src => loadStartupImage(src).catch(() => {}));
 }
 
 function cacheElements() {
   [
+    "stageViewport",
     "environmentBackdrop",
     "appShell",
     "environmentLabel",
     "speedLabel",
     "destinationLabel",
+    "gameRegion",
     "gameScreen",
+    "gameFullscreenButton",
+    "fullscreenHint",
+    "controlAskBar",
     "backgroundMusic",
     "backgroundMusicToggle",
     "backgroundMusicToggleGame",
+    "soundOnboarding",
     "confettiCanvas",
     "summaryConfettiCanvas",
     "roundProgress",
@@ -1123,6 +1350,12 @@ function cacheElements() {
     "hostMedia",
     "hostImage",
     "hostCanvas",
+    "loadingProgress",
+    "loadingPercent",
+    "loadingStatus",
+    "loadingActions",
+    "loadingRetry",
+    "loadingContinue",
     "summaryStats",
     "summaryTotal",
     "summarySolved",
@@ -1144,6 +1377,7 @@ function cacheElements() {
     "switchScenario",
     "resetScenario",
     "playerInput",
+    "playerInputGuide",
     "sendQuestion",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
@@ -1160,7 +1394,7 @@ function cacheElements() {
 function bindEvents() {
   const pauseWhenInactive = () => {
     if (document.visibilityState === "hidden" || !document.hasFocus()) {
-      if (!simulationRuntime.paused && (state.timeline.status !== "idle" || state.game.status !== "idle")) {
+      if (!simulationRuntime.paused && (startupLoading.active || state.timeline.status !== "idle" || state.game.status !== "idle")) {
         simulationFreeze.autoPaused = true;
         toggleTimelinePause();
       }
@@ -1168,31 +1402,45 @@ function bindEvents() {
   };
   document.addEventListener("visibilitychange", pauseWhenInactive);
   window.addEventListener("blur", pauseWhenInactive);
-  window.addEventListener("resize", () => {
-    if (simulationRuntime.paused) return;
-    resizeStage();
-    resizeConfettiCanvas();
-    resizeSummaryConfettiCanvas();
+  window.addEventListener("resize", syncViewportLayout);
+  window.addEventListener("pageshow", () => {
+    syncViewportLayout();
+    recordClientPageState("pageshow");
+  });
+  window.addEventListener("focus", () => {
+    syncViewportLayout();
+    recordClientPageState("focus");
   });
   document.addEventListener("pointerdown", () => {
     if (simulationRuntime.paused) return;
     prepareAudioContext();
     startBackgroundMusic();
   });
+  els.gameFullscreenButton.addEventListener("click", toggleGameDisplayMode);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.appShell.classList.contains("game-display-expanded")) {
+      exitGameDisplayMode();
+    }
+  });
   els.backgroundMusicToggle.addEventListener("click", () => {
+    dismissSoundOnboarding();
     setBackgroundMusicEnabled(!backgroundMusic.enabled);
   });
   els.backgroundMusicToggleGame.addEventListener("click", () => {
+    dismissSoundOnboarding();
     setBackgroundMusicEnabled(!backgroundMusic.enabled);
   });
   els.switchScenario.addEventListener("click", nextGoldenLine);
   els.resetScenario.addEventListener("click", resetCurrentGoldenLine);
   els.summaryContinue.addEventListener("click", resetCurrentGoldenLine);
   els.readyStartButton.addEventListener("click", startGoldenTimeline);
+  els.loadingRetry.addEventListener("click", retryStartupLoading);
+  els.loadingContinue.addEventListener("click", enterPreparedGame);
   els.startTimeline.addEventListener("click", startGoldenTimeline);
   els.pauseTimeline.addEventListener("click", toggleTimelinePause);
   els.resumeInactiveSimulation.addEventListener("click", toggleTimelinePause);
   els.sendQuestion.addEventListener("click", sendQuestion);
+  els.playerInput.addEventListener("focus", dismissPlayerInputGuide);
   els.playerInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       sendQuestion();
@@ -1222,7 +1470,8 @@ function bindEvents() {
       if (type === "hard_brake") {
         applyImmediateSafetyPause();
       }
-      if (type === "temporary_interruption") applyTemporaryInterruption();
+      const reason = button.dataset.eventReason;
+      if (type === "temporary_interruption") applyTemporaryInterruption({ reason });
       if (type === "driver_distracted") {
         applyImmediateDriverTired("distracted");
         clearDriverSafetyAnnouncement();
@@ -1234,7 +1483,7 @@ function bindEvents() {
         render();
         return;
       }
-      showImportantEvent(getImportantEventText(type, eventSeat));
+      showImportantEvent(reason === "complex_road" ? "进入复杂路段" : getImportantEventText(type, eventSeat));
       if (type === "passenger_sleep") {
         applyImmediatePassengerSleep(eventSeat);
       }
@@ -1258,6 +1507,7 @@ function bindEvents() {
         applyImmediateNearDestination();
       }
       let event = { type, seat: eventSeat, source: "manual_control" };
+      if (reason === "complex_road") event = { ...event, reason, description: "进入复杂路段，暂时暂停游戏，保留问答进度" };
       if (type === "driver_tired") {
         event = { ...event, duration_ms: DRIVER_SAFETY_HOLD_MS + 1, state: "fatigued", priority: "P1" };
       }
@@ -1281,17 +1531,87 @@ function bindEvents() {
   });
 }
 
+function syncViewportLayout() {
+  syncGameFullscreenScale();
+  resizeStage();
+  if (simulationRuntime.paused) return;
+  resizeConfettiCanvas();
+  resizeSummaryConfettiCanvas();
+}
+
 function resizeStage() {
-  const widthScale = window.innerWidth / STAGE_WIDTH;
-  const heightScale = window.innerHeight / STAGE_HEIGHT;
-  const scale = Math.min(widthScale, heightScale);
+  if (els.appShell?.classList.contains("game-display-expanded")) return;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    recordClientPageState("layout_invalid");
+    return;
+  }
+  const scale = Math.min(width / STAGE_WIDTH, height / STAGE_HEIGHT);
   if (els.appShell) {
-    const top = Math.round((window.innerHeight - STAGE_HEIGHT * scale) / 2);
-    const left = Math.round((window.innerWidth - STAGE_WIDTH * scale) / 2);
+    const previous = els.appShell.getBoundingClientRect();
+    const top = Math.round((height - STAGE_HEIGHT * scale) / 2);
+    const left = Math.round((width - STAGE_WIDTH * scale) / 2);
     els.appShell.style.transform = `scale(${scale})`;
     els.appShell.style.top = `${top}px`;
     els.appShell.style.left = `${left}px`;
+    if (!previous.width || !previous.height) recordClientPageState("layout_recovered");
   }
+}
+
+function syncGameFullscreenScale() {
+  if (!els.appShell?.classList.contains("game-display-expanded") || !els.gameScreen) return;
+  const scale = Math.min(window.innerWidth / 1440, Math.max(0, window.innerHeight - 84) / 810);
+  if (!Number.isFinite(scale) || scale <= 0) return;
+  els.gameScreen.style.setProperty("--fullscreen-scale", String(scale));
+}
+
+function toggleGameDisplayMode() {
+  if (els.appShell.classList.contains("game-display-expanded")) {
+    exitGameDisplayMode();
+    return;
+  }
+  fullscreenAskBarParent = els.controlAskBar.parentElement;
+  fullscreenAskBarNextSibling = els.controlAskBar.nextSibling;
+  els.stageViewport.appendChild(els.controlAskBar);
+  els.controlAskBar.classList.add("fullscreen-control-bar");
+  els.appShell.classList.add("game-display-expanded");
+  els.gameFullscreenButton.setAttribute("aria-pressed", "true");
+  syncGameFullscreenScale();
+  if (fullscreenHintTimer) {
+    window.clearTimeout(fullscreenHintTimer);
+    fullscreenHintTimer = 0;
+  }
+  els.fullscreenHint.hidden = false;
+  fullscreenHintTimer = window.setTimeout(() => {
+    els.fullscreenHint.hidden = true;
+    fullscreenHintTimer = 0;
+  }, 3000);
+  resizeConfettiCanvas();
+  resizeSummaryConfettiCanvas();
+}
+
+function exitGameDisplayMode() {
+  if (fullscreenHintTimer) {
+    window.clearTimeout(fullscreenHintTimer);
+    fullscreenHintTimer = 0;
+  }
+  els.fullscreenHint.hidden = true;
+  els.controlAskBar.classList.remove("fullscreen-control-bar");
+  if (fullscreenAskBarParent) {
+    fullscreenAskBarParent.insertBefore(
+      els.controlAskBar,
+      fullscreenAskBarNextSibling?.parentElement === fullscreenAskBarParent ? fullscreenAskBarNextSibling : null,
+    );
+  }
+  fullscreenAskBarParent = null;
+  fullscreenAskBarNextSibling = null;
+  els.appShell.classList.remove("game-display-expanded");
+  els.gameFullscreenButton.setAttribute("aria-pressed", "false");
+  els.gameScreen?.style.removeProperty("--fullscreen-scale");
+  resizeStage();
+  resizeConfettiCanvas();
+  resizeSummaryConfettiCanvas();
 }
 
 function beginManualEventCooldown(buttons) {
@@ -1682,6 +2002,8 @@ async function loadHealthStatus() {
     state.health.runtime = payload.runtime || "";
     state.health.focus = payload.focus || "";
     state.health.proxyConfigured = Boolean(payload.workflow_proxy?.configured);
+    state.health.workflowTimeoutMs = Math.max(1000, Math.min(120000,
+      Number(payload.workflow_proxy?.timeout_ms) || 60000)) + 5000;
     state.health.hostVoiceConfigured = Boolean(payload.host_voice_configured);
     state.health.statusText = formatDeployStatus(payload);
   } catch {
@@ -1694,12 +2016,28 @@ async function loadHealthStatus() {
     state.health.statusText = "版本状态不可用";
   }
   render();
+  void loadWorkflowReadiness();
+}
+
+async function loadWorkflowReadiness() {
+  try {
+    const response = await fetch("/api/readiness", { cache: "no-store" });
+    const readiness = await response.json();
+    if (!readiness.routes || typeof readiness.ok !== "boolean") return;
+    await simulationRuntime.waitUntilRunning();
+    state.health.workflowReadiness = readiness;
+    state.health.statusText = formatDeployStatus({ runtime: state.health.runtime, release: state.health.release,
+      workflow_proxy: { configured: state.health.proxyConfigured } });
+    render();
+  } catch { /* Older servers may not expose the separate readiness endpoint yet. */ }
 }
 
 function formatDeployStatus(payload) {
   const release = payload.release || "unknown";
   const runtime = payload.runtime === "vercel" ? "公网" : payload.runtime === "local" ? "本地" : "未知";
-  const proxyState = payload.workflow_proxy?.configured ? "代理就绪" : "代理未配置";
+  const readiness = state.health.workflowReadiness;
+  const proxyState = !payload.workflow_proxy?.configured ? "代理未配置"
+    : readiness ? readiness.ok ? "Dify 已连通" : "Dify 连接异常" : "代理已配置";
   return `${runtime} · ${release} · ${proxyState}`;
 }
 
@@ -1708,6 +2046,7 @@ function getActiveGoldenLine() {
 }
 
 function nextGoldenLine() {
+  if (startupLoading.active) return;
   stopTimeline("已切换黄金体验线");
   const nextIndex = (state.scenarioIndex + 1) % GOLDEN_TIMELINES.length;
   applyGoldenLineDefaults(GOLDEN_TIMELINES[nextIndex], true);
@@ -1715,22 +2054,42 @@ function nextGoldenLine() {
 }
 
 function resetCurrentGoldenLine() {
+  if (simulationRuntime.paused && !simulationFreeze.autoPaused) toggleTimelinePause();
   stopTimeline("已重置当前模拟");
   applyGoldenLineDefaults(getActiveGoldenLine(), true);
   render();
 }
 
 async function startGoldenTimeline() {
+  if (startupLoading.active) return;
   if (state.timeline.status === "running" || state.timeline.status === "paused") {
     state.ui.alert = "模拟正在进行中";
     render();
     return;
   }
+  if (state.workflow.hostSpeech.source === "ready_welcome") {
+    clearHostSpeechLock("ready_welcome");
+    state.host.text = "";
+  }
 
+  resetPlayerInputGuide();
   if (state.game.status !== "idle") {
     applyGoldenLineDefaults(getActiveGoldenLine(), false);
   }
   await startRoundGoldenTimeline();
+}
+
+function dismissPlayerInputGuide() {
+  playerInputGuideDismissed = true;
+  if (els.playerInputGuide) els.playerInputGuide.hidden = true;
+}
+
+function resetPlayerInputGuide() {
+  playerInputGuideDismissed = false;
+}
+
+function shouldShowPlayerInputGuide(screenMode) {
+  return screenMode === "playing" && !playerInputGuideDismissed;
 }
 
 async function startRoundGoldenTimeline() {
@@ -1960,7 +2319,9 @@ function toggleTimelinePause() {
   simulationRuntime.pause();
   state.timeline.status = "paused";
   renderControls();
-  simulationFreeze.animations = document.getAnimations().filter(animation => animation.playState === "running" || animation.pending);
+  simulationFreeze.animations = document.getAnimations().filter(animation =>
+    animation.effect?.target !== els.pauseTimeline && (animation.playState === "running" || animation.pending)
+  );
   simulationFreeze.animations.forEach(animation => animation.pause());
   simulationFreeze.media = [...new Set([...document.querySelectorAll("audio, video"), hostSprite.audioElement])]
     .filter(media => media && !media.paused && !media.ended);
@@ -2061,11 +2422,10 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.ui.cabinMode = "normal";
   state.ui.screenEnvironment = timeline.environment;
   state.ui.alert = announce ? `已切换至${timeline.name}` : "";
-  publishHostLine(getPrestartHostText(timeline), {
-    priority: "P2",
-    source: "scenario_reset",
-    durationMs: 0,
-  });
+  state.host.text = "";
+  hostSceneMotion.mode = "";
+  hostSceneMotion.completed = false;
+  resetHostSprite();
   state.host.emotion = "normal";
   state.host.avatarState = HOST_AVATAR_DEFAULT_STATE;
   state.host.targetSeat = "front";
@@ -2326,8 +2686,9 @@ function syncBackgroundMusicToggle() {
     button.setAttribute("aria-pressed", String(backgroundMusic.enabled));
     button.setAttribute(
       "aria-label",
-      backgroundMusic.enabled ? "关闭背景音乐" : "打开背景音乐",
+      backgroundMusic.enabled ? "关闭背景音乐和主持人语音" : "打开背景音乐和主持人语音",
     );
+    button.title = backgroundMusic.enabled ? "关闭背景音乐和主持人语音" : "打开背景音乐和主持人语音";
     const icon = button.querySelector(".ready-sound-icon");
     if (icon) icon.textContent = backgroundMusic.enabled ? "🔊" : "🔇";
   }
@@ -2376,6 +2737,17 @@ function setBackgroundMusicEnabled(enabled, traceId = null) {
   backgroundMusic.requestId = (backgroundMusic.requestId || 0) + 1;
   backgroundMusic.traceId = traceId;
   backgroundMusic.enabled = Boolean(enabled);
+  recordClientRuntimeDiagnostic("host_voice", { stage: "toggle" });
+  if (!backgroundMusic.enabled) {
+    stopHostSpriteAudio();
+    cancelHostVoiceSpeech();
+    const speech = state.workflow.hostSpeech;
+    speech.voiceRequested = true;
+    speech.voicePending = false;
+    speech.voicePlaying = false;
+    speech.voiceFinished = true;
+    refreshHostSpeechMedia();
+  }
   const audio = els.backgroundMusic;
   if (audio) {
     audio.volume = backgroundMusic.volume;
@@ -2668,11 +3040,18 @@ async function sendQuestion() {
   state.host.targetSeat = seat;
   state.game.status = state.game.status === "idle" ? "playing" : state.game.status;
   els.playerInput.value = "";
+  const input = buildWorkflowInput("chat", null, text);
+  recordClientRuntimeDiagnostic("player_submission", { stage: "submitted" });
+  // A trusted answer hit must not wait behind dialogue playback or remote work.
+  if (state.game.status === "playing" && authorizedGamePause(text) === null && isExplicitAnswerHit(input)) {
+    applyWorkflowOutput(applyAnswerHitGuard({}, input), input, "local");
+    recordClientRuntimeDiagnostic("player_submission", { stage: "resolved", elapsed_ms: 0 });
+    return;
+  }
   if (isHostBusy() || state.workflow.situationEvents.some(record => ["pending_analysis", "analyzing", "ready"].includes(record.status))) {
-    state.workflow.pendingChats.push({ seat, text, sequence: ++state.workflow.situationEventSequence });
-    if (isHostBusy()) publishHostLine("这条问题我先记下，等上一轮回答结束马上接上。", {
-      priority: "P2", source: "queued_question",
-    });
+    state.workflow.pendingChats.push({ seat, text, bubbleShown: true, submittedAt: simulationRuntime.now(),
+      sequence: ++state.workflow.situationEventSequence });
+    recordClientRuntimeDiagnostic("player_submission", { stage: "queued" });
     state.ui.alert = "玩家提问已加入队列";
     render();
     void processNextPendingChat();
@@ -2680,6 +3059,7 @@ async function sendQuestion() {
   }
   render();
 
+  recordClientRuntimeDiagnostic("player_submission", { stage: "dispatched", elapsed_ms: 0 });
   await dispatchWorkflow("chat", null, text);
 }
 
@@ -2998,7 +3378,7 @@ function invalidateAsyncHostResults({ preserveSituationEvents = false, reason = 
   clearEnvironmentAnnouncement();
 }
 
-function applyTemporaryInterruption() {
+function applyTemporaryInterruption(event = {}) {
   if (state.workflow.interruption || state.game.status !== "playing") return;
   const active = state.workflow.activeChatInput;
   const pending = [...state.workflow.pendingChats];
@@ -3028,8 +3408,10 @@ function applyTemporaryInterruption() {
   state.workflow.interruption = interruption;
   state.game.status = "paused";
   state.ui.cabinMode = "temporary_interruption";
-  publishHostLine("先暂停一下，刚才的问题和进度都保留，稍后接着来。", { priority: "P0", source: "temporary_interruption" });
-  updateDecisionTrace({ perception: "临时事件打断", decision: "暂停4.5秒，保留本题与待回答问题",
+  const complexRoad = event.reason === "complex_road";
+  publishHostLine(complexRoad ? "进入复杂路段，游戏先暂停，问题和进度都保留。"
+    : "先暂停一下，刚才的问题和进度都保留，稍后接着来。", { priority: "P0", source: "temporary_interruption" });
+  updateDecisionTrace({ perception: complexRoad ? "进入复杂路段" : "临时事件打断", decision: "暂停4.5秒，保留本题与待回答问题",
     execution: "答题计时冻结；未改变题目、提问次数或已确认事实", priority: "P0" });
   interruption.timer = simulationRuntime.setTimeout(() => {
     if (state.workflow.interruption !== interruption || interruption.gameId !== state.workflow.gameId
@@ -3193,7 +3575,7 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
     return;
   }
   if (triggerType === "event") {
-    if (eventType === "temporary_interruption") applyTemporaryInterruption();
+    if (eventType === "temporary_interruption") applyTemporaryInterruption(normalizedEvent);
     if ((eventType === "hard_brake" || eventType === "safety_pause")
       && state.ui.cabinMode !== "safety_pause") {
       applyImmediateSafetyPause();
@@ -3246,9 +3628,10 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
       fallback.reason_codes = ["workflow_unavailable"];
       fallback.decision_trace = {
         ...fallback.decision_trace,
-        schema_version: 2, layer: "fallback", decision: "实时回复失败，使用本地兜底话术",
+        schema_version: 2, layer: "fallback", decision: `${describeWorkflowFailure(error)}，使用本地兜底话术`,
       };
       applyWorkflowOutput(fallback, input, "local");
+      recordClientRuntimeDiagnostic("workflow_failure", { stage: "local_fallback", reason: "workflow_error", request_id: error.workflowDiagnosticId });
     } catch (fallbackError) {
       console.error("Fallback workflow exchange failed.", fallbackError);
       if (isCurrentWorkflowInput(input)) {
@@ -3282,6 +3665,8 @@ function ensureRoundPreparation({
   relationship = state.passengers.relationship,
   previousTimelineId = state.timeline.lastRoundTimelineId,
   newGame = false,
+  scenarioTemplate = false,
+  preferredTimelineId = "",
 } = {}) {
   const roundId = `${gameId}-round-${roundIndex}`;
   const existing = roundQuestionPreparations.get(roundId);
@@ -3289,13 +3674,22 @@ function ensureRoundPreparation({
     && existing.scenarioId === scenario.id && existing.relationship === relationship) return existing;
   if (existing) discardRoundPreparation(existing);
 
+  const cleanScenario = newGame || (state.car.environment === scenario.environment
+    && state.car.speed === scenario.speed && state.car.destination === scenario.destination
+    && getSleepingSeats().length === 0 && state.perception.driverState === "normal");
+  const scenarioSource = startupLoading.initialized && !scenarioTemplate && roundIndex === 1
+    && riddleIndex === scenario.riddleIndex && relationship === scenario.relationship
+    && !previousTimelineId && cleanScenario ? getScenarioFirstRoundPreparation(scenario, true) : null;
+
   const preparation = {
     gameId, roundId, roundIndex, riddleIndex,
     scenarioId: scenario.id,
     relationship,
-    timelineId: existing?.scenarioId === scenario.id && existing.relationship === relationship
-      ? existing.timelineId : pickRoundGoldenTimeline(previousTimelineId).id,
+    timelineId: scenarioSource?.timelineId || preferredTimelineId || (existing?.scenarioId === scenario.id && existing.relationship === relationship
+      ? existing.timelineId : pickRoundGoldenTimeline(previousTimelineId).id),
     newGame,
+    scenarioTemplate,
+    scenarioSource,
     status: "created",
     plan: null,
     controller: null,
@@ -3306,8 +3700,51 @@ function ensureRoundPreparation({
   };
   preparation.input = buildRoundPreviewInput(preparation);
   roundQuestionPreparations.set(roundId, preparation);
-  preparation.promise = requestPreparedRound(preparation);
+  preparation.promise = scenarioSource
+    ? adoptScenarioPreview(preparation, scenarioSource)
+    : scenarioTemplate
+      ? waitForPreloadForeground().then(() => requestPreparedRound(preparation))
+      : requestPreparedRound(preparation);
   return preparation;
+}
+
+function getScenarioFirstRoundPreparation(scenario, forGame = false) {
+  const scenarioKey = `${scenario.id}:${scenario.relationship}:${scenario.riddleIndex}`;
+  const reservation = scenarioFirstRoundReservations.get(scenarioKey);
+  if (reservation && (!forGame || !reservation.claimed)) {
+    if (forGame) reservation.claimed = true;
+    return reservation.source;
+  }
+  const timelineId = pickRoundGoldenTimeline("").id;
+  const key = `${scenarioKey}:${timelineId}`;
+  if (!scenarioFirstRoundPreparations.has(key)) {
+    scenarioFirstRoundPreparations.set(key, ensureRoundPreparation({
+      gameId: createRuntimeId("preview-cache"), roundIndex: 1,
+      riddleIndex: scenario.riddleIndex, scenario, relationship: scenario.relationship,
+      previousTimelineId: "", newGame: true, scenarioTemplate: true, preferredTimelineId: timelineId,
+    }));
+  }
+  const source = scenarioFirstRoundPreparations.get(key);
+  if (!reservation) scenarioFirstRoundReservations.set(scenarioKey, { source, claimed: forGame });
+  return source;
+}
+
+function copyScenarioPreview(preparation, source) {
+  if (roundQuestionPreparations.get(preparation.roundId) !== preparation) return;
+  preparation.status = source.status;
+  preparation.error = source.error;
+  preparation.repairPending = source.repairPending;
+  if (source.plan) {
+    preparation.plan = structuredClone(source.plan);
+    preparation.plan.id = preparation.roundId;
+    applyPreparedRoundPlan(preparation);
+  }
+}
+
+async function adoptScenarioPreview(preparation, source) {
+  preparation.status = "pending";
+  await source.promise;
+  copyScenarioPreview(preparation, source);
 }
 
 function ensureCurrentRoundPreparation() {
@@ -3457,7 +3894,7 @@ function prepareNextGameFirstRound() {
 
 function cancelPreviewWorkflow(keepGameId = "") {
   for (const preparation of roundQuestionPreparations.values()) {
-    if (preparation.gameId !== keepGameId) discardRoundPreparation(preparation);
+    if (preparation.gameId !== keepGameId && !preparation.scenarioTemplate) discardRoundPreparation(preparation);
   }
   if (nextGamePreparation?.gameId !== keepGameId) nextGamePreparation = null;
   state.workflow.previewPending = [...roundQuestionPreparations.values()]
@@ -3477,11 +3914,16 @@ async function requestPreparedRound(preparation) {
   state.workflow.previewPending = true;
   const startedAt = simulationRuntime.now();
   let requestInput = preparation.input;
+  if (preparation.plan && preparation.repairRequest) {
+    requestInput = structuredClone(preparation.input);
+    requestInput.round_question_plan_request.repair = preparation.repairRequest;
+  }
   try {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const output = await requestWorkflow(requestInput, preparation.controller.signal);
       if (roundQuestionPreparations.get(preparation.roundId) !== preparation) return;
       preparation.diagnostics.push(output.preview_diagnostic || { status: "legacy_response" });
+      preparation.repairRequest = output.preview_repair || null;
       const minimumSteps = ["partial", "ready"].includes(output.preview_status) ? 1 : 2;
       const plan = normalizeRoundQuestionPlan(output.round_question_plan, preparation.roundId, minimumSteps);
       if (plan && plan.steps.length >= (preparation.plan?.steps.length || 0)) {
@@ -3514,6 +3956,12 @@ async function requestPreparedRound(preparation) {
     });
   } finally {
     preparation.repairPending = false;
+    if (preparation.scenarioTemplate) {
+      for (const entry of roundQuestionPreparations.values()) {
+        if (entry.scenarioSource === preparation) copyScenarioPreview(entry, preparation);
+      }
+      simulationRuntime.defer(() => { if (startupLoading.initialized) render(); });
+    }
     state.workflow.previewPending = [...roundQuestionPreparations.values()]
       .some((entry) => entry.status === "pending" || entry.repairPending);
     console.info("[question-preview]", {
@@ -3693,8 +4141,8 @@ async function dispatchSituationWorkflow(event, { observationOnly = false, event
     setSituationEventStatus(record, "failed", "情境分析请求失败，未执行设备动作");
     updateDecisionTrace({
       source: "bff_situation",
-      perception: "情境事件已上报",
-      decision: "情境分析暂不可用，保留前端当前状态",
+      perception: describeRequestObservation(input),
+      decision: `${describeWorkflowFailure(error)}，情境分析未完成，保留当前状态`,
       execution: "未新增主持人话术或车辆动作",
       strategyId: "",
       priority: event?.priority || "P2",
@@ -3840,7 +4288,7 @@ function describeSituationReplyFailure(output) {
 
 function isHostBusy() {
   const speech = state.workflow.hostSpeech;
-  return state.workflow.inFlight || speech.voicePending || speech.voicePlaying;
+  return Boolean(state.workflow.inFlight || speech.voicePending || speech.voicePlaying);
 }
 
 function beginWorkflowRequest(input) {
@@ -3855,7 +4303,7 @@ function beginWorkflowRequest(input) {
     if (state.workflow.activeRequestId === requestId && state.workflow.activeController) {
       state.workflow.activeController.abort();
     }
-  }, WORKFLOW_CLIENT_TIMEOUT_MS);
+  }, state.health.workflowTimeoutMs || WORKFLOW_CLIENT_TIMEOUT_MS);
   scheduleHostThinkingForRequest(requestId, input);
   state.ui.alert = state.workflow.activeLabel;
   render();
@@ -4044,7 +4492,10 @@ async function processNextPendingChat() {
 
 async function dispatchPendingChat(nextChat) {
   state.passengers.selectedSeat = nextChat.seat;
-  showPassengerBubble(nextChat.seat, nextChat.text);
+  if (!nextChat.bubbleShown) showPassengerBubble(nextChat.seat, nextChat.text);
+  if (Number.isFinite(nextChat.submittedAt)) recordClientRuntimeDiagnostic("player_submission", {
+    stage: "dispatched", elapsed_ms: simulationRuntime.now() - nextChat.submittedAt,
+  });
   state.host.targetSeat = nextChat.seat;
   state.ui.alert = `处理已排队问题：${SEATS[nextChat.seat]}`;
   render();
@@ -4159,6 +4610,8 @@ function buildRoundPreviewInput(preparation) {
   const car = preparation.newGame
     ? { speed: scenario.speed, destination: scenario.destination, environment: scenario.environment }
     : { ...input.car };
+  car.environment_name = getEnvironmentDescription(car.environment).name;
+  car.environment_detail = getEnvironmentDescription(car.environment).detail;
   const passengers = {
     ...input.passengers,
     relationship: preparation.relationship,
@@ -4270,6 +4723,8 @@ function buildFullWorkflowInput(triggerType, event, playerInput) {
       speed: state.car.speed,
       destination: state.car.destination,
       environment: state.car.environment,
+      environment_name: getEnvironmentDescription(state.car.environment).name,
+      environment_detail: getEnvironmentDescription(state.car.environment).detail,
       sleep_comfort_seats: [...state.ui.sleepComfortSeats],
       zone_lights: { ...state.ui.zoneLights },
     },
@@ -4703,22 +5158,51 @@ function isCurrentSituationResult(scene, input, bff) {
 
 async function requestWorkflow(input, signal, { situationHandoff = null } = {}) {
   if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
+  const diagnostic = { stage: "fetch", route: input.trigger_type === "chat" ? "chat" : "situation" };
   try {
-    const output = await exchangeWorkflow(input, signal, { situationHandoff });
+    const output = await exchangeWorkflow(input, signal, { situationHandoff, diagnostic });
     if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
     return output;
   } catch (error) {
+    const reasons = {
+      "BFF returned the wrong workflow route.": "route_mismatch",
+      "BFF returned a different dialogue operation.": "operation_mismatch",
+      "BFF returned a different round intro operation.": "operation_mismatch",
+      "BFF returned a different event.": "event_mismatch",
+      "BFF returned a response for a different round.": "round_mismatch",
+    };
+    error.workflowDiagnosticId = diagnostic.request_id;
+    recordClientRuntimeDiagnostic("workflow_failure", { ...diagnostic,
+      reason: reasons[error.message] || (error.name === "AbortError" ? "timeout_or_cancel"
+        : diagnostic.http_status >= 400 ? "http_error" : diagnostic.stage === "fetch" ? "network_error"
+          : diagnostic.stage === "parse" ? "invalid_json" : "normalize_error") });
+    void loadWorkflowReadiness();
     if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
     throw error;
   }
 }
 
-async function exchangeWorkflow(input, signal, { situationHandoff = null } = {}) {
+function describeWorkflowFailure(error) {
+  if (/_TIMEOUT$/.test(error.workflowCode || "") || error.name === "AbortError") return "Dify 回复超时";
+  if (/_PROXY_ERROR$/.test(error.workflowCode || "")) return "Dify 连接中断";
+  const categories = {
+    conversation_not_found: "Dify 会话已失效", authentication_failed: "Dify 应用授权异常",
+    model_authentication_failed: "模型授权异常", rate_or_quota_limit: "模型额度或调用频率受限",
+    structured_output_failed: "模型输出格式校验失败", upstream_timeout: "模型响应超时",
+    workflow_failed: "Dify 工作流节点执行失败", resource_not_found: "Dify 应用或资源不存在",
+    empty_response: "Dify 未返回有效回复",
+  };
+  return categories[error.workflowCategory] || "实时回复失败";
+}
+
+async function exchangeWorkflow(input, signal, { situationHandoff = null, diagnostic = {} } = {}) {
   const situationReply = input.dialogue_request?.kind === "situation_event";
   const roundIntro = input.dialogue_request?.kind === "environment_round_intro";
   const expectedRoute = input.trigger_type === "chat" || situationReply || roundIntro
     ? "chat"
     : input.event?.type === "start_game" ? "preview" : "situation";
+  diagnostic.route = expectedRoute;
+  const submittedConversationId = expectedRoute === "chat" ? getPersistentDifyConversationId() : "";
   const response = await fetch(DEFAULT_WORKFLOW_ENDPOINT, {
     method: "POST",
     headers: {
@@ -4730,18 +5214,33 @@ async function exchangeWorkflow(input, signal, { situationHandoff = null } = {})
       ...(situationReply ? { operation: "situation_reply", situation_handoff: situationHandoff } : {}),
       ...(roundIntro ? { operation: "environment_round_intro" } : {}),
       query: input.trigger_type === "chat" ? input.player_input : "",
-      conversation_id: expectedRoute === "chat" ? getPersistentDifyConversationId() : "",
+      conversation_id: submittedConversationId,
       user_id: getPersistentDifyUserId(),
     }),
     signal,
   });
 
+  diagnostic.http_status = response.status;
+  diagnostic.stage = "parse";
   if (!response.ok) {
     const detail = await response.json().catch(() => ({}));
-    throw new Error(detail.message || `Chatflow request failed: ${response.status}`);
+    diagnostic.request_id = detail.diagnostic_id;
+    const error = new Error(detail.message || `Chatflow request failed: ${response.status}`);
+    error.workflowCode = detail.error;
+    error.workflowCategory = detail.upstream_failure?.category;
+    if (detail.conversation_recovered && submittedConversationId
+      && getPersistentDifyConversationId() === submittedConversationId) {
+      try {
+        localStorage.setItem(DIFY_CONVERSATION_STORAGE_KEY, "");
+        localStorage.setItem(DIFY_CONVERSATION_CONTEXT_STORAGE_KEY, "");
+      } catch { /* The next request can still recover a stale ID when storage is unavailable. */ }
+    }
+    throw error;
   }
 
   const payload = await response.json();
+  diagnostic.request_id = payload.diagnostic_id;
+  diagnostic.stage = "validate";
   if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
   if (signal?.aborted) {
     const error = new Error("Workflow request was cancelled.");
@@ -4762,6 +5261,7 @@ async function exchangeWorkflow(input, signal, { situationHandoff = null } = {})
   )) {
     throw new Error("BFF returned a response for a different round.");
   }
+  diagnostic.stage = "normalize";
   const output = normalizeWorkflowPayload(payload);
   output._diagnostic = payload.diagnostic || null;
   if (expectedRoute === "chat" && payload.conversation_id && input.round_id === getDifyRoundScopeKey()) {
@@ -4778,6 +5278,7 @@ async function exchangeWorkflow(input, signal, { situationHandoff = null } = {})
     scene_version: payload.scene_version || "",
   };
   if (input.trigger_type === "chat" && !output.ai_reply_text) {
+    recordClientRuntimeDiagnostic("workflow_failure", { ...diagnostic, stage: "local_fallback", reason: "reply_missing" });
     output.ai_reply_text = getDefaultHostReply(output, input);
   }
   return output;
@@ -5083,6 +5584,7 @@ function publishHostLine(text, {
   speech.voiceRequested = false;
   speech.voicePending = false;
   speech.voicePlaying = false;
+  speech.voiceFinished = false;
   recordExecutionReceipt(traceId, "speech", "pending_render", "主持话术：等待显示");
   speech.expiresAt = lockDurationMs === Infinity
     ? Infinity
@@ -5103,6 +5605,7 @@ function scheduleHostSpeechExpiration(speech, speechId, delayMs) {
       scheduleHostSpeechExpiration(speech, speechId, 200);
       return;
     }
+    const completedReadyWelcome = speech.source === "ready_welcome";
     recordExecutionReceipt(speech.traceId, "speech", speech.wasVisible ? "completed" : "expired", speech.wasVisible ? "主持话术：显示结束" : "主持话术：未显示，已到期");
     speech.timer = null;
     speech.priority = 0;
@@ -5117,6 +5620,7 @@ function scheduleHostSpeechExpiration(speech, speechId, delayMs) {
     resumeDeferredHostReply();
     simulationRuntime.setTimeout(processNextPendingChat, 0);
     render();
+    if (completedReadyWelcome) scheduleSoundOnboarding();
   }, delayMs);
 }
 
@@ -5279,6 +5783,7 @@ function clearHostSpeechLock(source = "") {
   speech.voiceRequested = false;
   speech.voicePending = false;
   speech.voicePlaying = false;
+  speech.voiceFinished = false;
 }
 
 function clearSummarySpeechTimer() {
@@ -6391,6 +6896,9 @@ function getDecisionQueuePresentation() {
 function renderDecisionTrace() {
   if (simulationRuntime.paused) return;
   const view = getDecisionQueuePresentation();
+  els.decisionPerception?.closest(".cabin-decision-card")?.classList?.toggle(
+    "is-prestart", state.game.status === "idle" && !view.perception,
+  );
   if (els.decisionPerception) els.decisionPerception.textContent = formatDecisionText(view.perception);
   if (els.decisionDecision) els.decisionDecision.textContent = formatDecisionText(view.decision);
   if (els.decisionExecution) els.decisionExecution.textContent = formatDecisionText(view.execution);
@@ -6648,6 +7156,7 @@ function advanceAfterVictory(completedRound) {
   const now = simulationRuntime.now();
   const deferredCurrentRound = state.workflow.deferredHostReplies.filter((entry) => entry.roundId === currentRoundId);
   const speechRemaining = Math.max(0, state.workflow.hostSpeech.expiresAt - now);
+  if (state.workflow.hostSpeech.voicePending || state.workflow.hostSpeech.voicePlaying) blockers.push("host_voice_active");
   if (state.workflow.inFlight) blockers.push("workflow_in_flight");
   if (deferredCurrentRound.some((entry) => isChatSpeechSource(entry.options.source))) blockers.push("deferred_chat_reply");
   if (isChatSpeechSource(state.workflow.hostSpeech.source) && speechRemaining > 0) blockers.push("chat_speech_active");
@@ -6750,6 +7259,8 @@ function logRoundAdvanceDiagnostic(type, completedRound, blockers) {
     pending_chat_count: state.workflow.pendingChats.length,
     host_speech_source: safeSource(speech.source),
     host_speech_remaining_ms: Math.round(Math.max(0, speech.expiresAt - now)),
+    host_voice_pending: Boolean(speech.voicePending),
+    host_voice_playing: Boolean(speech.voicePlaying),
     result_feedback_state: !feedback ? "none" : feedback.shown ? "shown" : feedback.output ? "output_ready" : "waiting",
     result_feedback_remaining_ms: feedback ? Math.round(Math.max(0, feedback.expiresAt - now)) : 0,
     pending_minimum_speech_source: safeSource(state.workflow.pendingMinimumSpeech?.source),
@@ -6772,7 +7283,6 @@ function finishGameSeries() {
   prepareNextGameFirstRound();
   clearConfetti();
   startSummaryConfetti();
-  playSummarySound();
   state.ui.showAnswer = false;
   state.ui.correctLightSeat = null;
   state.ui.animation = "summary";
@@ -6969,12 +7479,15 @@ function getHostPresentation() {
     : requestedHostState === "thinking"
       ? HOST_AVATAR_DEFAULT_STATE
       : requestedHostState;
-  const hostBubbleText = hostThinking ? "" : String(state.host.text || "");
-  const hostBubbleHidden = hostThinking || !hostBubbleText.trim();
+  const readyScreen = getGameScreenMode() === "ready";
+  const hostBubbleText = readyScreen || hostThinking ? "" : String(state.host.text || "");
+  const hostBubbleHidden = readyScreen || hostThinking || !hostBubbleText.trim();
   const hostSpeechVisible = !hostBubbleHidden;
   const mediaHostState =
-    hostSpeechVisible && renderedHostState === HOST_AVATAR_DEFAULT_STATE
+    hostSpeechVisible && !state.workflow.hostSpeech.voiceFinished && renderedHostState === HOST_AVATAR_DEFAULT_STATE
       ? "speak"
+      : renderedHostState === "speak" && state.workflow.hostSpeech.voiceFinished
+        ? HOST_AVATAR_DEFAULT_STATE
       : renderedHostState;
   return { hostBusy, hostThinking, renderedHostState, hostBubbleText, hostBubbleHidden, hostSpeechVisible, mediaHostState };
 }
@@ -6983,11 +7496,16 @@ function render() {
   if (simulationRuntime.paused) return;
   const riddle = getCurrentRiddle();
   const screenMode = getGameScreenMode();
+  if (els.playerInputGuide) els.playerInputGuide.hidden = !shouldShowPlayerInputGuide(screenMode);
   const enteredReadyScreen =
     screenMode === "ready" && lastRenderedScreenMode !== "ready";
   lastRenderedScreenMode = screenMode;
   if (enteredReadyScreen) {
+    scheduleSoundOnboarding();
     resetBackgroundMusicForReadyEntry();
+    cancelHostVoiceSpeech();
+  } else if (screenMode !== "ready") {
+    hideSoundOnboarding();
   }
   const { hostBusy, hostThinking, renderedHostState, hostBubbleText, hostBubbleHidden, hostSpeechVisible, mediaHostState } = getHostPresentation();
   const noWinnerReveal = state.game.status === "failed" && state.ui.showAnswer;
@@ -7014,6 +7532,7 @@ function render() {
     ? " summary-host-speech-ready"
     : "";
   els.gameScreen.className = `game-screen screen-${screenMode} ${getScreenEnvironmentClass(screenMode)}${summaryConfettiLoopClass}${summaryHostSpeechClass}`;
+  document.body.classList.toggle("startup-loading", startupLoading.active);
   els.gameScreen.classList.toggle("screen-reveal-no-winner", noWinnerReveal);
   renderHostMedia(screenMode, mediaHostState);
 
@@ -7038,7 +7557,7 @@ function render() {
       },
     );
   }
-  els.environmentLabel.textContent = `车外环境：${state.car.environment}`;
+  els.environmentLabel.textContent = `车外环境：${getEnvironmentDescription(state.car.environment).name}`;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
@@ -7113,9 +7632,11 @@ function render() {
     const eventRecord = findSituationEvent(state.workflow.hostSpeech.sceneScope?.eventId);
     if (eventRecord && !isSituationEventFinished(eventRecord)) setSituationEventStatus(eventRecord, "showing", "事件回应已开始显示");
     startHostSpeechActions();
-    void startHostVoiceSpeech(state.workflow.hostSpeech.id, hostBubbleText);
     const clue = state.workflow.hostSpeech.publicClue;
     if (clue && !clue.includes(getCurrentRiddle().answer) && !state.game.publicClues.includes(clue)) state.game.publicClues.push(clue);
+  }
+  if (hostSpeechVisible) {
+    void startHostVoiceSpeech(state.workflow.hostSpeech.id, hostBubbleText);
   }
   if (state.workflow.hostSpeech.expiresAt > simulationRuntime.now()) {
     const speech = state.workflow.hostSpeech;
@@ -7214,6 +7735,7 @@ function refreshGameScreenBackdrop() {
 }
 
 function getGameScreenMode() {
+  if (startupLoading.active) return "loading";
   if (state.game.status === "summary") return "summary";
   if (state.game.status === "victory" || state.ui.showAnswer) return "reveal";
   if (state.game.status === "idle" && state.timeline.status === "idle") return "ready";
@@ -7221,6 +7743,11 @@ function getGameScreenMode() {
 }
 
 function renderHostMedia(screenMode, avatarState = state.host.avatarState) {
+  if (screenMode === "loading") return;
+  if (hostSceneMotion.mode !== screenMode) {
+    hostSceneMotion.mode = screenMode;
+    hostSceneMotion.completed = false;
+  }
   const media = resolveHostMedia(screenMode, avatarState);
   const isSprite = media.kind === "sprite" && media.src && media.frameCount;
 
@@ -7283,6 +7810,11 @@ async function loadHostSprite(media) {
     els.hostImage.hidden = false;
     els.hostImage.src = media.fallback || RESOURCE_CONFIG.host.normal.src;
     if (!media.loop) playHostSpriteAudio(media.audio).catch(() => {});
+    if (!media.loop && (media === RESOURCE_CONFIG.host.greeting || media === RESOURCE_CONFIG.host.celebration)) {
+      hostSprite.fallbackTimerId = simulationRuntime.setTimeout(() => {
+        if (loadId === hostSprite.loadId) finishHostSceneMotion();
+      }, Number(media.frameCount) * HOST_SPRITE_FRAME_DURATION_MS);
+    }
     console.warn("Host sprite could not be loaded; using static fallback.", error);
   }
 }
@@ -7319,10 +7851,9 @@ function loadHostSpriteImage(src) {
 }
 
 function preloadHostSpriteImages() {
-  Object.values(RESOURCE_CONFIG.host)
-    .filter((media) => media?.kind === "sprite" && media.src)
-    .forEach((media) => {
-      void loadHostSpriteImage(media.src).catch((error) => {
+  return runPreloadQueue(Object.values(RESOURCE_CONFIG.host)
+    .filter((media) => media?.kind === "sprite" && media.src), async media => {
+      await loadHostSpriteImage(media.src).catch((error) => {
         console.warn("Host sprite preload failed:", media.src, error);
       });
     });
@@ -7406,6 +7937,7 @@ function stepHostSprite(timestamp) {
     hostSprite.playing = false;
     hostSprite.completed = true;
     hostSprite.animationFrameId = 0;
+    if (finishHostSceneMotion()) return;
     if (hostSprite.source === RESOURCE_CONFIG.host.thinking.src) {
       state.workflow.hostThinkingActive = false;
       state.workflow.hostThinkingStartedAt = 0;
@@ -7425,8 +7957,19 @@ function stepHostSprite(timestamp) {
   hostSprite.animationFrameId = simulationRuntime.requestAnimationFrame(stepHostSprite);
 }
 
+function finishHostSceneMotion() {
+  const mode = hostSceneMotion.mode;
+  const matching = mode === "summary" && hostSprite.source === RESOURCE_CONFIG.host.celebration.src;
+  if (!matching || hostSceneMotion.completed || getGameScreenMode() !== mode) return false;
+  hostSceneMotion.completed = true;
+  render();
+  return true;
+}
+
 function resetHostSprite() {
   hostSprite.loadId += 1;
+  simulationRuntime.clearTimeout(hostSprite.fallbackTimerId);
+  hostSprite.fallbackTimerId = 0;
   simulationRuntime.cancelAnimationFrame(hostSprite.animationFrameId);
   stopHostSpriteAudio();
   hostSprite.source = "";
@@ -7449,7 +7992,71 @@ function resetHostSprite() {
 const hostAudioCache = new Map();
 const hostVoicePlayback = { speechId: 0, audio: null, mediaSource: null, objectUrl: "", abortController: null };
 
+function recordClientRuntimeDiagnostic(type, detail = {}) {
+  if (!clientRuntimeDiagnostic.enabled) return;
+  const now = Date.now();
+  if (now - clientRuntimeDiagnostic.startedAt >= 60000) {
+    clientRuntimeDiagnostic.startedAt = now;
+    clientRuntimeDiagnostic.count = 0;
+  }
+  if (++clientRuntimeDiagnostic.count > 180) return;
+  clientRuntimeDiagnostic.sessionId ||= crypto.randomUUID();
+  const ua = globalThis.navigator?.userAgent || "";
+  const payload = { type, session_id: clientRuntimeDiagnostic.sessionId,
+    speech_id: state.workflow.hostSpeech.id, screen_mode: getGameScreenMode(),
+    sound_enabled: backgroundMusic.enabled, voice_configured: Boolean(state.health.hostVoiceConfigured),
+    simulation_paused: simulationRuntime.paused,
+    browser_engine: /Firefox\//.test(ua) ? "firefox" : /Chrome\/|Chromium\/|Edg\//.test(ua) ? "chromium" : /AppleWebKit\//.test(ua) ? "webkit" : "unknown",
+    ...detail };
+  void fetch("/api/client-diagnostic", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload), keepalive: true }).catch(() => {});
+}
+
+function installClientErrorDiagnostics() {
+  const allowedNames = new Set(["Error", "TypeError", "ReferenceError", "SyntaxError", "RangeError", "URIError", "EvalError", "SecurityError", "AbortError"]);
+  const allowedTags = new Set(["audio", "img", "link", "script", "source", "video"]);
+  const errorName = value => allowedNames.has(value) ? value : "other";
+  const sourceName = value => {
+    try {
+      const name = new URL(value, location.href).pathname.split("/").pop();
+      return /^[\w.-]{1,100}$/.test(name) ? name : "";
+    } catch { return ""; }
+  };
+  const report = (stage, detail) => {
+    if (clientRuntimeDiagnostic.runtimeErrorCount >= 10) return;
+    clientRuntimeDiagnostic.runtimeErrorCount++;
+    recordClientRuntimeDiagnostic("client_error", { stage, ...detail });
+  };
+
+  window.addEventListener("error", event => {
+    if (event.target && event.target !== window) {
+      const elementType = event.target.tagName?.toLowerCase();
+      if (allowedTags.has(elementType)) {
+        const source = event.target.currentSrc || event.target.src || event.target.href || "";
+        report("resource_error", { element_type: elementType, source: sourceName(source) });
+      }
+      return;
+    }
+    report("script_error", { error_name: errorName(event.error?.name), source: sourceName(event.filename || ""),
+      line: event.lineno || 0, column: event.colno || 0 });
+  }, true);
+  window.addEventListener("unhandledrejection", event => {
+    report("unhandled_rejection", { error_name: errorName(event.reason?.name) });
+  });
+}
+
+function recordClientPageState(stage) {
+  if (!clientRuntimeDiagnostic.enabled) return;
+  const rect = els.appShell?.getBoundingClientRect();
+  recordClientRuntimeDiagnostic("page_state", {
+    stage, viewport_width: window.innerWidth, viewport_height: window.innerHeight,
+    root_width: rect?.width || 0, root_height: rect?.height || 0,
+    page_visible: document.visibilityState === "visible", page_focused: document.hasFocus(),
+  });
+}
+
 function cancelHostVoiceSpeech() {
+  if (hostVoicePlayback.abortController || hostVoicePlayback.audio) recordClientRuntimeDiagnostic("host_voice", { stage: "cancelled" });
   hostVoicePlayback.abortController?.abort();
   hostVoicePlayback.abortController = null;
   if (hostVoicePlayback.audio) {
@@ -7469,12 +8076,73 @@ function setHostVoiceState(speechId, { pending, playing }) {
   if (speech.id !== speechId) return;
   speech.voicePending = pending;
   speech.voicePlaying = playing;
+  speech.voiceFinished = !pending && !playing;
+  if (speech.source === "ready_welcome" && speech.voiceFinished) scheduleSoundOnboarding();
+  refreshHostSpeechMedia();
+}
+
+function isSoundOnboardingDismissed() {
+  try {
+    return localStorage.getItem(SOUND_ONBOARDING_DISMISSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function scheduleSoundOnboarding() {
+  if (backgroundMusic.enabled || isSoundOnboardingDismissed() || getGameScreenMode() !== "ready"
+    || soundOnboardingTimer || !els.soundOnboarding?.hidden) return;
+  soundOnboardingTimer = window.setTimeout(() => {
+    soundOnboardingTimer = 0;
+    if (!backgroundMusic.enabled && !isSoundOnboardingDismissed() && getGameScreenMode() === "ready") {
+      els.soundOnboarding.hidden = false;
+    }
+  }, 4000);
+}
+
+function hideSoundOnboarding() {
+  if (soundOnboardingTimer) {
+    window.clearTimeout(soundOnboardingTimer);
+    soundOnboardingTimer = 0;
+  }
+  if (els.soundOnboarding) els.soundOnboarding.hidden = true;
+}
+
+function dismissSoundOnboarding() {
+  if (soundOnboardingTimer) {
+    window.clearTimeout(soundOnboardingTimer);
+    soundOnboardingTimer = 0;
+  }
+  if (els.soundOnboarding) els.soundOnboarding.hidden = true;
+  try {
+    localStorage.setItem(SOUND_ONBOARDING_DISMISSED_KEY, "1");
+  } catch {
+    // Keep the button interaction responsive when storage is unavailable.
+  }
+}
+
+function refreshHostSpeechMedia() {
+  if (simulationRuntime.paused || !els.hostCanvas || !els.hostImage) return;
+  const { mediaHostState } = getHostPresentation();
+  renderHostMedia(getGameScreenMode(), mediaHostState);
+  if (els.hostAvatar) els.hostAvatar.dataset.avatarState = mediaHostState;
 }
 
 async function startHostVoiceSpeech(speechId, text) {
   const speech = state.workflow.hostSpeech;
-  if (!state.health.hostVoiceConfigured || speech.id !== speechId || speech.voiceRequested
-    || speech.priority >= HOST_SPEECH_PRIORITIES.P0) return;
+  if (speech.id !== speechId || speech.voiceRequested) return;
+  if (!backgroundMusic.enabled) {
+    speech.voiceRequested = true;
+    recordClientRuntimeDiagnostic("host_voice", { stage: "skipped", reason: "muted" });
+    return;
+  }
+  if (!state.health.hostVoiceConfigured) {
+    if (clientRuntimeDiagnostic.lastVoiceSkip !== String(speechId)) {
+      clientRuntimeDiagnostic.lastVoiceSkip = String(speechId);
+      recordClientRuntimeDiagnostic("host_voice", { stage: "skipped", reason: "not_configured" });
+    }
+    return;
+  }
   speech.voiceRequested = true;
   if (!text || Array.from(text).length > HOST_TTS_MAX_TEXT_CHARS) return;
 
@@ -7488,14 +8156,60 @@ async function startHostVoiceSpeech(speechId, text) {
   let sourceBuffer = null;
   let usingMediaSource = Boolean(window.MediaSource?.isTypeSupported?.("audio/mpeg"));
   let started = false;
+  let playbackPromise = null;
+  let playbackError = null;
   let idleTimer = null;
-  const refreshIdleTimer = () => {
+  let timeoutReason = "";
+  let voiceRequestId = "";
+  const voiceStartedAt = Date.now();
+  let lastAudioChunkAt = null;
+  const voiceMetrics = { audio_chunk_count: 0, audio_bytes: 0, max_chunk_gap_ms: 0, waiting_count: 0, stalled_count: 0 };
+  const noteAudioChunk = (bytes) => {
+    const now = Date.now();
+    if (lastAudioChunkAt !== null) voiceMetrics.max_chunk_gap_ms = Math.max(voiceMetrics.max_chunk_gap_ms, now - lastAudioChunkAt);
+    lastAudioChunkAt = now;
+    voiceMetrics.audio_chunk_count += 1;
+    voiceMetrics.audio_bytes += bytes;
+  };
+  const logVoice = (stage, detail = {}) => recordClientRuntimeDiagnostic("host_voice", {
+    stage, speech_id: speechId, request_id: voiceRequestId, elapsed_ms: Date.now() - voiceStartedAt,
+    transport: usingMediaSource ? "mse" : "blob", ...voiceMetrics, ...detail });
+  logVoice("requested");
+  const refreshIdleTimer = (timeoutMs = 20_000) => {
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => controller.abort(), 8_000);
+    idleTimer = setTimeout(() => {
+      timeoutReason = voiceMetrics.audio_chunk_count ? "stream_idle_timeout" : "first_audio_timeout";
+      controller.abort();
+    }, timeoutMs);
   };
   const isCurrent = () => !controller.signal.aborted
+    && backgroundMusic.enabled
     && hostVoicePlayback.speechId === speechId
     && state.workflow.hostSpeech.id === speechId;
+
+  const readNetworkChunk = async (reader) => {
+    refreshIdleTimer();
+    try { return await reader.read(); }
+    finally { clearTimeout(idleTimer); }
+  };
+
+  const waitForAudioEvent = (target, event) => new Promise((resolve, reject) => {
+    let timer = null;
+    const cleanup = () => {
+      simulationRuntime.clearTimeout(timer);
+      target.removeEventListener?.(event, complete);
+      target.removeEventListener?.("error", fail);
+      controller.signal.removeEventListener("abort", abort);
+    };
+    const complete = () => { cleanup(); resolve(); };
+    const fail = () => { cleanup(); reject(new Error("tts_media_error")); };
+    const abort = () => { cleanup(); reject(Object.assign(new Error("stale_voice_request"), { name: "AbortError" })); };
+    if (controller.signal.aborted) return abort();
+    target.addEventListener(event, complete, { once: true });
+    target.addEventListener("error", fail, { once: true });
+    controller.signal.addEventListener("abort", abort, { once: true });
+    timer = simulationRuntime.setTimeout(() => { cleanup(); reject(new Error("tts_media_timeout")); }, 15_000);
+  });
 
   const createAudio = () => {
     if (audio) return audio;
@@ -7504,20 +8218,50 @@ async function startHostVoiceSpeech(speechId, text) {
     audio.preload = "auto";
     document.body.append(audio);
     hostVoicePlayback.audio = audio;
+    for (const event of ["waiting", "stalled"]) {
+      audio.addEventListener(event, () => {
+        if (!isCurrent() || !started || simulationRuntime.paused) return;
+        voiceMetrics[`${event}_count`] += 1;
+        if (voiceMetrics.waiting_count + voiceMetrics.stalled_count > 3) return;
+        let bufferedAhead = 0;
+        for (let index = 0; index < (audio.buffered?.length || 0); index += 1) {
+          if (audio.buffered.start(index) <= audio.currentTime && audio.currentTime <= audio.buffered.end(index)) {
+            bufferedAhead = audio.buffered.end(index) - audio.currentTime;
+            break;
+          }
+        }
+        logVoice(event, { audio_ready_state: audio.readyState, audio_current_time_ms: audio.currentTime * 1000,
+          buffered_ahead_ms: bufferedAhead * 1000 });
+      });
+    }
     audio.addEventListener("ended", () => {
       if (!isCurrent()) return;
+      logVoice("ended");
       setHostVoiceState(speechId, { pending: false, playing: false });
       audio.remove();
     }, { once: true });
     audio.addEventListener("error", () => {
-      if (isCurrent()) setHostVoiceState(speechId, { pending: false, playing: false });
+      if (isCurrent()) {
+        logVoice("failed", { reason: "media_error", audio_error_code: audio.error?.code || 0, audio_ready_state: audio.readyState });
+        setHostVoiceState(speechId, { pending: false, playing: false });
+      }
     }, { once: true });
     return audio;
   };
 
   const playAudio = async () => {
     if (!isCurrent()) throw new Error("stale_voice_request");
-    if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
+    if (simulationRuntime.paused) {
+      logVoice("waiting_resume");
+      await new Promise((resolve, reject) => {
+        const abort = () => reject(new Error("stale_voice_request"));
+        controller.signal.addEventListener("abort", abort, { once: true });
+        simulationRuntime.waitUntilRunning().then(() => {
+          controller.signal.removeEventListener("abort", abort);
+          resolve();
+        });
+      });
+    }
     if (!isCurrent()) throw new Error("stale_voice_request");
     await audio.play();
     if (!isCurrent()) {
@@ -7525,17 +8269,41 @@ async function startHostVoiceSpeech(speechId, text) {
       throw new Error("stale_voice_request");
     }
     started = true;
+    logVoice("playing", { audio_ready_state: audio.readyState });
     setHostVoiceState(speechId, { pending: false, playing: true });
   };
 
+  // play() may need later audio chunks before resolving; never block stream reads on it.
+  const beginStreamPlayback = (complete = false) => {
+    if (playbackPromise) return;
+    const buffered = sourceBuffer?.buffered || audio.buffered;
+    if (!complete && buffered) {
+      let ahead = 0;
+      for (let index = 0; index < buffered.length; index += 1) {
+        if (buffered.start(index) <= audio.currentTime && audio.currentTime <= buffered.end(index)) {
+          ahead = buffered.end(index) - audio.currentTime;
+          break;
+        }
+      }
+      if (ahead < 0.8) return;
+    }
+    playbackPromise ||= playAudio().catch(error => {
+      playbackError = error;
+      controller.abort();
+    });
+  };
+
   try {
-    refreshIdleTimer();
+    refreshIdleTimer(20_000);
     const response = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
       signal: controller.signal,
     });
+    clearTimeout(idleTimer);
+    voiceRequestId = response.headers.get("x-voice-request-id") || "";
+    logVoice("response", { http_status: response.status });
     if (!response.ok || !response.body) throw new Error(`tts_http_${response.status}`);
 
     if (response.headers.get("content-type")?.startsWith("audio/")) {
@@ -7545,33 +8313,49 @@ async function startHostVoiceSpeech(speechId, text) {
         hostVoicePlayback.mediaSource = mediaSource;
         hostVoicePlayback.objectUrl = URL.createObjectURL(mediaSource);
         player.src = hostVoicePlayback.objectUrl;
-        await new Promise((resolve, reject) => {
-          mediaSource.addEventListener("sourceopen", resolve, { once: true });
-          mediaSource.addEventListener("error", reject, { once: true });
-        });
+        await waitForAudioEvent(mediaSource, "sourceopen");
         if (!isCurrent()) return;
         sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
         const reader = response.body.getReader();
         while (true) {
-          const { value, done } = await reader.read();
+          const { value, done } = await readNetworkChunk(reader);
           if (done || !isCurrent()) break;
-          refreshIdleTimer();
-          if (sourceBuffer.updating) await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+          noteAudioChunk(value.byteLength);
+          if (sourceBuffer.updating) await waitForAudioEvent(sourceBuffer, "updateend");
           sourceBuffer.appendBuffer(value);
-          await new Promise((resolve, reject) => {
-            sourceBuffer.addEventListener("updateend", resolve, { once: true });
-            sourceBuffer.addEventListener("error", reject, { once: true });
-          });
-          if (!started) await playAudio();
+          await waitForAudioEvent(sourceBuffer, "updateend");
+          beginStreamPlayback();
         }
-        if (!started) throw new Error("tts_audio_missing");
+        clearTimeout(idleTimer);
+        if (playbackError) throw playbackError;
+        if (!isCurrent()) return;
+        if (!voiceMetrics.audio_chunk_count) throw new Error("tts_audio_missing");
+        beginStreamPlayback(true);
         if (mediaSource.readyState === "open") mediaSource.endOfStream();
+        await playbackPromise;
+        if (playbackError) throw playbackError;
       } else {
-        const blob = await response.blob();
+        let blob;
+        if (response.body.getReader) {
+          const chunks = [];
+          const reader = response.body.getReader();
+          while (true) {
+            const { value, done } = await readNetworkChunk(reader);
+            if (done || !isCurrent()) break;
+            noteAudioChunk(value.byteLength);
+            chunks.push(value);
+          }
+          if (!isCurrent()) return;
+          blob = new Blob(chunks, { type: "audio/mpeg" });
+        } else {
+          blob = await response.blob();
+          noteAudioChunk(blob.size);
+        }
         if (!blob.size) throw new Error("tts_audio_missing");
         const player = createAudio();
         hostVoicePlayback.objectUrl = URL.createObjectURL(blob);
         player.src = hostVoicePlayback.objectUrl;
+        clearTimeout(idleTimer);
         await playAudio();
       }
       return;
@@ -7583,10 +8367,7 @@ async function startHostVoiceSpeech(speechId, text) {
       hostVoicePlayback.mediaSource = mediaSource;
       hostVoicePlayback.objectUrl = URL.createObjectURL(mediaSource);
       player.src = hostVoicePlayback.objectUrl;
-      await new Promise((resolve, reject) => {
-        mediaSource.addEventListener("sourceopen", resolve, { once: true });
-        mediaSource.addEventListener("error", reject, { once: true });
-      });
+      await waitForAudioEvent(mediaSource, "sourceopen");
       if (!isCurrent()) return;
       sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
     }
@@ -7594,19 +8375,17 @@ async function startHostVoiceSpeech(speechId, text) {
     const appendAudio = async (encoded) => {
       const binary = atob(encoded);
       const bytes = new Uint8Array(binary.length);
+      noteAudioChunk(bytes.byteLength);
       for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
       if (!sourceBuffer) {
         audioChunks.push(bytes);
         return;
       }
-      if (sourceBuffer.updating) await new Promise(resolve => sourceBuffer.addEventListener("updateend", resolve, { once: true }));
+      if (sourceBuffer.updating) await waitForAudioEvent(sourceBuffer, "updateend");
       if (!isCurrent()) return;
       sourceBuffer.appendBuffer(bytes);
-      await new Promise((resolve, reject) => {
-        sourceBuffer.addEventListener("updateend", resolve, { once: true });
-        sourceBuffer.addEventListener("error", reject, { once: true });
-      });
-      if (!started) await playAudio();
+      await waitForAudioEvent(sourceBuffer, "updateend");
+      beginStreamPlayback();
     };
 
     const decoder = new TextDecoder();
@@ -7619,15 +8398,13 @@ async function startHostVoiceSpeech(speechId, text) {
       try { event = JSON.parse(data); } catch { return; }
       const encoded = event?.output?.audio?.data;
       if (typeof encoded === "string" && encoded) {
-        refreshIdleTimer();
         await appendAudio(encoded);
       }
     };
 
     const reader = response.body.getReader();
-    refreshIdleTimer();
     while (true) {
-      const { value, done } = await reader.read();
+      const { value, done } = await readNetworkChunk(reader);
       if (done || !isCurrent()) break;
       pendingText += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
       const blocks = pendingText.split("\n\n");
@@ -7637,11 +8414,15 @@ async function startHostVoiceSpeech(speechId, text) {
     pendingText += decoder.decode();
     if (pendingText.trim()) await consumeBlock(pendingText);
 
+    if (playbackError) throw playbackError;
     if (!isCurrent()) return;
     clearTimeout(idleTimer);
     if (sourceBuffer) {
-      if (!started) throw new Error("tts_audio_missing");
+      if (!voiceMetrics.audio_chunk_count) throw new Error("tts_audio_missing");
+      beginStreamPlayback(true);
       if (mediaSource.readyState === "open") mediaSource.endOfStream();
+      await playbackPromise;
+      if (playbackError) throw playbackError;
     } else if (audioChunks.length) {
       const player = createAudio();
       const blob = new Blob(audioChunks, { type: "audio/mpeg" });
@@ -7652,7 +8433,12 @@ async function startHostVoiceSpeech(speechId, text) {
       throw new Error("tts_audio_missing");
     }
   } catch (error) {
+    error = playbackError || error;
     clearTimeout(idleTimer);
+    logVoice("failed", { reason: timeoutReason || (error.name === "NotAllowedError" ? "browser_blocked" : error.name === "AbortError" || error.message === "stale_voice_request" ? "timeout_or_cancel"
+      : /^tts_http_/.test(error.message) ? "http_error" : error.message === "tts_audio_missing" ? "audio_missing"
+      : error.message === "tts_media_timeout" ? "media_timeout" : "playback_error"),
+      audio_error_code: audio?.error?.code || 0, audio_ready_state: audio?.readyState || 0 });
     if (hostVoicePlayback.speechId === speechId && state.workflow.hostSpeech.id === speechId) {
       setHostVoiceState(speechId, { pending: false, playing: false });
       cancelHostVoiceSpeech();
@@ -7667,14 +8453,19 @@ async function startHostVoiceSpeech(speechId, text) {
 }
 
 async function playHostSpriteAudio(audioMeta) {
+  const loadId = hostSprite.loadId;
+  const generation = hostSprite.audioGeneration;
+  const isCurrent = () => backgroundMusic.enabled && loadId === hostSprite.loadId && generation === hostSprite.audioGeneration;
+  if (!isCurrent()) return false;
   if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
-  if (!audioMeta?.src) return false;
+  if (!audioMeta?.src || !isCurrent()) return false;
   const context = prepareAudioContext();
   if (!context) return playHostSpriteAudioElement(audioMeta);
   if (context.state === "suspended") {
     await context.resume().catch(() => {});
     if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
   }
+  if (!isCurrent()) return false;
   if (context.state !== "running") return playHostSpriteAudioElement(audioMeta);
 
   try {
@@ -7692,7 +8483,7 @@ async function playHostSpriteAudio(audioMeta) {
 
     const buffer = await bufferPromise;
     if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
-    if (hostSprite.audioSource) stopHostSpriteAudio();
+    if (!isCurrent() || hostSprite.completed) return false;
     const source = context.createBufferSource();
     const gain = context.createGain();
     const trimStartSeconds = Math.max(0, Number(audioMeta.trimStartMs) || 0) / 1000;
@@ -7717,22 +8508,28 @@ async function playHostSpriteAudio(audioMeta) {
     hostSprite.audioGain = gain;
     return true;
   } catch (error) {
+    if (!isCurrent()) return false;
+    hostAudioCache.delete(new URL(audioMeta.src, document.baseURI).href);
     console.warn("Host sprite audio could not use Web Audio; using media fallback.", error);
     return playHostSpriteAudioElement(audioMeta);
   }
 }
 
 function playHostSpriteAudioElement(audioMeta) {
+  if (!backgroundMusic.enabled) return false;
+  const loadId = hostSprite.loadId;
   const audio = new Audio(new URL(audioMeta.src, document.baseURI).href);
   audio.preload = "auto";
   audio.volume = Math.min(1, Math.max(0, Number(audioMeta.volume) || 0.85));
   hostSprite.audioElement?.pause();
   hostSprite.audioElement = audio;
   const start = () => {
+    hostSprite.audioTimerId = 0;
+    if (!backgroundMusic.enabled || loadId !== hostSprite.loadId || hostSprite.audioElement !== audio) return;
     audio.currentTime = Math.max(0, Number(audioMeta.trimStartMs) || 0) / 1000;
     audio.play().catch(() => {});
   };
-  simulationRuntime.setTimeout(start, Math.max(0, Number(audioMeta.delayMs) || 0));
+  hostSprite.audioTimerId = simulationRuntime.setTimeout(start, Math.max(0, Number(audioMeta.delayMs) || 0));
   audio.addEventListener("ended", () => {
     if (hostSprite.audioElement === audio) hostSprite.audioElement = null;
   }, { once: true });
@@ -7740,6 +8537,9 @@ function playHostSpriteAudioElement(audioMeta) {
 }
 
 function stopHostSpriteAudio() {
+  hostSprite.audioGeneration += 1;
+  simulationRuntime.clearTimeout(hostSprite.audioTimerId);
+  hostSprite.audioTimerId = 0;
   if (hostSprite.audioSource) {
     try {
       hostSprite.audioSource.stop();
@@ -7754,6 +8554,8 @@ function stopHostSpriteAudio() {
 }
 
 function resolveHostMedia(screenMode, avatarState) {
+  if (screenMode === "ready") return RESOURCE_CONFIG.host.greeting;
+  if (screenMode === "summary" && !hostSceneMotion.completed) return RESOURCE_CONFIG.host.celebration;
   const stateKey = normalizeHostAvatarState(avatarState);
   return RESOURCE_CONFIG.host[stateKey] || RESOURCE_CONFIG.host.normal;
 }
@@ -8035,6 +8837,13 @@ function resolveExpiredQuestion() {
 function advanceAfterTimeout(completedRound) {
   state.workflow.nextRoundTimer = null;
   if (state.game.status !== "failed" || state.game.roundIndex !== completedRound) return;
+  if (state.workflow.hostSpeech.voicePending || state.workflow.hostSpeech.voicePlaying) {
+    logRoundAdvanceDiagnostic("round_advance_wait", completedRound, ["host_voice_active"]);
+    state.workflow.nextRoundTimer = simulationRuntime.setTimeout(
+      () => advanceAfterTimeout(completedRound), PAUSED_ROUND_POLL_MS,
+    );
+    return;
+  }
   if (completedRound >= state.game.totalRounds) {
     finishGameSeries();
     render();
@@ -8281,17 +9090,19 @@ function renderControls() {
   setActive(els.speedChips, "speed", String(state.car.speed));
   setActive(els.environmentChips, "environment", state.car.environment);
 
-  const isBusy = isHostBusy();
   const isTimelinePaused = state.timeline.status === "paused";
   const hasStarted = state.timeline.status !== "idle" || state.game.status !== "idle";
+  const loading = startupLoading.active;
+  for (const region of document.querySelectorAll(".control-region, .cabin-region")) region.inert = loading;
 
   els.inactivePauseOverlay.hidden = !simulationFreeze.autoPaused;
   document.body.classList.toggle("has-started", hasStarted);
   document.body.classList.toggle("timeline-paused", isTimelinePaused);
+  document.body.classList.toggle("game-paused", state.game.status === "paused");
   els.prestartPanel.classList.toggle("hidden", hasStarted);
-  els.startTimeline.disabled = hasStarted || isBusy;
-  els.switchScenario.disabled = hasStarted || isBusy;
-  els.resetScenario.disabled = !hasStarted || simulationRuntime.paused;
+  els.startTimeline.disabled = hasStarted || loading;
+  els.switchScenario.disabled = hasStarted || loading;
+  els.resetScenario.disabled = !hasStarted || (simulationRuntime.paused && simulationFreeze.autoPaused);
   els.pauseTimeline.disabled = !hasStarted;
   els.pauseTimeline.textContent = isTimelinePaused ? "继续模拟" : "暂停模拟";
   els.pauseTimeline.classList.toggle("is-paused", isTimelinePaused);
@@ -8352,4 +9163,5 @@ function getCabinModeText() {
   return modeText[state.ui.cabinMode] || "游戏进行中";
 }
 
+installClientErrorDiagnostics();
 boot();

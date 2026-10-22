@@ -27,6 +27,30 @@ const SITUATION_EVENTS = new Set([
 ]);
 
 const situationCache = new Map();
+let readinessCache = null;
+
+async function probeBffReadiness() {
+  const configs = Object.fromEntries(["chat", "situation", "preview"].map(route => [route, getConfig(route)]));
+  const key = JSON.stringify(Object.values(configs).map(config => [config.apiBase, config.apiKey]));
+  if (readinessCache?.key === key && readinessCache.expiresAt > Date.now()) return readinessCache.promise;
+  const promise = Promise.all(Object.entries(configs).map(async ([route, config]) => {
+    if (!config.apiKey) return [route, { ok: false, status: "not_configured" }];
+    try {
+      const response = await fetchWithTimeout(`${config.apiBase}/v1/parameters`, {
+        headers: jsonHeaders(config.apiKey), redirect: "error",
+      }, 3000);
+      const body = parseMaybeJson(await response.text());
+      return [route, { ok: response.ok && body !== null && typeof body === "object" && !Array.isArray(body),
+        status: !response.ok ? summarizeUpstreamFailure(body, response.status).category
+          : body !== null && typeof body === "object" && !Array.isArray(body) ? "ready" : "invalid_response" }];
+    } catch (error) {
+      return [route, { ok: false, status: error.name === "AbortError" ? "timeout" : "unreachable" }];
+    }
+  })).then(entries => ({ ok: entries.every(([, value]) => value.ok), routes: Object.fromEntries(entries),
+    checked_at: new Date().toISOString() }));
+  readinessCache = { key, expiresAt: Date.now() + 10000, promise };
+  return promise;
+}
 
 async function handleWorkflowBody(rawBody) {
   const body = normalizeRequestBody(rawBody);
@@ -100,6 +124,7 @@ async function runPreview(body, input) {
       return result(response.status, {
         route: "preview", event_type: "start_game", event_id: eventId,
         error: "DIFY_PREVIEW_REQUEST_FAILED", status: response.status, payload,
+        app_id: config.appId, upstream_failure: summarizeUpstreamFailure(payload, response.status),
       });
     }
 
@@ -187,12 +212,14 @@ async function runPreview(body, input) {
       workflow_run_id: diagnostic.workflow_run_id,
       preview_status: status,
       preview_diagnostic: diagnostic,
+      ...(workflowFailed ? { upstream_failure: summarizeUpstreamFailure(payload.data, 502) } : {}),
     });
   } catch (error) {
     return result(error.name === "AbortError" ? 504 : 502, {
       route: "preview", event_type: "start_game", event_id: eventId,
       error: error.name === "AbortError" ? "DIFY_PREVIEW_TIMEOUT" : "DIFY_PREVIEW_PROXY_ERROR",
       message: error.name === "AbortError" ? "Question preview timed out." : error.message,
+      app_id: config.appId, proxy_failure: summarizeProxyFailure(error, config, "preview_fetch"),
     });
   }
 }
@@ -270,14 +297,32 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
       : {}),
   };
 
+  let conversationRecovered = false;
+  const deadline = Date.now() + config.timeoutMs;
   try {
-    const response = await fetchWithTimeout(
-      `${config.apiBase}/v1/chat-messages`,
-      { method: "POST", headers: jsonHeaders(config.apiKey), body: JSON.stringify(requestBody) },
-      config.timeoutMs,
-    );
-    const text = await response.text();
-    const payload = parseChatResponse(text, response.headers.get("content-type") || "");
+    const exchange = async () => {
+      if (Date.now() >= deadline) {
+        const error = new Error("Dify response deadline exceeded.");
+        error.name = "AbortError";
+        throw error;
+      }
+      const response = await fetchWithTimeout(
+        `${config.apiBase}/v1/chat-messages`,
+        { method: "POST", headers: jsonHeaders(config.apiKey), body: JSON.stringify(requestBody) },
+        Math.max(1, deadline - Date.now()),
+      );
+      return { response, payload: parseChatResponse(await response.text(), response.headers.get("content-type") || "") };
+    };
+    let { response, payload } = await exchange();
+    // Dify rejects a stale conversation before generation, so one fresh-session retry is safe.
+    if (requestBody.conversation_id && !payload.hostResult && !payload.answer && (isMissingConversation(payload.raw, response.status)
+      || payload.upstreamError?.category === "conversation_not_found")) {
+      delete requestBody.conversation_id;
+      snapshot.round_context = buildRoundContext(input, scope, false);
+      requestBody.inputs.snapshot = JSON.stringify(snapshot);
+      conversationRecovered = true;
+      ({ response, payload } = await exchange());
+    }
     if (!response.ok) {
       return result(response.status, {
         route: "chat",
@@ -286,7 +331,23 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
         error: "DIFY_CHATFLOW_REQUEST_FAILED",
         status: response.status,
         payload: payload.raw || payload,
+        app_id: config.appId, conversation_recovered: conversationRecovered,
+        upstream_failure: summarizeUpstreamFailure(payload.raw, response.status),
       });
+    }
+    if (payload.upstreamError) {
+      return result(502, { route: "chat", event_type: input.event?.type || "", event_id: input.event?.id || "",
+        app_id: config.appId, workflow_run_id: payload.workflowRunId,
+        error: "DIFY_CHATFLOW_RUN_FAILED", upstream_failure: payload.upstreamError,
+        conversation_recovered: conversationRecovered,
+        diagnostic: { model_nodes: payload.modelNodes || [] } });
+    }
+    if (!payload.hostResult && !String(payload.answer || "").trim()) {
+      return result(502, { route: "chat", event_type: input.event?.type || "", event_id: input.event?.id || "",
+        app_id: config.appId, workflow_run_id: payload.workflowRunId,
+        error: "DIFY_CHATFLOW_EMPTY_RESPONSE", conversation_recovered: conversationRecovered,
+        upstream_failure: { status: 502, category: "empty_response", code: "", workflow_status: "" },
+        diagnostic: { model_nodes: payload.modelNodes || [] } });
     }
 
     const publicOutput = payload.hostResult
@@ -317,11 +378,9 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
       app_id: config.appId,
       context_verified: Boolean(outputScope),
       diagnostic,
+      conversation_recovered: conversationRecovered,
     });
   } catch (error) {
-    const cause = error.cause || {};
-    let apiOrigin = "";
-    try { apiOrigin = new URL(config.apiBase).origin; } catch {}
     return result(error.name === "AbortError" ? 504 : 502, {
       route: "chat",
       event_type: input.event?.type || "",
@@ -329,13 +388,8 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
       app_id: config.appId,
       error: error.name === "AbortError" ? "DIFY_CHATFLOW_TIMEOUT" : "DIFY_CHATFLOW_PROXY_ERROR",
       message: error.name === "AbortError" ? "Dify Chatflow request timed out." : error.message,
-      proxy_failure: {
-        stage: "chatflow_fetch",
-        api_origin: apiOrigin,
-        error_name: String(error.name || "Error").slice(0, 80),
-        error_code: String(error.code || "").slice(0, 80),
-        cause_code: String(cause.code || "").slice(0, 80),
-      },
+      conversation_recovered: conversationRecovered,
+      proxy_failure: summarizeProxyFailure(error, config, "chatflow_fetch"),
     });
   }
 }
@@ -465,7 +519,14 @@ async function runSituation(body, input) {
         error: "DIFY_SITUATION_REQUEST_FAILED",
         status: response.status,
         payload,
+        app_id: config.appId, upstream_failure: summarizeUpstreamFailure(payload, response.status),
       });
+    }
+    if (["failed", "stopped"].includes(payload?.data?.status)) {
+      return result(502, { route: "situation", event_type: input.event?.type || "", event_id: input.event?.id || "",
+        app_id: config.appId, error: "DIFY_SITUATION_RUN_FAILED",
+        workflow_run_id: payload.workflow_run_id || payload.data.id || "",
+        upstream_failure: summarizeUpstreamFailure(payload.data, 502) });
     }
 
     const scene = parseSceneOutput(payload);
@@ -512,6 +573,7 @@ async function runSituation(body, input) {
       event_id: input.event?.id || "",
       error: error.name === "AbortError" ? "DIFY_SITUATION_TIMEOUT" : "DIFY_SITUATION_PROXY_ERROR",
       message: error.name === "AbortError" ? "Dify Situation Workflow request timed out." : error.message,
+      app_id: config.appId, proxy_failure: summarizeProxyFailure(error, config, "situation_fetch"),
     });
   }
 }
@@ -622,9 +684,12 @@ function parseChatResponse(text, contentType) {
     const payload = parseMaybeJson(text) || {};
     const answer = payload.answer || payload.data?.answer || "";
     const hostResult = parseMaybeJson(payload.data?.outputs?.host_result || payload.outputs?.host_result || payload.host_result);
+    const upstreamError = payload.event === "error" || Number(payload.status) >= 400
+      ? summarizeUpstreamFailure(payload, Number(payload.status) || 502)
+      : ["failed", "stopped"].includes(payload.data?.status) ? summarizeUpstreamFailure(payload.data, 502) : null;
     return { answer, hostResult, conversationId: payload.conversation_id || payload.data?.conversation_id,
       messageId: payload.message_id || payload.id,
-      workflowRunId: payload.workflow_run_id || payload.data?.workflow_run_id || payload.data?.id || "", raw: payload };
+      workflowRunId: payload.workflow_run_id || payload.data?.workflow_run_id || payload.data?.id || "", upstreamError, raw: payload };
   }
 
   let answer = "";
@@ -633,11 +698,16 @@ function parseChatResponse(text, contentType) {
   let messageId = "";
   let workflowRunId = "";
   let eventContext = null;
+  let upstreamError = null;
   const modelNodes = [];
   for (const event of parseSseEvents(text)) {
     const data = parseMaybeJson(event.data);
     if (!data || typeof data !== "object") continue;
     const eventType = typeof data.event === "string" ? data.event : event.event;
+    if (eventType === "error") upstreamError = summarizeUpstreamFailure(data, Number(data.status) || 502);
+    if (eventType === "workflow_finished" && ["failed", "stopped"].includes(data.data?.status)) {
+      upstreamError = summarizeUpstreamFailure(data.data, 502);
+    }
     conversationId ||= data.conversation_id || data.data?.conversation_id || "";
     if (eventType === "message" || eventType === "agent_message" || eventType === "message_end") {
       messageId ||= data.message_id || data.id || "";
@@ -670,7 +740,34 @@ function parseChatResponse(text, contentType) {
       if (parsed && typeof parsed === "object" && (parsed.ai_reply_text !== undefined || parsed.intent !== undefined)) hostResult = parsed;
     }
   }
-  return { answer, hostResult, conversationId, messageId, workflowRunId, modelNodes, eventContext, raw: text };
+  return { answer, hostResult, conversationId, messageId, workflowRunId, modelNodes, eventContext, upstreamError, raw: text };
+}
+
+function isMissingConversation(payload, status) {
+  return status === 404 && payload && typeof payload === "object"
+    && /^Conversation Not Exists\b/i.test(String(payload.message || ""));
+}
+
+function summarizeUpstreamFailure(payload, status) {
+  const message = String(payload?.message || payload?.error || "");
+  const category = isMissingConversation(payload, status) ? "conversation_not_found"
+    : status === 401 || status === 403 ? "authentication_failed"
+    : status === 429 || /quota|rate.?limit|insufficient.*balance/i.test(message) ? "rate_or_quota_limit"
+    : /structured output|parse.*json/i.test(message) ? "structured_output_failed"
+    : /credential|api.?key|unauthorized/i.test(message) ? "model_authentication_failed"
+    : /timed?\s*out|timeout/i.test(message) ? "upstream_timeout"
+    : ["failed", "stopped"].includes(payload?.status) ? "workflow_failed"
+    : status === 404 ? "resource_not_found" : "upstream_error";
+  return { status, category,
+    code: /^[a-z_]{1,80}$/i.test(payload?.code || "") ? payload.code : "",
+    workflow_status: ["failed", "stopped"].includes(payload?.status) ? payload.status : "" };
+}
+
+function summarizeProxyFailure(error, config, stage) {
+  let apiOrigin = "";
+  try { apiOrigin = new URL(config.apiBase).origin; } catch {}
+  return { stage, api_origin: apiOrigin, error_name: String(error.name || "Error").slice(0, 80),
+    error_code: String(error.code || "").slice(0, 80), cause_code: String(error.cause?.code || "").slice(0, 80) };
 }
 
 function summarizeModelNode(node) {
@@ -768,7 +865,7 @@ function getConfig(kind) {
     appId,
     apiKey,
     apiBase,
-    timeoutMs: Number(process.env.DIFY_BFF_TIMEOUT_MS || DEFAULT_TIMEOUT_MS),
+    timeoutMs: Math.max(1, Math.min(120000, Number(process.env.DIFY_BFF_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS)),
   };
 }
 
@@ -776,11 +873,27 @@ function jsonHeaders(apiKey) {
   return { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 }
 
-function fetchWithTimeout(url, options, timeoutMs) {
+async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
-  return fetch(url, { ...options, signal }).finally(() => clearTimeout(timer));
+  let onAbort;
+  const aborted = new Promise((_, reject) => {
+    onAbort = () => { const error = new Error("Dify response deadline exceeded or request cancelled."); error.name = "AbortError"; reject(error); };
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  try {
+    const read = async () => {
+      const response = await fetch(url, { ...options, signal });
+      const text = await response.text();
+      return { ok: response.ok, status: response.status, headers: response.headers, text: async () => text };
+    };
+    return await Promise.race([read(), aborted]);
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", onAbort);
+  }
 }
 
 function result(status, payload) {
@@ -828,6 +941,7 @@ module.exports = {
   DEFAULT_PREVIEW_APP_ID,
   SITUATION_EVENTS,
   handleWorkflowBody,
+  probeBffReadiness,
   getBffHealth() {
     const chat = getConfig("chat");
     const situation = getConfig("situation");

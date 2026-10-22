@@ -31,7 +31,7 @@ class CosyVoiceSocket extends EventEmitter {
       this.socket = tls.connect({ host: this.url.hostname, port, servername: this.url.hostname });
       const fail = error => {
         if (!this.handshaken) reject(error);
-        else this.fail(error);
+        this.fail(error);
       };
       this.socket.once("error", fail);
       this.socket.on("data", chunk => {
@@ -51,7 +51,6 @@ class CosyVoiceSocket extends EventEmitter {
           this.handshaken = true;
           this.socket.removeListener("error", fail);
           this.socket.on("error", error => this.fail(error));
-          this.signal?.removeEventListener("abort", this.abortHandler);
           resolve();
           this.consumeFrames();
           return;
@@ -67,14 +66,12 @@ class CosyVoiceSocket extends EventEmitter {
         ].join("\r\n"));
       });
       this.abortHandler = () => {
-        this.socket?.destroy();
-        this.fail(new Error("COSYVOICE_REQUEST_ABORTED"));
+        fail(new Error("COSYVOICE_REQUEST_ABORTED"));
       };
       if (this.signal?.aborted) this.abortHandler();
       else this.signal?.addEventListener("abort", this.abortHandler, { once: true });
       this.socket.setTimeout(DEFAULT_TIMEOUT_MS, () => {
-        this.socket.destroy();
-        this.fail(new Error("COSYVOICE_WS_TIMEOUT"));
+        fail(new Error("COSYVOICE_WS_TIMEOUT"));
       });
     });
   }
@@ -171,6 +168,7 @@ class CosyVoiceSocket extends EventEmitter {
   }
 
   waitFor(name) {
+    if (this.failed) return Promise.reject(this.failed);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error(`COSYVOICE_WAIT_${name}_TIMEOUT`)), DEFAULT_TIMEOUT_MS);
       this.once(name, value => { clearTimeout(timer); resolve(value); });
@@ -191,11 +189,12 @@ class CosyVoiceSocket extends EventEmitter {
   }
 }
 
-async function synthesizeCosyVoice({ apiKey, text, baseUrl = "https://dashscope-intl.aliyuncs.com", model = "cosyvoice-v3-flash", voice = "longhua_v3", signal, onAudio }) {
+async function synthesizeCosyVoice({ apiKey, text, baseUrl = "https://dashscope-intl.aliyuncs.com", model = "cosyvoice-v3-flash", voice = "longhua_v3", signal, onAudio, onProgress }) {
   const wsBase = baseUrl.replace(/^https:/i, "wss:").replace(/^http:/i, "ws:").replace(/\/+$/, "");
   const client = new CosyVoiceSocket(`${wsBase}/api-ws/v1/inference`, apiKey, signal, onAudio);
   try {
     await client.connect();
+    onProgress?.("connected");
     const taskId = client.taskId;
     const taskStarted = client.waitFor("task-started");
     client.sendJson({
@@ -203,10 +202,11 @@ async function synthesizeCosyVoice({ apiKey, text, baseUrl = "https://dashscope-
       payload: {
         task_group: "audio", task: "tts", function: "SpeechSynthesizer", model,
         input: {},
-        parameters: { text_type: "PlainText", voice, format: "mp3", sample_rate: 24000, volume: 50, rate: 2, pitch: 0.5 },
+        parameters: { text_type: "PlainText", voice, format: "mp3", sample_rate: 24000, volume: 50, rate: 1, pitch: 1 },
       },
     });
     await taskStarted;
+    onProgress?.("task_started");
     const taskFinished = client.waitFor("task-finished");
     client.sendJson({ header: { action: "continue-task", task_id: taskId, streaming: "duplex" }, payload: { input: { text } } });
     client.sendJson({ header: { action: "finish-task", task_id: taskId, streaming: "duplex" }, payload: { input: {} } });

@@ -10,6 +10,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     let releaseChat, chatSent = false;
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/api/health', route => route.fulfill({ json: { ok: true, workflow_proxy: { configured: true } } }));
+    await page.route('**/api/readiness', route => route.fulfill({ json: { ok: true, routes: {} } }));
+    await page.route('**/api/client-diagnostic', route => route.fulfill({ status: 202, json: { ok: true } }));
     await page.route('**/api/workflow', async route => {
       const body = route.request().postDataJSON(), input = JSON.parse(body.input_payload);
       if (body.route === 'chat') {
@@ -49,7 +51,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.waitForTimeout(100);
     assert.equal(await page.locator('#pauseTimeline').innerText(), '继续模拟');
     assert.equal(await page.locator('#pauseTimeline').isEnabled(), true);
-    assert.equal(await page.locator('#resetScenario').isDisabled(), true);
+    assert.equal(await page.locator('#resetScenario').isEnabled(), true);
     assert.equal(await page.locator('#sendQuestion').isDisabled(), true);
     assert.equal(await page.evaluate(() => [...els.eventButtons].every(button => button.disabled)), true);
 
@@ -122,7 +124,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.waitForTimeout(1000);
     assert.equal(await page.evaluate(() => state.game.status), 'paused', 'manual resume must not end the independent safety pause early');
     await page.waitForFunction(() => state.game.status === 'playing', null, { timeout: 6000 });
+    await page.locator('#pauseTimeline').click();
+    assert.equal(await page.locator('#resetScenario').isEnabled(), true);
+    assert.equal(await page.locator('#resetScenario').evaluate(button => getComputedStyle(button).pointerEvents), 'auto');
+    await page.locator('#resetScenario').click();
+    await page.waitForFunction(() => !simulationRuntime.paused && state.timeline.status === 'idle' && state.game.status === 'idle');
     assert.deepEqual(errors, []);
-    console.log('PASS: gameplay and summary freeze pixel-for-pixel; delayed Dify output, timers, CSS, sprites, Canvas and audio resume from pause.');
+    console.log('PASS: gameplay and summary freeze pixel-for-pixel; delayed Dify output, timers, CSS, sprites, Canvas and audio resume from pause; manual-pause reset is clickable.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

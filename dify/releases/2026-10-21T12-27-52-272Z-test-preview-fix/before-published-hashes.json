@@ -1,0 +1,30 @@
+{
+  "alibaba": {
+    "host": {
+      "app_id": "b1f6f41d-eb34-4cba-b126-d08ca73052a3",
+      "hash": "5e8a908541653dbe6df5142067b4b5911cf00f5120ec1fe3028a891d647c8cf7"
+    },
+    "situation": {
+      "app_id": "b68a7ef3-f411-49fe-9a9f-92bdfcf40ce4",
+      "hash": "fcf8011f81f43db86b10ac0dc8357e5ee8bc699349560a0ea6a7c7ca543877b4"
+    },
+    "preview": {
+      "app_id": "695710b2-b79e-4d8f-ab2f-6cfc543e7674",
+      "hash": "41e5a8e8690e789b5ca01f59546fe842183cdca2b35a7f41f271d7fb28c3eb06"
+    }
+  },
+  "alibaba-test": {
+    "host": {
+      "app_id": "b8bff994-d397-484e-8ccd-11851e6cc460",
+      "hash": "78111724f81b5cda87d2d1252e23e4132ba0bb979c4083625bb6770fdd08b25e"
+    },
+    "situation": {
+      "app_id": "6e3c5968-1a66-443d-9a2d-a6c62ff248eb",
+      "hash": "8cf087acf9fc5d182380f5b78dd21012004f25cf244f3ca3ab66560743baf8a7"
+    },
+    "preview": {
+      "app_id": "aa30333f-4a8d-4d89-9d6f-557ee7296263",
+      "hash": "41e5a8e8690e789b5ca01f59546fe842183cdca2b35a7f41f271d7fb28c3eb06"
+    }
+  }
+}

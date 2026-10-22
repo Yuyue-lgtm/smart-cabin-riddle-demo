@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { once } = require("events");
-const { handleWorkflowBody, getBffHealth } = require("./api/dify-bff");
+const { handleWorkflowBody, getBffHealth, probeBffReadiness } = require("./api/dify-bff");
 const { appendWorkflowDiagnostic, sanitizeRecord } = require("./api/local-diagnostics");
 const { synthesizeCosyVoice } = require("./api/cosyvoice-websocket.cjs");
 
@@ -25,6 +25,7 @@ const SERVER_INSTANCE_ID = crypto.randomUUID();
 let diagnosticLastWriteAt = null;
 let diagnosticLastError = null;
 const ttsRateLimits = new Map();
+const clientDiagnosticLimits = new Map();
 let activeTtsRequests = 0;
 
 const MIME_TYPES = {
@@ -56,6 +57,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.url === "/api/readiness" && req.method === "GET") {
+      const readiness = await probeBffReadiness();
+      sendJson(res, readiness.ok ? 200 : 503, readiness);
+      return;
+    }
+
     if (req.url === "/api/workflow" && req.method === "POST") {
       await proxyWorkflow(req, res);
       return;
@@ -67,19 +74,26 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.url === "/api/client-diagnostic" && req.method === "POST") {
-      if (RUNTIME !== "local") {
+      const body = await readJsonBody(req);
+      const runtimeDiagnostic = ["host_voice", "workflow_failure", "client_error", "page_state", "player_submission"].includes(body?.type);
+      if (RUNTIME !== "local" && !runtimeDiagnostic) {
         sendJson(res, 404, { error: "NOT_FOUND" });
         return;
       }
-      const body = await readJsonBody(req);
-      if (!body || body.type !== "round_advance_wait" && body.type !== "round_advance_started" && body.type !== "round_advance_completed") {
+      if (!body || !runtimeDiagnostic && !["round_advance_wait", "round_advance_started", "round_advance_completed"].includes(body.type)) {
         sendJson(res, 400, { error: "INVALID_CLIENT_DIAGNOSTIC" });
         return;
       }
+      const key = req.socket.remoteAddress || "unknown";
+      const now = Date.now();
+      const limit = clientDiagnosticLimits.get(key) || { start: now, count: 0 };
+      if (now - limit.start >= 60000) { limit.start = now; limit.count = 0; }
+      if (++limit.count > 240) { sendJson(res, 429, { error: "DIAGNOSTIC_RATE_LIMITED" }); return; }
+      if (!clientDiagnosticLimits.has(key) && clientDiagnosticLimits.size >= 256) clientDiagnosticLimits.delete(clientDiagnosticLimits.keys().next().value);
+      clientDiagnosticLimits.set(key, limit);
       persistWorkflowDiagnostic({
         phase: "client_runtime", timestamp: new Date().toISOString(),
-        game_id: String(body.game_id || "").slice(0, 100),
-        round_id: String(body.round_id || "").slice(0, 140),
+        ...(!runtimeDiagnostic ? { game_id: String(body.game_id || "").slice(0, 100), round_id: String(body.round_id || "").slice(0, 140) } : {}),
         client_diagnostic: body,
       });
       sendJson(res, 202, { ok: true });
@@ -97,9 +111,20 @@ const server = http.createServer(async (req, res) => {
 });
 
 async function proxyCosyVoice(req, res) {
+  const diagnosticId = crypto.randomUUID();
+  const startedAt = Date.now();
+  let voiceError = "";
+  const voiceTimings = { audio_chunks: 0, audio_bytes: 0, max_chunk_gap_ms: 0 };
+  let lastAudioAt = null;
+  res.setHeader("X-Voice-Request-Id", diagnosticId);
+  const logVoice = () => persistWorkflowDiagnostic({ phase: "tts_finish", route: "tts", diagnostic_id: diagnosticId,
+    timestamp: new Date().toISOString(), status: res.statusCode, elapsed_ms: Date.now() - startedAt,
+    error: voiceError, tts_timing: voiceTimings });
   const apiKey = process.env.COSYVOICE_API_KEY;
   if (!apiKey) {
+    voiceError = "TTS_NOT_CONFIGURED";
     sendJson(res, 503, { error: "TTS_NOT_CONFIGURED" });
+    logVoice();
     return;
   }
 
@@ -120,11 +145,15 @@ async function proxyCosyVoice(req, res) {
   rate.count += 1;
   ttsRateLimits.set(clientIp, rate);
   if (rate.count > TTS_RATE_LIMIT_REQUESTS) {
+    voiceError = "TTS_RATE_LIMITED";
     sendJson(res, 429, { error: "TTS_RATE_LIMITED" });
+    logVoice();
     return;
   }
   if (activeTtsRequests >= 3) {
+    voiceError = "TTS_BUSY";
     sendJson(res, 503, { error: "TTS_BUSY" });
+    logVoice();
     return;
   }
 
@@ -142,7 +171,17 @@ async function proxyCosyVoice(req, res) {
       text,
       baseUrl: process.env.COSYVOICE_API_BASE_URL || "https://dashscope-intl.aliyuncs.com",
       signal: controller.signal,
+      onProgress: stage => {
+        if (stage === "connected") voiceTimings.connect_ms = Date.now() - startedAt;
+        if (stage === "task_started") voiceTimings.task_started_ms = Date.now() - startedAt;
+      },
       onAudio: chunk => {
+        const now = Date.now();
+        if (lastAudioAt === null) voiceTimings.first_audio_ms = now - startedAt;
+        else voiceTimings.max_chunk_gap_ms = Math.max(voiceTimings.max_chunk_gap_ms, now - lastAudioAt);
+        lastAudioAt = now;
+        voiceTimings.audio_chunks += 1;
+        voiceTimings.audio_bytes += chunk.length;
         if (!res.headersSent) {
           res.writeHead(200, {
             "Content-Type": "audio/mpeg",
@@ -162,10 +201,12 @@ async function proxyCosyVoice(req, res) {
       }
     } else if (!res.destroyed) res.end();
   } catch (error) {
+    voiceError = controller.signal.aborted ? "TTS_CANCELLED_OR_TIMEOUT" : "TTS_UPSTREAM_FAILED";
     if (!res.headersSent) sendJson(res, 502, { error: "TTS_UPSTREAM_FAILED" });
     else if (!res.destroyed) res.end();
     if (error.name !== "AbortError") console.warn("CosyVoice request failed.", error.message);
   } finally {
+    logVoice();
     clearTimeout(timeout);
     res.off("close", abortUpstream);
     activeTtsRequests = Math.max(0, activeTtsRequests - 1);
@@ -249,6 +290,8 @@ async function proxyWorkflow(req, res) {
       reply_fingerprint: fingerprint(reply),
       error: response.payload?.error || "",
       proxy_failure: response.payload?.proxy_failure || null,
+      upstream_failure: response.payload?.upstream_failure || null,
+      conversation_recovered: Boolean(response.payload?.conversation_recovered),
       app_id: response.payload?.app_id || "",
     };
     logWorkflowDiagnostic({

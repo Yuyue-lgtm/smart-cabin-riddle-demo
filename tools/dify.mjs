@@ -6,7 +6,10 @@ import { projectRoot, profilesPath } from './dify-workflow-mcp/src/ecs-console.m
 
 const [command = 'help', ...args] = process.argv.slice(2);
 try {
-  if (command === 'tunnel') {
+  if (command === 'dev-agent') {
+    const { runLocalDemoAgent } = await import('./dify-workflow-mcp/src/local-demo-agent.mjs');
+    console.log(JSON.stringify(await runLocalDemoAgent(args[0] || 'status'), null, 2));
+  } else if (command === 'tunnel') {
     const { runTunnelCommand } = await import('./dify-workflow-mcp/src/ecs-tunnel.mjs');
     console.log(JSON.stringify(await runTunnelCommand(args[0], args.slice(1)), null, 2));
   } else if (command === 'doctor') {
@@ -35,7 +38,7 @@ try {
     const { verifyReleaseFolder } = await import('./dify-workflow-mcp/src/ecs-release.mjs');
     console.log(JSON.stringify(verifyReleaseFolder(folder)));
   } else if (command === 'help') {
-    console.log('node tools/dify.mjs tunnel install|start|restart|stop|status | doctor | smoke | login | status | setup | test | release [--publish] | dev | verify [version-folder]');
+    console.log('node tools/dify.mjs tunnel install|start|restart|stop|status | dev-agent install|start|stop|status | doctor | smoke | login | status | setup | test | release [--publish] | dev | verify [version-folder]');
   } else {
     await probeEcs();
     const { runCommand } = await import('./dify-workflow-mcp/src/ecs-project.mjs');

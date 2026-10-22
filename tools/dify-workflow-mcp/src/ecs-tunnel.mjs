@@ -74,7 +74,13 @@ export async function tunnelReachable(origin = tunnelOrigin, fetchImpl = globalT
 export async function ensureTunnel(origin = tunnelOrigin, { timeoutMs = 18000 } = {}) {
   if (await tunnelReachable(origin)) return;
   if (origin === tunnelOrigin && fs.existsSync(plistPath)) {
-    const loaded = launchctl(['print', service()], false).status === 0;
+    const current = launchctl(['print', service()], false);
+    const loaded = current.status === 0;
+    const listener = tunnelListener();
+    const managedPid = Number(current.stdout?.match(/\bpid = (\d+)/)?.[1]) || null;
+    if (listener && listener.pid !== managedPid) {
+      throw new Error(`ECS_TUNNEL_PORT_OCCUPIED: 127.0.0.1:8081 is owned by ${listener.command} (PID ${listener.pid}); stop the old port forward before starting the managed SSH tunnel.`);
+    }
     if (!loaded) launchctl(['bootstrap', domain(), plistPath]);
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
@@ -85,6 +91,15 @@ export async function ensureTunnel(origin = tunnelOrigin, { timeoutMs = 18000 } 
   throw new Error(`ECS_TUNNEL_UNAVAILABLE: ${origin}; run node tools/dify.mjs tunnel status or doctor. Check SSH entry/security-group access; Dify and the public website run independently on ECS.`);
 }
 
+function tunnelListener() {
+  if (process.platform !== 'darwin') return null;
+  const result = spawnSync('/usr/sbin/lsof', ['-nP', '-iTCP:8081', '-sTCP:LISTEN', '-Fpc'], {
+    encoding: 'utf8', timeout: 3000,
+  });
+  const pid = Number(result.stdout?.match(/^p(\d+)/m)?.[1]);
+  return pid ? { pid, command: result.stdout.match(/^c(.+)/m)?.[1] || 'unknown' } : null;
+}
+
 export async function tunnelStatus() {
   const result = launchctl(['print', service()], false);
   const text = result.stdout || '';
@@ -92,8 +107,11 @@ export async function tunnelStatus() {
   const log = path.join(privateFolder, 'tunnel.stderr.log');
   const lastError = !reachable && fs.existsSync(log)
     ? fs.readFileSync(log, 'utf8').trim().split(/\r?\n/).at(-1)?.slice(0, 300) : null;
+  const pid = Number(text.match(/\bpid = (\d+)/)?.[1]) || null;
+  const listener = tunnelListener();
   return { installed: fs.existsSync(plistPath), loaded: result.status === 0,
-    pid: Number(text.match(/\bpid = (\d+)/)?.[1]) || null,
+    pid, listener,
+    failure_code: !reachable && listener && listener.pid !== pid ? 'LOCAL_PORT_OCCUPIED' : null,
     last_exit_code: text.match(/last exit code = (\d+)/)?.[1] || null,
     origin: tunnelOrigin, reachable, last_error: lastError, log };
 }

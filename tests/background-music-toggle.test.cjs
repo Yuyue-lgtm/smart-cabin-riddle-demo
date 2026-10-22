@@ -5,11 +5,11 @@ const test = require("node:test");
 const { webcrypto } = require("node:crypto");
 
 const clientSource = fs.readFileSync(require.resolve("../client-app.js"), "utf8")
-  .replace(/\nboot\(\);\s*$/, "\n");
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, "\n");
 const html = fs.readFileSync(require.resolve("../index.html"), "utf8");
 const css = fs.readFileSync(require.resolve("../styles.css"), "utf8");
 
-function createClient() {
+function createClient(storage = new Map()) {
   const context = vm.createContext({
     structuredClone,
     console,
@@ -17,7 +17,10 @@ function createClient() {
     setTimeout,
     clearTimeout,
     window: { setTimeout, clearTimeout, setInterval, clearInterval },
-    localStorage: { getItem: () => null, setItem() {} },
+    localStorage: {
+      getItem: (key) => storage.get(key) ?? null,
+      setItem: (key, value) => storage.set(key, value),
+    },
   });
   vm.runInContext(clientSource, context);
   return {
@@ -25,6 +28,48 @@ function createClient() {
     value: (code) => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, context)),
   };
 }
+
+test("music always starts off on both toggles, ignoring any old cached state", () => {
+  for (const cached of [null, "true", "false", "invalid", "1"]) {
+    const storage = new Map();
+    if (cached !== null) storage.set("smart-cabin-background-music-enabled", cached);
+    const app = createClient(storage);
+    app.run(`
+      for (const key of ["backgroundMusicToggle", "backgroundMusicToggleGame"]) {
+        els[key] = { attrs: {}, setAttribute(name, value) { this.attrs[name] = value; }, querySelector() { return null; } };
+      }
+      syncBackgroundMusicToggle();
+    `);
+    assert.equal(app.value("backgroundMusic.enabled"), false);
+    assert.deepEqual(app.value("[els.backgroundMusicToggle.attrs['aria-pressed'], els.backgroundMusicToggleGame.attrs['aria-pressed']]"),
+      ["false", "false"]);
+  }
+});
+
+function stubMusicEffects(app) {
+  app.run(`
+    recordClientRuntimeDiagnostic = () => {};
+    recordExecutionReceipt = () => {};
+    stopHostSpriteAudio = () => {};
+    cancelHostVoiceSpeech = () => {};
+    refreshHostSpeechMedia = () => {};
+  `);
+}
+
+test("music changes remain in the current page and do not write a stored preference", () => {
+  const storage = new Map();
+  const first = createClient(storage);
+  stubMusicEffects(first);
+  first.run("setBackgroundMusicEnabled(true)");
+  assert.equal(first.value("backgroundMusic.enabled"), true);
+  assert.equal(storage.has("smart-cabin-background-music-enabled"), false);
+  const refreshed = createClient(storage);
+  assert.equal(refreshed.value("backgroundMusic.enabled"), false);
+  stubMusicEffects(refreshed);
+  refreshed.run("setBackgroundMusicEnabled(false)");
+  assert.equal(storage.has("smart-cabin-background-music-enabled"), false);
+  assert.equal(createClient(storage).value("backgroundMusic.enabled"), false);
+});
 
 test("game screen music toggle follows Figma placement and is visible only while playing", () => {
   assert.match(html, /id="backgroundMusicToggleGame"/);
@@ -58,10 +103,23 @@ test("ready and in-game toggles share the same pressed state and icon", () => {
   `);
 
   assert.deepEqual(app.value("[els.backgroundMusicToggle.attrs, els.backgroundMusicToggleGame.attrs]"), [
-    { "aria-pressed": "true", "aria-label": "关闭背景音乐" },
-    { "aria-pressed": "true", "aria-label": "关闭背景音乐" },
+    { "aria-pressed": "true", "aria-label": "关闭背景音乐和主持人语音" },
+    { "aria-pressed": "true", "aria-label": "关闭背景音乐和主持人语音" },
   ]);
   assert.deepEqual(app.value("[els.backgroundMusicToggle.icon.textContent, els.backgroundMusicToggleGame.icon.textContent]"), ["🔊", "🔊"]);
+});
+
+test("enabled shared music suppresses the ready-page sound onboarding", () => {
+  const app = createClient();
+  app.run(`
+    getGameScreenMode = () => "ready";
+    els.soundOnboarding = { hidden: true };
+    backgroundMusic.enabled = true;
+    scheduleSoundOnboarding();
+  `);
+  assert.equal(app.value("soundOnboardingTimer"), 0);
+  assert.equal(app.value("els.soundOnboarding.hidden"), true);
+  assert.match(clientSource, /els\.backgroundMusicToggleGame\.addEventListener\("click", \(\) => \{\s*dismissSoundOnboarding\(\);/);
 });
 
 test("decision arrows are enabled only for columns with content", () => {

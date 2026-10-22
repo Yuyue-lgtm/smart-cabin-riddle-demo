@@ -4,6 +4,8 @@
 
 主持人语音播报接入配置：[CosyVoice 新加坡 / 龙华 `longhua_v3`](COSYVOICE_TTS.md)。密钥仅配置在 Demo 服务端环境中。
 
+游戏加载页、默认首题加载条件、20秒失败出口及场景预演缓存：[GAME_LOADING.md](GAME_LOADING.md)。当前先在本地4175体验，未部署正式网站。
+
 开始新的 Dify 子对话时，先读 [DIFY_CURRENT_STATE.md](./DIFY_CURRENT_STATE.md)。该文件记录最近确认的云端版本、应用职责、当前运行边界和安全迭代步骤；细节再查对应专题文档。
 
 工作流和知识库的正式版本资料见 [dify/README.md](../dify/README.md)：已保存三套 Cloud 完整 DSL、三套 ECS 迁移导入副本、28 条知识库原文、环境绑定及 SHA-256 清单。当前归档是 2026-10-19 来源/2026-10-20 上线的迁移基线，不是新做的 ECS 发布图回读；后续稳定版本另建目录保留历史。

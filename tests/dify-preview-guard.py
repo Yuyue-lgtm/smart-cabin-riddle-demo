@@ -36,6 +36,52 @@ def run(steps, repair=None):
 
 
 class PreviewGuardTests(unittest.TestCase):
+    def test_hint_overlap_policy_matches_the_unchanged_guard(self):
+        hint = "它平时很安静，但关键时刻比主持人还可靠。"
+        context = json.loads(compact(json.dumps({"game": {"current_answer": "安全带", "hint": hint}}))["context_json"])
+        policy = context["generation_policy"]
+        pairs = policy["hint_overlap_pairs"]
+        self.assertIn("它平", pairs)
+        self.assertIn("平时", pairs)
+        self.assertEqual(policy["max_hint_pair_matches_per_question"], 1)
+        for question in ("它平时能保护人吗？", "它能保护人吗？", "它关键时刻有作用吗？"):
+            expected = sum(pair in question for pair in pairs) > policy["max_hint_pair_matches_per_question"]
+            self.assertEqual(guard.__globals__["early_clue"](question, "安全带", hint), expected)
+
+    def test_generation_constraints_expose_guard_fragments_without_weakening_guard(self):
+        context = json.loads(compact(json.dumps({"game": {"current_answer": "安全带"}}))["context_json"])
+        policy = context["generation_policy"]
+        self.assertEqual(policy["forbidden_answer_fragments"], ["安全带", "安全", "全带"])
+        self.assertEqual(context["next_global_step"], 1)
+        self.assertEqual(context["next_required_stage"], "category")
+        for marker in policy["forbidden_specific_markers"]:
+            self.assertTrue(guard.__globals__["early_clue"](marker, "安全带"))
+        steps = [step(index) for index in range(1, 5)]
+        steps[2]["variants"]["default"] = "它能保障安全吗？"
+        steps[2]["host_reply_text"] = "是，能保障安全。"
+        rejected = run(steps)
+        self.assertEqual(len(rejected["round_question_plan"]["steps"]), 2)
+        self.assertIn("early_question_clue_leak_3", rejected["preview_diagnostic"]["validation_errors"])
+        self.assertIn("early_reply_clue_leak_3", rejected["preview_diagnostic"]["validation_errors"])
+        steps[2]["variants"]["default"] = "它能保护人吗？"
+        steps[2]["host_reply_text"] = policy["short_replies"]["yes"]
+        self.assertEqual(run(steps)["preview_status"], "ready")
+
+    def test_repair_context_identifies_global_stage_and_specific_rewrite_rules(self):
+        prefix = [step(1), step(2)]
+        payload = {"game": {"current_answer": "安全带"}, "round_question_plan_request": {
+            "step_count": 6, "repair": {"attempt": 1, "plan_id": "plan", "accepted_steps": prefix,
+                "validation_errors": ["early_question_clue_leak_3", "early_reply_clue_leak_3"]}}}
+        context = json.loads(compact(json.dumps(payload))["context_json"])
+        self.assertEqual(context["remaining_step_count"], 4)
+        self.assertEqual(context["next_global_step"], 3)
+        self.assertEqual(context["next_required_stage"], "function")
+        self.assertEqual(context["repair"]["accepted_steps"], prefix)
+        self.assertEqual(len(context["repair"]["rewrite_instructions"]), 2)
+        payload["round_question_plan_request"]["repair"]["accepted_steps"] += [step(3), step(4)]
+        context = json.loads(compact(json.dumps(payload))["context_json"])
+        self.assertEqual(context["next_required_stage"], "near_answer")
+
     def test_complete_valid_chain_is_ready(self):
         output = run([step(index) for index in range(1, 5)])
         self.assertEqual(output["preview_status"], "ready")

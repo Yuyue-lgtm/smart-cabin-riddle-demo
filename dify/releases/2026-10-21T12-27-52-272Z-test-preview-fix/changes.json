@@ -1,0 +1,12 @@
+{
+  "changed": true,
+  "added_nodes": [],
+  "removed_nodes": [],
+  "changed_nodes": [
+    "2000000000005",
+    "2000000000002"
+  ],
+  "edges_changed": false,
+  "features_changed": false,
+  "variables_changed": false
+}

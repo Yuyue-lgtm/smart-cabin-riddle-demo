@@ -4,7 +4,8 @@ const vm = require("node:vm");
 const test = require("node:test");
 const { webcrypto } = require("node:crypto");
 
-const source = fs.readFileSync(require.resolve("../client-app.js"), "utf8").replace(/\nboot\(\);\s*$/, "\n");
+const source = fs.readFileSync(require.resolve("../client-app.js"), "utf8")
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, "\n");
 
 function createClient() {
   const context = vm.createContext({

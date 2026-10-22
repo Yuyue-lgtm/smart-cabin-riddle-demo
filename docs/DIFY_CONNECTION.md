@@ -1,5 +1,7 @@
 # 本机与阿里云 Dify 连接
 
+2026-10-21排查补充：本机旧阿里云客户端占用8081会阻止后台SSH启动，即使22白名单已更新也不会恢复。不要同时启用两个8081转发。隧道工具现在会报告监听进程及 `LOCAL_PORT_OCCUPIED`；完整证据、会话恢复和超时修复见 [Dify稳定性记录](DIFY_RELIABILITY.md)。
+
 ## 当前连接方式
 
 本地 Demo、Dify 管理与 API 统一使用固定入口 `http://127.0.0.1:8081`。SSH 直接连接 ECS 公网 `47.83.188.59:22`，转发到 **ECS 本机** `127.0.0.1:8080`；不再依赖阿里云客户端 Session Manager，也不再临时切换到18081等端口。
@@ -19,6 +21,15 @@ node tools/dify.mjs dev
 ```
 
 启动前自动检查并恢复已安装隧道，核验三套测试应用Key后才启动 `http://127.0.0.1:4175/`。日常无需手动开SSH终端或阿里云客户端。控制台登录会话与服务端API Key独立；维护登录过期不等于游戏API失效。
+
+本地 Demo 也可设置为 macOS 登录后自动启动一次：
+
+```sh
+node tools/dify.mjs dev-agent install
+node tools/dify.mjs dev-agent status
+```
+
+启动项 `xyz.cabinplay.local-demo` 直接运行项目的 `dev-server.cjs`，固定监听 `127.0.0.1:4175`；`.env.local` 由服务器按原逻辑读取，API Key 不写入 LaunchAgent。SSH 隧道仍由 `xyz.cabinplay.dify-tunnel` 单独自动连接。若更换网络导致安全组白名单不匹配，Demo 页面仍会启动，但 Dify 请求需等隧道恢复。日志位于 `~/Library/Application Support/Cabinplay/local-demo.stderr.log`。使用 `node tools/dify.mjs dev-agent stop|start|status` 管理；再次手动运行 `node tools/dify.mjs dev` 前先停止这个后台服务，避免4175端口冲突。
 
 ```sh
 node tools/dify.mjs doctor

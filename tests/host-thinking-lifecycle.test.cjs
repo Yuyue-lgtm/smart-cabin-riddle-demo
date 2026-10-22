@@ -5,7 +5,7 @@ const { webcrypto } = require("node:crypto");
 const test = require("node:test");
 
 const source = fs.readFileSync(require.resolve("../client-app.js"), "utf8")
-  .replace(/\nboot\(\);\s*$/, "\n");
+  .replace(/\ninstallClientErrorDiagnostics\(\);\s*\nboot\(\);\s*$/, "\n");
 
 function client() {
   let now = 100000;
@@ -17,11 +17,11 @@ function client() {
     structuredClone, console, crypto: webcrypto, AbortController,
     setTimeout: schedule, clearTimeout: (id) => timers.delete(id),
     requestAnimationFrame: schedule, cancelAnimationFrame() {},
-    window: { setTimeout: schedule, clearTimeout: (id) => timers.delete(id) },
+    window: { addEventListener() {}, setTimeout: schedule, clearTimeout: (id) => timers.delete(id) },
     localStorage: { getItem: () => null, setItem() {} },
   });
   vm.runInContext(source, context);
-  vm.runInContext('render = () => {}; state.host.text = "";', context);
+  vm.runInContext('render = () => {}; state.host.text = ""; state.game.status = "playing";', context);
   return { context, timers, advance(ms) { now += ms; },
     run: (code) => vm.runInContext(code, context),
     value: (code) => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, context)),
@@ -153,4 +153,29 @@ test("new chat thinking cannot hide a still-active six-second bubble", () => {
   assert.equal(app.timers.get(app.value('state.workflow.hostThinkingTimer')).delay, 5500);
   app.advance(2000);
   assert.equal(app.value('getHostPresentation().hostBubbleHidden'), false);
+});
+
+test("voice synthesis and playback keep the host busy and defer thinking until speech ends", () => {
+  const app = client();
+  assert.equal(app.value('isHostBusy()'), false);
+  app.run('state.host.text="正在说的回答"; state.workflow.hostSpeech.voicePending=true;');
+  assert.equal(app.value('isHostBusy()'), true);
+  app.run('const requestId=beginWorkflowRequest({trigger_type:"chat"});');
+  const pendingTimer = app.timers.get(app.value('state.workflow.hostThinkingTimer'));
+  app.advance(pendingTimer.delay);
+  pendingTimer.callback();
+  assert.equal(app.value('state.workflow.hostThinkingActive'), false);
+  app.run('state.workflow.hostSpeech.voicePending=false; state.workflow.hostSpeech.voicePlaying=true;');
+  assert.equal(app.value('isHostBusy()'), true);
+  const playingTimer = app.timers.get(app.value('state.workflow.hostThinkingTimer'));
+  app.advance(playingTimer.delay);
+  playingTimer.callback();
+  assert.equal(app.value('state.workflow.hostThinkingActive'), false);
+  app.run('state.workflow.hostSpeech.voicePlaying=false;');
+  const followingTimer = app.timers.get(app.value('state.workflow.hostThinkingTimer'));
+  app.advance(followingTimer.delay);
+  followingTimer.callback();
+  assert.equal(app.value('state.workflow.hostThinkingActive'), true);
+  app.run('finishWorkflowRequest(requestId);');
+  assert.equal(app.value('isHostBusy()'), false);
 });

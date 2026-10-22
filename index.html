@@ -4,21 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智能座舱 AI 猜谜 Demo</title>
+    <link rel="icon" type="image/png" href="./assets/game-icon-loading.png?v=5de080117ce7" />
     <link rel="preload" as="image" href="./assets/screen-default.png?v=20260927-screen-default-v2" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/cabin-env-garage.png" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/host-normal.webp" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-env-garage.png?v=figma-ce-garage-20261022" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/game-icon-loading.png?v=5de080117ce7" fetchpriority="high" />
     <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20261020-focus-pause-v2" />
+  <link rel="stylesheet" href="./styles.css?v=20261022-control-type-v4" />
   </head>
   <body>
-    <div class="stage-viewport">
+    <div class="stage-viewport" id="stageViewport">
       <main class="app-shell" id="appShell">
         <section class="cabin-region" aria-label="虚拟座舱">
         <div class="region-title">座舱&环境模拟</div>
         <div class="environment-backdrop" id="environmentBackdrop">
           <img
             class="environment-backdrop-image"
-            src="./assets/cabin-env-garage.png"
+            src="./assets/cabin-env-garage.png?v=figma-ce-garage-20261022"
             alt=""
             aria-hidden="true"
             decoding="sync"
@@ -38,20 +39,23 @@
               <b id="speedLabel">50 km/h</b>
             </span>
           </div>
-          <div class="decision-card cabin-decision-card">
+          <div class="decision-card cabin-decision-card is-prestart">
             <span class="panel-kicker">融合决策</span>
             <dl>
               <div>
                 <dt>感知</dt>
-                <dd id="decisionPerception">等待座舱事件</dd>
+                <dd id="decisionPerception"></dd>
+                <div class="decision-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
               </div>
               <div>
                 <dt>决策 <span id="decisionPriority" class="decision-priority" hidden></span></dt>
-                <dd id="decisionDecision">等待 Workflow 判断</dd>
+                <dd id="decisionDecision"></dd>
+                <div class="decision-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
               </div>
               <div>
                 <dt>执行</dt>
-                <dd id="decisionExecution">等待网页动作</dd>
+                <dd id="decisionExecution"></dd>
+                <div class="decision-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
               </div>
             </dl>
           </div>
@@ -121,10 +125,31 @@
         </section>
 
         <section class="right-stack">
-          <section class="game-region" aria-label="游戏界面">
-          <div class="region-title">中控屏</div>
+          <section class="game-region" id="gameRegion" aria-label="游戏界面">
+          <div class="region-title">中控屏/吸顶屏</div>
           <audio id="backgroundMusic" src="./assets/background-music.m4a?v=20261001" loop preload="metadata" hidden aria-hidden="true"></audio>
-          <div class="game-screen" id="gameScreen">
+          <div class="game-screen screen-loading" id="gameScreen">
+            <div class="loading-stage" aria-label="游戏加载">
+              <div class="loading-content">
+                <div class="loading-brand">
+                  <img class="loading-icon" src="./assets/game-icon-loading.png?v=5de080117ce7" width="130" height="130" alt="" fetchpriority="high" />
+                  <div class="loading-title">旅途猜谜</div>
+                </div>
+                <div class="loading-details">
+                  <div class="loading-track" role="progressbar" aria-label="加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <span id="loadingProgress"></span>
+                  </div>
+                  <div class="loading-status-row" role="status" aria-live="polite">
+                    <span id="loadingStatus">正在加载旅途…</span>
+                    <span id="loadingPercent">0%</span>
+                  </div>
+                </div>
+                <div class="loading-actions" id="loadingActions" hidden>
+                  <button id="loadingRetry" type="button">重试失败项</button>
+                  <button id="loadingContinue" type="button">先进入</button>
+                </div>
+              </div>
+            </div>
             <img
               class="game-screen-background"
               src="./assets/screen-default.png?v=20260927-screen-default-v2"
@@ -142,7 +167,7 @@
             <canvas class="game-confetti-canvas" id="confettiCanvas" aria-hidden="true" hidden></canvas>
             <canvas class="summary-confetti-canvas" id="summaryConfettiCanvas" aria-hidden="true" hidden></canvas>
             <div class="pencil-game-icon" aria-hidden="true">
-              <img src="./assets/game-icon.png" alt="" />
+              <img src="./assets/game-icon-loading.png?v=5de080117ce7" alt="" />
             </div>
             <div class="pencil-title" aria-hidden="true">旅途猜谜</div>
             <div class="pencil-progress-rail" id="pencilProgressRail" aria-hidden="true">
@@ -152,7 +177,7 @@
             </div>
             <div class="question-counter">
               <span class="ticket-mark" aria-hidden="true">
-                <img src="./assets/question-icon.svg" alt="" />
+                <img src="./assets/question-icon.svg?v=e6142d434f61" alt="" />
               </span>
               <span class="question-copy"><strong id="questionProgress">1 / 6</strong> 题</span>
             </div>
@@ -163,7 +188,7 @@
               class="ready-sound-toggle game-sound-toggle"
               id="backgroundMusicToggleGame"
               type="button"
-              aria-label="打开背景音乐"
+              aria-label="打开背景音乐和主持人语音"
               aria-pressed="false"
             >
               <span class="ready-sound-icon" aria-hidden="true">🔇</span>
@@ -218,11 +243,12 @@
                 class="ready-sound-toggle"
                 id="backgroundMusicToggle"
                 type="button"
-                aria-label="打开背景音乐"
+                aria-label="打开背景音乐和主持人语音"
                 aria-pressed="false"
               >
                 <span class="ready-sound-icon" aria-hidden="true">🔇</span>
               </button>
+              <div class="sound-onboarding" id="soundOnboarding" role="status" hidden>打开可以听到主持人说话哦</div>
               <span class="ready-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
               <img class="ready-ring-mosaic" src="./assets/figma-ready-ring-mosaic.png" alt="" aria-hidden="true" />
               <img class="ready-panel-mosaic" src="./assets/figma-ready-panel-mosaic.png" alt="" aria-hidden="true" />
@@ -250,6 +276,11 @@
               <img class="host-bubble-tail" src="./assets/bubble-tail.svg" alt="" aria-hidden="true" />
             </div>
           </div>
+          <button class="fullscreen-button" id="gameFullscreenButton" type="button" aria-label="全屏显示中控屏" title="全屏显示中控屏">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
+            </svg>
+          </button>
           </section>
 
       <section class="control-region" aria-label="上帝视角控制区">
@@ -277,66 +308,54 @@
           </div>
 
           <div class="control-grid">
-            <div class="control-row">
-              <span class="control-label">车速</span>
-              <div class="chip-group" id="speedChips">
-                <button class="chip active" data-speed="50" type="button">50</button>
-                <button class="chip" data-speed="80" type="button">80</button>
-                <button class="chip" data-speed="100" type="button">100</button>
-                <button class="chip" data-speed="120" type="button">120</button>
-              </div>
-            </div>
-
             <div class="control-row environment-row">
               <span class="control-label">车外环境</span>
               <div class="chip-group" id="environmentChips">
                 <button class="chip active" data-environment="车库" type="button">车库</button>
                 <button class="chip" data-environment="隧道" type="button">隧道</button>
-                <button class="chip" data-environment="高速路晴天白天" type="button">高速路晴天白天</button>
-                <button class="chip" data-environment="高速路晴天深夜" type="button">高速路晴天深夜</button>
-                <button class="chip" data-environment="高速路雨天白天" type="button">高速路雨天白天</button>
-                <button class="chip" data-environment="城区晴天白天" type="button">城区晴天白天</button>
-                <button class="chip" data-environment="城区夜晚" type="button">城区夜晚</button>
-                <button class="chip" data-environment="城区雨天白天" type="button">城区雨天白天</button>
-                <button class="chip" data-environment="风景区晴天白天" type="button">风景区晴天白天</button>
-                <button class="chip" data-environment="风景区傍晚" type="button">风景区傍晚</button>
-                <button class="chip" data-environment="风景区雪景白天" type="button">风景区雪景白天</button>
-                <button class="chip" data-environment="风景区晴天深夜" type="button">风景区晴天深夜</button>
+                <button class="chip" data-environment="雨天" type="button">雨天</button>
+                <button class="chip" data-environment="风景区雪景白天" type="button">雪景</button>
+                <button class="chip" data-environment="城区晴天白天" type="button">城市白天</button>
+                <button class="chip" data-environment="城区夜晚" type="button">城市夜晚</button>
+                <button class="chip" data-environment="风景区晴天白天" type="button">风景区</button>
+                <button class="chip" data-environment="风景区傍晚" type="button">傍晚</button>
+                <button class="chip" data-environment="风景区晴天深夜" type="button">深夜</button>
               </div>
             </div>
 
             <div class="control-row">
               <span class="control-label">事件</span>
               <div class="chip-group">
-                <button class="event-button" data-event="hard_brake" type="button">急刹打断</button>
+                <button class="event-button" data-event="hard_brake" type="button">急刹</button>
                 <button class="event-button" data-event="driver_tired" type="button">主驾疲惫</button>
-                <button class="event-button" data-event="driver_distracted" type="button">主驾分心</button>
-                <button class="event-button" data-event="temporary_interruption" type="button">临时事件打断</button>
                 <button class="event-button" data-event="passenger_sleep" type="button">有人睡着</button>
                 <button class="event-button" data-event="passenger_wake" type="button">乘客醒来</button>
                 <button class="event-button" data-event="near_destination" type="button">快到目的地</button>
-                <button class="event-button" data-event="speed_overspeed" type="button">车速超限</button>
-                <button class="event-button" data-event="game_stuck" type="button">猜谜陷入僵局</button>
-                <button class="event-button" data-event="near_answer" type="button">接近答案</button>
+                <button class="event-button" data-event="speed_overspeed" type="button">超速</button>
+                <button class="event-button" data-event="temporary_interruption" data-event-reason="complex_road" type="button">进入复杂路段</button>
                 <button class="event-button" data-event="cabin_laughing" type="button">车内欢笑</button>
               </div>
             </div>
           </div>
 
-          <div class="ask-bar control-ask-bar">
+          <div class="ask-bar control-ask-bar" id="controlAskBar">
             <div class="fixed-speaker" aria-label="当前乘客">副驾：</div>
-            <input id="playerInput" placeholder="请输入副驾的提问或答案" />
+            <div class="player-input-wrap">
+              <span class="player-input-guide" id="playerInputGuide" aria-hidden="true" hidden>👇</span>
+              <input id="playerInput" placeholder="请输入文本模拟副驾答题" />
+            </div>
             <button id="sendQuestion" type="button">发送提问</button>
           </div>
           </section>
         </section>
       </main>
+      <div class="fullscreen-hint" id="fullscreenHint" role="status" aria-live="polite" hidden>按 Esc 退出全屏</div>
     </div>
 
     <div class="inactive-pause-overlay" id="inactivePauseOverlay" hidden>
       <button class="inactive-pause-resume" id="resumeInactiveSimulation" type="button">继续模式</button>
     </div>
 
-<script src="./client-app.js?v=20261020-focus-pause-v2"></script>
+<script src="./client-app.js?v=20261022-shared-sound-onboarding-v1"></script>
   </body>
 </html>

@@ -13,7 +13,7 @@ function collect(folder) {
     const name = path.posix.join(folder, item.name);
     if (item.isSymbolicLink()) throw new Error(`Refusing symlink: ${name}`);
     if (item.isDirectory()) collect(name);
-    else if (item.isFile() && (folder.startsWith('assets') || name.endsWith('.js'))) selected.push(name);
+    else if (item.isFile() && (folder.startsWith('assets') || name.endsWith('.js') || name.endsWith('.cjs'))) selected.push(name);
   }
 }
 collect('api');
