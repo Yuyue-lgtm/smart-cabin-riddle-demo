@@ -17,7 +17,7 @@ function previewResponse(input) {
   const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
   fs.mkdirSync('tmp/game-loading', { recursive: true });
   const reports = [];
-  async function fixture({ failed = false, viewport = { width: 2380, height: 1120 } } = {}) {
+  async function fixture({ failed = false, failedAsset = false, viewport = { width: 2380, height: 1120 } } = {}) {
     const context = await browser.newContext({ viewport });
     const page = await context.newPage();
     const requests = [], errors = [];
@@ -25,6 +25,10 @@ function previewResponse(input) {
     const gate = new Promise(resolve => { release = resolve; });
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(() => { document.hasFocus = () => true; });
+    if(failedAsset){
+      let attempts=0;
+      await page.route('**/assets/host-ready-speak.webp*',route=>++attempts===1?route.abort('failed'):route.continue());
+    }
     await page.route('**/api/**', async route => {
       const url = new URL(route.request().url());
       if (url.pathname === '/api/health') return route.fulfill({ json: { workflow_proxy: { configured: true } } });
@@ -86,6 +90,18 @@ function previewResponse(input) {
     assert.deepEqual(failure.errors, []);
     reports.push({ case: 'retry failed preview only; keep successful assets' });
     await failure.context.close();
+
+    const assetFailure=await fixture({failedAsset:true});
+    assetFailure.release();
+    await assetFailure.page.waitForFunction(()=>startupLoading.tasks.some(task=>task.id==='ready-host-readySpeak'&&task.status==='failed'));
+    await assetFailure.page.waitForFunction(()=>startupLoading.tasks.every(task=>['ready','failed'].includes(task.status)));
+    await assetFailure.page.locator('#loadingRetry').click();
+    await assetFailure.page.waitForFunction(()=>getGameScreenMode()==='ready');
+    assert.equal(await assetFailure.page.evaluate(()=>startupLoading.tasks.find(task=>task.id==='ready-host-readySpeak').attempts),2);
+    assert.equal(await assetFailure.page.evaluate(()=>startupLoading.tasks.filter(task=>task.id!=='ready-host-readySpeak').every(task=>task.attempts===1)),true);
+    assert.deepEqual(assetFailure.errors,[]);
+    reports.push({case:'failed host sprite retries successfully without reloading successful resources'});
+    await assetFailure.context.close();
 
     const timeout = await fixture({ viewport: { width: 390, height: 844 } });
     await timeout.page.waitForFunction(() => startupLoading.tasks.length > 0);

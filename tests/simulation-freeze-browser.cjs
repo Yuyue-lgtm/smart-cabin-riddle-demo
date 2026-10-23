@@ -68,16 +68,34 @@ const {previewFixture}=require('./helpers/preview-fixture.cjs');
       music: { time: els.backgroundMusic.currentTime, paused: els.backgroundMusic.paused, enabled: backgroundMusic.enabled },
       hostPixels: els.hostCanvas.toDataURL(), confettiPixels: els.confettiCanvas.toDataURL(),
       decision: [els.decisionPerception.textContent, els.decisionDecision.textContent, els.decisionExecution.textContent],
-      animations: document.getAnimations().map(animation => [animation.animationName || '', animation.currentTime, animation.playState]),
+      animations: document.getAnimations().filter(animation=>animation.effect?.target?.closest?.('.game-region, .cabin-region'))
+        .map(animation => [animation.animationName || '', animation.currentTime, animation.playState]),
     }));
+    const assertFrozenPixels=async(before,after,label)=>{
+      const difference=await page.evaluate(async([before,after])=>{
+        const images=await Promise.all([before,after].map(async data=>{const image=new Image();
+          image.src=`data:image/png;base64,${data}`;await image.decode();return image;}));
+        const canvas=document.createElement('canvas');canvas.width=images[0].width;canvas.height=images[0].height;
+        const context=canvas.getContext('2d');
+        const buffers=images.map(image=>{context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0);
+          return context.getImageData(0,0,canvas.width,canvas.height).data;});
+        let maxDelta=0;for(let i=0;i<buffers[0].length;i++)maxDelta=Math.max(maxDelta,Math.abs(buffers[0][i]-buffers[1][i]));
+        return {maxDelta,sameDimensions:images[0].width===images[1].width&&images[0].height===images[1].height};
+      },[before.toString('base64'),after.toString('base64')]);
+      assert.equal(difference.sameDimensions,true,`${label}: screenshot dimensions changed`);
+      assert.ok(difference.maxDelta<=1,`${label}: ${JSON.stringify(difference)}`);
+    };
     const frozen = await snapshot();
     fs.mkdirSync('tmp', { recursive: true });
-    const before = await page.screenshot({ path: 'tmp/simulation-frozen-game-before.png', animations: 'allow' });
+    const before = await page.locator('.game-region').screenshot({ path: 'tmp/simulation-frozen-game-before.png', animations: 'allow' });
+    const cabinBefore=await page.locator('.cabin-region').screenshot({path:'tmp/simulation-frozen-cabin-before.png',animations:'allow'});
     releaseChat();
     await page.waitForTimeout(6500);
     assert.deepEqual(await snapshot(), frozen, 'game, bubbles, backgrounds, decision trace, sprites, CSS and Canvas stay frozen');
-    const after = await page.screenshot({ path: 'tmp/simulation-frozen-game-after.png', animations: 'allow' });
-    assert.equal(before.equals(after), true, 'all three surfaces have identical pixels after 6.5 seconds');
+    const after = await page.locator('.game-region').screenshot({ path: 'tmp/simulation-frozen-game-after.png', animations: 'allow' });
+    const cabinAfter=await page.locator('.cabin-region').screenshot({path:'tmp/simulation-frozen-cabin-after.png',animations:'allow'});
+    await assertFrozenPixels(before,after,'game pixels stay frozen after 6.5 seconds');
+    await assertFrozenPixels(cabinBefore,cabinAfter,'cabin pixels stay frozen; resume-button guide intentionally keeps moving');
     assert.equal(await page.evaluate(() => audioContext?.state), 'suspended');
     assert.equal(frozen.music.paused, true);
     assert.equal(frozen.music.enabled, true);
@@ -101,20 +119,22 @@ const {previewFixture}=require('./helpers/preview-fixture.cjs');
       time: simulationRuntime.now(), host: state.host.text,
       frame: hostSprite.frameIndex, pixels: els.summaryConfettiCanvas.toDataURL(),
       loop: summaryConfettiAnimation.fallingVisible,
-      animations: document.getAnimations().map(animation => [animation.animationName || '', animation.currentTime, animation.playState]),
+      animations: document.getAnimations().filter(animation=>animation.effect?.target?.closest?.('.game-region, .cabin-region'))
+        .map(animation => [animation.animationName || '', animation.currentTime, animation.playState]),
     }));
     const summary = await summarySnapshot();
-    const summaryBefore = await page.screenshot({ path: 'tmp/simulation-frozen-summary-before.png', animations: 'allow' });
+    const summaryBefore = await page.locator('.game-region').screenshot({ path: 'tmp/simulation-frozen-summary-before.png', animations: 'allow' });
     await page.waitForTimeout(5000);
     assert.deepEqual(await summarySnapshot(), summary, 'summary intro, MVP, confetti and host remain frozen');
-    const summaryAfter = await page.screenshot({ path: 'tmp/simulation-frozen-summary-after.png', animations: 'allow' });
-    assert.equal(summaryBefore.equals(summaryAfter), true);
+    const summaryAfter = await page.locator('.game-region').screenshot({ path: 'tmp/simulation-frozen-summary-after.png', animations: 'allow' });
+    await assertFrozenPixels(summaryBefore,summaryAfter,'summary remains frozen');
     await page.locator('#pauseTimeline').click();
     assert.equal(await page.evaluate(() => state.timeline.status), 'finished');
     await page.waitForFunction(() => summaryConfettiAnimation.fallingVisible);
     assert.notEqual((await summarySnapshot()).pixels, summary.pixels);
 
     await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForFunction(()=>!startupLoading.active&&getGameScreenMode()==='ready');
     await page.locator('#readyStartButton').click();
     await page.evaluate(() => {
       finishTimelineSilently();
@@ -134,6 +154,6 @@ const {previewFixture}=require('./helpers/preview-fixture.cjs');
     await page.locator('#resetScenario').click();
     await page.waitForFunction(() => !simulationRuntime.paused && state.timeline.status === 'idle' && state.game.status === 'idle');
     assert.deepEqual(errors, []);
-    console.log('PASS: gameplay and summary freeze pixel-for-pixel; delayed Dify output, timers, CSS, sprites, Canvas and audio resume from pause; manual-pause reset is clickable.');
+    console.log('PASS: gameplay/summary states freeze exactly and screenshots stay within one color level of rasterization tolerance; delayed output, timers, sprites and audio resume; paused reset works.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
