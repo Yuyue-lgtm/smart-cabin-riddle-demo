@@ -100,7 +100,8 @@ const DIFY_CONVERSATION_CONTEXT_STORAGE_KEY = "smart-cabin-dify-conversation-con
 const DIFY_ROUND_SCOPE_STORAGE_KEY = "smart-cabin-dify-round-scope";
 const DIFY_USER_STORAGE_KEY = "smart-cabin-dify-user-id";
 const HOST_PREFERENCES_STORAGE_KEY = "smart-cabin-host-preferences";
-const SOUND_ONBOARDING_DISMISSED_KEY = "smart-cabin-sound-onboarding-dismissed-v2";
+const SOUND_ONBOARDING_COUNT_KEY = "smart-cabin-sound-onboarding-show-count-v3";
+const RIDDLE_HISTORY_STORAGE_KEY = "smart-cabin-riddle-history-v1";
 let fallbackDifyUserId = "";
 
 function getPersistentDifyUserId() {
@@ -176,6 +177,9 @@ function loadDifyRoundScope() {
     const value = JSON.parse(localStorage.getItem(DIFY_ROUND_SCOPE_STORAGE_KEY) || "null");
     if (!value || typeof value.gameId !== "string" || !value.gameId) return null;
     if (!Number.isInteger(value.roundIndex) || value.roundIndex < 1) return null;
+    if (value.currentRiddleId) {
+      value.currentRiddleIndex = RIDDLES.findIndex(riddle => riddle.id === value.currentRiddleId);
+    } else if (value.bankVersion && value.bankVersion !== RIDDLE_BANK_VERSION) return null;
     if (!Number.isInteger(value.currentRiddleIndex) || value.currentRiddleIndex < 0 || value.currentRiddleIndex >= RIDDLES.length) return null;
     return value;
   } catch {
@@ -189,6 +193,8 @@ function persistDifyRoundScope() {
       gameId: state.workflow.gameId,
       roundIndex: state.game.roundIndex,
       currentRiddleIndex: state.game.currentRiddleIndex,
+      currentRiddleId: RIDDLES[state.game.currentRiddleIndex].id,
+      bankVersion: RIDDLE_BANK_VERSION,
     }));
   } catch {
     console.warn("Could not persist the current Dify round scope.");
@@ -277,16 +283,16 @@ const RESOURCE_CONFIG = {
     normal: {
       kind: "sprite",
       meta: "./assets/host-normal.json",
-      src: "./assets/host-normal.webp",
-      fallback: "./assets/host-normal.png",
+      src: "./assets/host-normal.webp?v=20261022-images-v6",
+      fallback: "./assets/host-normal-static.webp?v=20261022-images-v6",
       loop: true,
       frameCount: 32,
     },
     speak: {
       kind: "sprite",
       meta: "./assets/host-speak.json",
-      src: "./assets/host-speak.webp",
-      fallback: "./assets/host-normal.png",
+      src: "./assets/host-speak.webp?v=20261022-images-v6",
+      fallback: "./assets/host-normal-static.webp?v=20261022-images-v6",
       loop: true,
       playVictorySound: false,
       frameCount: 42,
@@ -294,8 +300,8 @@ const RESOURCE_CONFIG = {
     thinking: {
       kind: "sprite",
       meta: "./assets/host-thinking.json?v=20260921-drop-empty-final-frame",
-      src: "./assets/host-thinking.webp",
-      fallback: "./assets/host-thinking.png",
+      src: "./assets/host-thinking.webp?v=20261022-images-v6",
+      fallback: "./assets/host-thinking-static.webp?v=20261022-images-v6",
       loop: false,
       playVictorySound: false,
       frameCount: 40,
@@ -303,20 +309,19 @@ const RESOURCE_CONFIG = {
     smile: {
       kind: "sprite",
       meta: "./assets/host-heart.json?v=20260919-skip-empty-final-frame",
-      src: "./assets/host-heart.webp",
-      fallback: "./assets/host-heart.png",
+      src: "./assets/host-heart.webp?v=20261022-images-v6",
+      fallback: "./assets/host-heart-static.webp?v=20261022-images-v6",
       loop: false,
       playVictorySound: false,
       frameCount: 27,
     },
-    awkward: { kind: "image", src: "./assets/host-puzzled.png" },
     excited: {
       kind: "sprite",
       meta: "./assets/host-yes.json",
-      src: "./assets/host-yes.webp",
-      fallback: "./assets/host-yes.png",
+      src: "./assets/host-yes.webp?v=20261022-images-v6",
+      fallback: "./assets/host-yes-static.webp?v=20261022-images-v6",
       audio: {
-        src: "./assets/host-yes.mp3",
+        src: "./assets/host-yes.mp3?v=20261022-images-v6",
         delayMs: 180,
         trimStartMs: 0,
         volume: 0.85,
@@ -326,93 +331,118 @@ const RESOURCE_CONFIG = {
     celebration: {
       kind: "sprite",
       meta: "./assets/host-cheer.json",
-      src: "./assets/host-cheer.webp",
-      fallback: "./assets/host-cheer.png",
+      src: "./assets/host-cheer.webp?v=20261022-images-v6",
+      fallback: "./assets/host-cheer-static.webp?v=20261022-images-v6",
       loop: false,
       playVictorySound: false,
       frameCount: 60,
-      audio: { src: "./assets/host-cheer.mp3", delayMs: 0, trimStartMs: 0, volume: 0.85 },
+      audio: { src: "./assets/host-cheer.mp3?v=20261022-images-v6", delayMs: 0, trimStartMs: 0, volume: 0.85 },
     },
     greeting: {
       kind: "sprite",
-      meta: "./assets/hi.json?v=d9959ca2053e",
-      src: "./assets/hi.webp?v=d9959ca2053e",
-      fallback: "./assets/host-normal.png",
-      loop: true,
+      meta: "./assets/hi.json?v=ready-map-20261022",
+      src: "./assets/hi.webp?v=20261022-images-v6",
+      fallback: "./assets/host-normal-static.webp?v=20261022-images-v6",
+      loop: false,
       playVictorySound: false,
       frameCount: 60,
+      audio: { src: "./assets/hi-audio.mp3?v=20261022-images-v6", delayMs: 0, trimStartMs: 0, volume: 0.85 },
+    },
+    readyNormal: {
+      kind: "sprite",
+      meta: "./assets/host-ready-normal.json?v=ready-map-20261022",
+      src: "./assets/host-ready-normal.webp?v=20261022-images-v6",
+      fallback: "./assets/host-normal-static.webp?v=20261022-images-v6",
+      loop: true,
+      playVictorySound: false,
+      frameCount: 40,
+    },
+    readySpeak: {
+      kind: "sprite",
+      meta: "./assets/host-ready-speak.json?v=ready-map-20261022",
+      src: "./assets/host-ready-speak.webp?v=20261022-images-v6",
+      fallback: "./assets/host-normal-static.webp?v=20261022-images-v6",
+      loop: true,
+      playVictorySound: false,
+      frameCount: 34,
     },
   },
   screenBackgrounds: {
-    default: "./assets/screen-default.png?v=20260927-screen-default-v2",
-    cityDay: "./assets/screen-city-day.png",
-    cityNight: "./assets/screen-city-night.png",
-    scenicDay: "./assets/screen-scenic-day.png",
-    scenicSunset: "./assets/screen-scenic-sunset.png",
-    snowDay: "./assets/screen-snow-day.png",
-    deepNight: "./assets/screen-deep-night.png",
-    rain: "./assets/screen-rain.png",
+    default: "./assets/screen-default.webp?v=20261022-images-v6",
+    cityDay: "./assets/screen-city-day.webp?v=20261022-images-v6",
+    cityNight: "./assets/screen-city-night.webp?v=20261022-images-v6",
+    scenicDay: "./assets/screen-scenic-day.webp?v=20261022-images-v6",
+    scenicSunset: "./assets/screen-scenic-sunset.webp?v=20261022-images-v6",
+    snowDay: "./assets/screen-snow-day.webp?v=20261022-images-v6",
+    deepNight: "./assets/screen-deep-night.webp?v=20261022-images-v6",
+    rain: "./assets/screen-rain.webp?v=20261022-images-v6",
   },
   cabinEnvironments: {
-    garage: "./assets/cabin-env-garage.png?v=figma-ce-garage-20261022",
-    rain: "./assets/cabin-env-rain.png",
-    tunnel: "./assets/cabin-env-tunnel.png",
-    scenicDay: "./assets/cabin-env-scenic-day.png",
-    snowDay: "./assets/cabin-env-snow-day.png",
-    cityDay: "./assets/cabin-env-city-day.png",
-    cityNight: "./assets/cabin-env-city-night.png",
-    scenicSunset: "./assets/cabin-env-scenic-sunset.png",
-    deepNight: "./assets/cabin-env-deep-night.png",
+    garage: "./assets/cabin-env-garage.webp?v=20261022-images-v6",
+    rain: "./assets/cabin-env-rain.webp?v=20261022-images-v6",
+    tunnel: "./assets/cabin-env-tunnel.webp?v=20261022-images-v6",
+    scenicDay: "./assets/cabin-env-scenic-day.webp?v=20261022-images-v6",
+    snowDay: "./assets/cabin-env-snow-day.webp?v=20261022-images-v6",
+    cityDay: "./assets/cabin-env-city-day.webp?v=20261022-images-v6",
+    cityNight: "./assets/cabin-env-city-night.webp?v=20261022-images-v6",
+    scenicSunset: "./assets/cabin-env-scenic-sunset.webp?v=20261022-images-v6",
+    deepNight: "./assets/cabin-env-deep-night.webp?v=20261022-images-v6",
   },
   passengers: {
     girl: {
-      normal: "./assets/passenger-girl-normal.png",
-      laugh: "./assets/passenger-girl-laugh.png",
-      sleep: "./assets/passenger-girl-sleep.png",
+      normal: "./assets/passenger-girl-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-girl-laugh.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-girl-sleep.webp?v=20261022-images-v6",
     },
     boy: {
-      normal: "./assets/passenger-boy-normal.png",
-      laugh: "./assets/passenger-boy-laugh.png",
-      sleep: "./assets/passenger-boy-sleep.png",
+      normal: "./assets/passenger-boy-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-boy-laugh.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-boy-sleep.webp?v=20261022-images-v6",
     },
     femaleYoung: {
-      normal: "./assets/passenger-female-young-normal.png",
-      laugh: "./assets/passenger-female-young-laugh.png",
-      tired: "./assets/passenger-female-young-tired.png",
-      sleep: "./assets/passenger-female-young-sleep.png",
+      normal: "./assets/passenger-female-young-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-female-young-laugh.webp?v=20261022-images-v6",
+      tired: "./assets/passenger-female-young-tired.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-female-young-sleep.webp?v=20261022-images-v6",
+    },
+    femaleYoung2: {
+      normal: "./assets/passenger-female-young2-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-female-young2-laugh.webp?v=20261022-images-v6",
+      tired: "./assets/passenger-female-young2-tired.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-female-young2-sleep.webp?v=20261022-images-v6",
     },
     maleYoung: {
-      normal: "./assets/passenger-male-young-normal.png",
-      laugh: "./assets/passenger-male-young-laugh.png",
-      tired: "./assets/passenger-male-young-tired.png",
-      sleep: "./assets/passenger-male-young-sleep.png",
+      normal: "./assets/passenger-male-young-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-male-young-laugh.webp?v=20261022-images-v6",
+      tired: "./assets/passenger-male-young-tired.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-male-young-sleep.webp?v=20261022-images-v6",
     },
     mom: {
-      normal: "./assets/passenger-mom-normal.png",
-      laugh: "./assets/passenger-mom-laugh.png",
-      tired: "./assets/passenger-mom-tired.png",
-      sleep: "./assets/passenger-mom-sleep.png",
+      normal: "./assets/passenger-mom-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-mom-laugh.webp?v=20261022-images-v6",
+      tired: "./assets/passenger-mom-tired.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-mom-sleep.webp?v=20261022-images-v6",
     },
     dad: {
-      normal: "./assets/passenger-dad-normal.png",
-      laugh: "./assets/passenger-dad-laugh.png",
-      tired: "./assets/passenger-dad-tired.png",
-      sleep: "./assets/passenger-dad-sleep.png",
+      normal: "./assets/passenger-dad-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-dad-laugh.webp?v=20261022-images-v6",
+      tired: "./assets/passenger-dad-tired.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-dad-sleep.webp?v=20261022-images-v6",
     },
     grandpa: {
-      normal: "./assets/passenger-grandpa-normal.png",
-      laugh: "./assets/passenger-grandpa-laugh.png",
-      sleep: "./assets/passenger-grandpa-sleep.png",
+      normal: "./assets/passenger-grandpa-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-grandpa-laugh.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-grandpa-sleep.webp?v=20261022-images-v6",
     },
     grandma: {
-      normal: "./assets/passenger-grandma-normal.png",
-      laugh: "./assets/passenger-grandma-laugh.png",
-      sleep: "./assets/passenger-grandma-sleep.png",
+      normal: "./assets/passenger-grandma-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-grandma-laugh.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-grandma-sleep.webp?v=20261022-images-v6",
     },
     baby: {
-      normal: "./assets/passenger-baby-normal.png",
-      laugh: "./assets/passenger-baby-laugh.png",
-      sleep: "./assets/passenger-baby-sleep.png",
+      normal: "./assets/passenger-baby-normal.webp?v=20261022-images-v6",
+      laugh: "./assets/passenger-baby-laugh.webp?v=20261022-images-v6",
+      sleep: "./assets/passenger-baby-sleep.webp?v=20261022-images-v6",
     },
   },
   relationshipSeats: {
@@ -524,58 +554,2041 @@ const HOST_EMOTION_AVATAR_STATE = {
   兴奋: "excited",
 };
 
+// BEGIN GENERATED RIDDLE BANK: node tools/build-riddle-bank.mjs
+const RIDDLE_BANK_VERSION = "3e137053b487";
 const RIDDLES = [
   {
-    answer: "雨伞",
-    theme: "雨天",
-    hint: "这题和外面的雨有关，答案是车里很多人都会带的东西。",
+    "id": "RAIN-01",
+    "answer": "雨伞",
+    "hint": "平时不怎么起眼，下雨时能帮你撑住场面。",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "防雨",
+      "出行用品"
+    ],
+    "scenarioTags": []
   },
   {
-    answer: "安全带",
-    theme: "高速",
-    hint: "它平时很安静，但关键时刻比主持人还可靠。",
+    "id": "R001",
+    "answer": "安全带",
+    "hint": "它平时很安静，关键时刻比主持人还可靠",
+    "theme": "出行与交通",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "乘车安全",
+      "车内用品"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
   },
   {
-    answer: "斧头",
-    theme: "朋友",
-    hint: "它常出现在故事里，硬核、直接，和砍东西有关。",
+    "id": "R002",
+    "answer": "斧头",
+    "hint": "它常出现在故事里，硬核、直接，和砍东西有关",
+    "theme": "工具与文具",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "工具与文具",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "工具",
+      "童话故事"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B"
+    ]
   },
   {
-    answer: "米老鼠",
-    theme: "迪士尼",
-    hint: "如果目的地是迪士尼，这位老朋友大概率会第一个出来打招呼。",
+    "id": "R003",
+    "answer": "米老鼠",
+    "hint": "如果目的地是迪士尼，这位老朋友大概率会第一个出来打招呼",
+    "theme": "角色与职业",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "角色与职业",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "动画角色",
+      "迪士尼",
+      "目的地关联"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A"
+    ]
   },
   {
-    answer: "火锅",
-    theme: "家庭",
-    hint: "全家人围在一起时，它很容易成为气氛中心。",
+    "id": "R004",
+    "answer": "火锅",
+    "hint": "全家人围在一起时，它很容易成为气氛中心",
+    "theme": "饮食",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "饮食",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "家庭聚餐",
+      "热食"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
   },
   {
-    answer: "雪人",
-    theme: "雪景",
-    hint: "它怕热，但在风景区雪景里特别应景。",
+    "id": "SNOW-01",
+    "answer": "雪人",
+    "hint": "它的寿命不由年龄决定，而是由气温决定。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "积雪",
+      "冬季"
+    ],
+    "scenarioTags": []
   },
   {
-    answer: "红绿灯",
-    theme: "城区",
-    hint: "城市里最会指挥交通的三色选手。",
+    "id": "CITY_DAY-01",
+    "answer": "红绿灯",
+    "hint": "城市里最会指挥交通的选手，谁都得看它脸色",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "城市白天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "道路设施",
+      "交通规则"
+    ],
+    "scenarioTags": []
   },
   {
-    answer: "书包",
-    theme: "学校",
-    hint: "去学校时，它通常比本人还早进入战备状态。",
+    "id": "R005",
+    "answer": "书包",
+    "hint": "去学校时，它通常比本人还早进入准备状态",
+    "theme": "工具与文具",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "工具与文具",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "上学",
+      "收纳"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D"
+    ]
   },
   {
-    answer: "方向盘",
-    theme: "驾驶",
-    hint: "主驾最熟悉它，但现在先让副驾和后排来猜。",
+    "id": "R006",
+    "answer": "彩虹",
+    "hint": "它出场时间很短，抬头才能看见",
+    "theme": "天气与天空",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "雨天",
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "雨后",
+      "颜色",
+      "天空"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
   },
   {
-    answer: "草原",
-    theme: "风景",
-    hint: "它很开阔，适合风景区，也适合把心情放大一点。",
+    "id": "R007",
+    "answer": "闪电",
+    "hint": "它一闪而过，常把黑暗撕出一道口子",
+    "theme": "天气与天空",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "天气与天空",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "雷雨",
+      "发光现象"
+    ],
+    "scenarioTags": [
+      "GOLDEN-C"
+    ]
   },
+  {
+    "id": "R008",
+    "answer": "雾",
+    "hint": "走在里面像蒙了层纱，几米外认不出人",
+    "theme": "天气与天空",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "能见度",
+      "天气"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R009",
+    "answer": "霜",
+    "hint": "天最冷的清晨，草地和车窗会披上一层白",
+    "theme": "天气与天空",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "天气与天空",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "长辈"
+    ],
+    "contentTags": [
+      "低温",
+      "清晨",
+      "冰晶"
+    ],
+    "scenarioTags": [
+      "GOLDEN-C"
+    ]
+  },
+  {
+    "id": "R010",
+    "answer": "露珠",
+    "hint": "清晨趴在草叶和花瓣上，太阳一晒就没了",
+    "theme": "天气与天空",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "天气与天空",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子",
+      "长辈"
+    ],
+    "contentTags": [
+      "清晨",
+      "水滴",
+      "植物"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R011",
+    "answer": "河流",
+    "hint": "它从不停下来歇脚，一路往低处赶路",
+    "theme": "地理与自然",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "地理与自然",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "水域",
+      "流动"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R012",
+    "answer": "大海",
+    "hint": "站在岸边望不到边，风一吹就掀起层层浪",
+    "theme": "地理与自然",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "地理与自然",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "水域",
+      "海边",
+      "旅行"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R013",
+    "answer": "云",
+    "hint": "抬头看久了，常能从它身上看出各种动物",
+    "theme": "天气与天空",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "城市白天",
+      "风景区",
+      "傍晚"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "天空",
+      "形状想象"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R014",
+    "answer": "猫",
+    "hint": "它高兴时喉咙里会发出拖拉机的声音",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "宠物",
+      "声音"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R015",
+    "answer": "狗",
+    "hint": "门外有动静，它往往比人先叫起来",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "宠物",
+      "声音",
+      "看家"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R016",
+    "answer": "蝴蝶",
+    "hint": "它爱在花丛间打转，从不在一个地方久留",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "花丛",
+      "飞行",
+      "昆虫"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R017",
+    "answer": "蜜蜂",
+    "hint": "它常在花朵间忙，你不招惹它，它一般也不来招惹你",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "动物与昆虫",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "昆虫",
+      "花丛",
+      "蜂蜜"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R018",
+    "answer": "蚂蚁",
+    "hint": "个头很小，却能扛起比自己重很多的东西",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "昆虫",
+      "搬运",
+      "协作"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R019",
+    "answer": "萤火虫",
+    "hint": "夏天的郊外，才容易撞见这点点光",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [
+      "风景区",
+      "傍晚",
+      "深夜"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "夜间",
+      "发光",
+      "夏季",
+      "昆虫"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R020",
+    "answer": "兔子",
+    "hint": "常被拉去和慢家伙赛跑，结果出人意料",
+    "theme": "动物与昆虫",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "寓言",
+      "龟兔赛跑"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D"
+    ]
+  },
+  {
+    "id": "R021",
+    "answer": "面条",
+    "hint": "北方人餐桌常见，过生日总少不了它",
+    "theme": "饮食",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "饮食",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "主食",
+      "生日",
+      "家庭"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R022",
+    "answer": "咖啡",
+    "hint": "早起犯困时靠它提神，夜里有人因它睡不着",
+    "theme": "饮食",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "饮食",
+    "environmentTags": [
+      "城市白天",
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "饮品",
+      "提神",
+      "都市生活"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R023",
+    "answer": "茶",
+    "hint": "热水一冲，就在杯里慢慢舒展",
+    "theme": "饮食",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "饮食",
+    "environmentTags": [],
+    "audienceTags": [
+      "长辈"
+    ],
+    "contentTags": [
+      "饮品",
+      "茶文化"
+    ],
+    "scenarioTags": [
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R024",
+    "answer": "饺子",
+    "hint": "有人爱蘸醋，有人爱蘸蒜，吃法因人而异",
+    "theme": "饮食",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "饮食",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "主食",
+      "家庭聚餐",
+      "传统饮食"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R025",
+    "answer": "自行车",
+    "hint": "不用加油不排尾气，灵活穿行在小巷",
+    "theme": "出行与交通",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "城市白天",
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "骑行",
+      "城市出行",
+      "环保"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R026",
+    "answer": "电梯",
+    "hint": "人多时得挤进去，门一关就开始升降",
+    "theme": "出行与交通",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "城市白天",
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "楼宇",
+      "垂直交通"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R027",
+    "answer": "飞机",
+    "hint": "隔着窗户往下看，马路和房子都缩成了点",
+    "theme": "出行与交通",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "航空",
+      "旅行",
+      "高空视角"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R028",
+    "answer": "火车",
+    "hint": "一串长车厢，老老实实贴着铁轨跑",
+    "theme": "出行与交通",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "铁路",
+      "旅行"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R029",
+    "answer": "台灯",
+    "hint": "摆在书桌一角，夜里专为那一小块亮",
+    "theme": "工具与文具",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "工具与文具",
+    "environmentTags": [
+      "深夜"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "书桌",
+      "照明",
+      "学习"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D"
+    ]
+  },
+  {
+    "id": "R030",
+    "answer": "橡皮",
+    "hint": "专门负责\"后悔\"，让错误消失不见",
+    "theme": "工具与文具",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "工具与文具",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "文具",
+      "学习",
+      "修改"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D"
+    ]
+  },
+  {
+    "id": "R031",
+    "answer": "烟花",
+    "hint": "节日夜空的常客，炸开瞬间最灿烂",
+    "theme": "节庆",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "节庆",
+    "environmentTags": [
+      "城市夜晚",
+      "深夜"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "节日",
+      "夜空",
+      "光与声音"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-D"
+    ]
+  },
+  {
+    "id": "R032",
+    "answer": "耳机",
+    "hint": "它很轻巧，靠它可以把各种声音送到耳边",
+    "theme": "科技与数码",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "科技与数码",
+    "environmentTags": [],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "音频",
+      "数码用品"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R033",
+    "answer": "路由器",
+    "hint": "信号满格靠它，角落没网先怪它",
+    "theme": "科技与数码",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "科技与数码",
+    "environmentTags": [],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "家庭网络",
+      "Wi-Fi"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R034",
+    "answer": "充电宝",
+    "hint": "揣在包里沉甸甸，关键时刻比谁都可靠",
+    "theme": "科技与数码",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "科技与数码",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "便携供电",
+      "旅行用品"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R035",
+    "answer": "指纹",
+    "hint": "破案时它留在现场，是最诚实的记号",
+    "theme": "侦探与痕迹",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "侦探与痕迹",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "侦探",
+      "身份识别",
+      "人体特征"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R036",
+    "answer": "脚印",
+    "hint": "一串连成线，能看出来人往哪个方向去",
+    "theme": "侦探与痕迹",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "侦探与痕迹",
+    "environmentTags": [
+      "雪景",
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "侦探",
+      "行走痕迹",
+      "方向"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R037",
+    "answer": "侦探",
+    "hint": "真相水落石出，往往是他先把线头理顺",
+    "theme": "角色与职业",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "角色与职业",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "推理",
+      "职业",
+      "故事角色"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R038",
+    "answer": "密码",
+    "hint": "一串数字或字母，对上才能开门解锁",
+    "theme": "科技与数码",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "科技与数码",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "解锁",
+      "信息安全",
+      "推理"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R039",
+    "answer": "放大镜",
+    "hint": "侦探手里的老牌武器，凑近才能看清细处",
+    "theme": "工具与文具",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "工具与文具",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "侦探",
+      "观察工具",
+      "光学"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R040",
+    "answer": "世界杯",
+    "hint": "每四年一次，全球熬夜为它欢呼",
+    "theme": "运动与游戏",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "运动与游戏",
+    "environmentTags": [],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "足球",
+      "体育赛事",
+      "朋友聚会"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R041",
+    "answer": "羽毛球",
+    "hint": "两人对打，球在空中划出高高的弧线",
+    "theme": "运动与游戏",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "运动与游戏",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "球类",
+      "球拍",
+      "运动"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R042",
+    "answer": "围棋",
+    "hint": "黑白两色棋子，轮流落在交叉点上",
+    "theme": "运动与游戏",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "运动与游戏",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "长辈"
+    ],
+    "contentTags": [
+      "棋类",
+      "传统文化",
+      "策略"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R043",
+    "answer": "扑克牌",
+    "hint": "背面都一样，谁也不知道对方手里是什么",
+    "theme": "运动与游戏",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "运动与游戏",
+    "environmentTags": [],
+    "audienceTags": [
+      "朋友",
+      "长辈"
+    ],
+    "contentTags": [
+      "纸牌",
+      "聚会",
+      "桌面游戏"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R044",
+    "answer": "沙漏",
+    "hint": "两头大中间细，沙子从上头慢慢漏到底",
+    "theme": "时间与光影",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "时间与光影",
+    "environmentTags": [],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "计时工具",
+      "流动"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R045",
+    "answer": "时间",
+    "hint": "谁也留不住它，只会被它悄悄推着往前走",
+    "theme": "时间与光影",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "时间与光影",
+    "environmentTags": [],
+    "audienceTags": [
+      "朋友",
+      "长辈"
+    ],
+    "contentTags": [
+      "抽象概念",
+      "流逝"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R046",
+    "answer": "海市蜃楼",
+    "hint": "沙漠或海面尽头浮现楼阁城郭，走过去却什么都没有。",
+    "theme": "地理与自然",
+    "pool": "general",
+    "difficulty": "hard",
+    "category": "地理与自然",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "朋友",
+      "长辈"
+    ],
+    "contentTags": [
+      "光学现象",
+      "地理知识",
+      "视觉"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R047",
+    "answer": "影子",
+    "hint": "光在哪，它就跟到哪，光一灭它就消失",
+    "theme": "时间与光影",
+    "pool": "general",
+    "difficulty": "easy",
+    "category": "时间与光影",
+    "environmentTags": [
+      "城市白天",
+      "风景区",
+      "傍晚"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "光与影",
+      "随身现象"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-D",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R048",
+    "answer": "化石",
+    "hint": "今天的人凭着它，摸到早已灭绝的那个世界",
+    "theme": "历史与文化",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "历史与文化",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "古生物",
+      "博物馆",
+      "科学"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-B",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R049",
+    "answer": "算盘",
+    "hint": "老一辈的钱柜，全靠它一颗珠子一颗珠子结清",
+    "theme": "历史与文化",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "历史与文化",
+    "environmentTags": [],
+    "audienceTags": [
+      "长辈"
+    ],
+    "contentTags": [
+      "传统工具",
+      "计算",
+      "怀旧"
+    ],
+    "scenarioTags": [
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R050",
+    "answer": "毛笔",
+    "hint": "握法有讲究，用力轻重直接决定笔画粗细",
+    "theme": "历史与文化",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "历史与文化",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "长辈"
+    ],
+    "contentTags": [
+      "书法",
+      "传统文具",
+      "绘画"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R051",
+    "answer": "长城",
+    "hint": "它在山脊上蜿蜒万里，当年曾是一道守护边防的屏障",
+    "theme": "历史与文化",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "历史与文化",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子",
+      "长辈"
+    ],
+    "contentTags": [
+      "历史建筑",
+      "旅行",
+      "中国文化"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R052",
+    "answer": "兵马俑",
+    "hint": "守着一位帝王的长眠，从地底被重新唤醒",
+    "theme": "历史与文化",
+    "pool": "general",
+    "difficulty": "medium",
+    "category": "历史与文化",
+    "environmentTags": [],
+    "audienceTags": [
+      "亲子",
+      "长辈"
+    ],
+    "contentTags": [
+      "历史文物",
+      "博物馆",
+      "西安",
+      "旅行"
+    ],
+    "scenarioTags": [
+      "GOLDEN-A",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "R053",
+    "answer": "胶片",
+    "hint": "一卷能拍的张数有限，按一下就少一张",
+    "theme": "历史与文化",
+    "pool": "general",
+    "difficulty": "hard",
+    "category": "历史与文化",
+    "environmentTags": [],
+    "audienceTags": [
+      "朋友",
+      "长辈"
+    ],
+    "contentTags": [
+      "摄影",
+      "怀旧",
+      "传统媒介"
+    ],
+    "scenarioTags": [
+      "GOLDEN-B",
+      "GOLDEN-C",
+      "GOLDEN-E"
+    ]
+  },
+  {
+    "id": "SNOW-02",
+    "answer": "雪花",
+    "hint": "天上掉下来的六角形小东西，落地就消失，偏偏人人都想接住它。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "降雪",
+      "冰晶"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SNOW-03",
+    "answer": "围巾",
+    "hint": "天一冷，它就成了脖子最离不开的贴身保镖。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "保暖",
+      "穿戴"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SNOW-04",
+    "answer": "手套",
+    "hint": "冬天出门前，手比脸先想到它。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "保暖",
+      "穿戴"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SNOW-05",
+    "answer": "雪橇",
+    "hint": "在雪地里，它不靠轮子前进，速度却可能让人忍不住尖叫。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "出行与交通",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "滑行",
+      "冬季运动"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SNOW-06",
+    "answer": "雪地靴",
+    "hint": "它的颜值可能存在争议，但在积雪面前实用性很难被质疑。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "保暖",
+      "鞋靴"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SNOW-07",
+    "answer": "冰雕",
+    "hint": "它是冬天限定的艺术品，天气越暖，展期越短。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "历史与文化",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "冰雪艺术",
+      "展览"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SNOW-08",
+    "answer": "雪地摩托",
+    "hint": "普通车辆避之不及的路况，恰恰是它最擅长的主场。",
+    "theme": "雪景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "出行与交通",
+    "environmentTags": [
+      "雪景"
+    ],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "雪地载具",
+      "户外运动"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "RAIN-02",
+    "answer": "雨衣",
+    "hint": "下雨天穿上它，立马安全感满满",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "防雨",
+      "穿戴"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "RAIN-03",
+    "answer": "雨靴",
+    "hint": "最不怕踩水的选手，有它就能大步走",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "防雨",
+      "鞋靴"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "RAIN-04",
+    "answer": "雨刷器",
+    "hint": "下雨天车里最忙碌的选手之一，工作内容就是左右摇摆。",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "汽车部件",
+      "视野"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "RAIN-05",
+    "answer": "快递柜",
+    "hint": "小区门口那个格子间，专门替人收包裹。",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "科技与数码",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "城市生活",
+      "收纳"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "RAIN-06",
+    "answer": "地铁口",
+    "hint": "城市里人流最密集的出入口之一，进出之间可能已经跨越大半座城市。",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "出行与交通",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "公共交通",
+      "城市生活"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "RAIN-07",
+    "answer": "外卖员",
+    "hint": "饭点一到，穿行在街头巷尾、把餐送到你手上",
+    "theme": "雨天",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "角色与职业",
+    "environmentTags": [
+      "雨天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "配送",
+      "饮食"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_DAY-02",
+    "answer": "斑马线",
+    "hint": "马路上的安全通道，黑白分明",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "城市白天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "道路设施",
+      "行人"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_DAY-03",
+    "answer": "公交车",
+    "hint": "城市里最守规矩的大块头，到站就停",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "城市白天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "公共交通",
+      "城市生活"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_DAY-04",
+    "answer": "霓虹灯",
+    "hint": "白天没什么存在感，天一黑，就开始给整条街制造气氛",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "日常与户外",
+    "environmentTags": [
+      "城市白天"
+    ],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "城市灯光",
+      "照明"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_DAY-05",
+    "answer": "汽车",
+    "hint": "现代人出门的重要搭档，能带你去远方",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "出行与交通",
+    "environmentTags": [
+      "城市白天"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "旅行",
+      "载具"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_NIGHT-01",
+    "answer": "路灯",
+    "hint": "城市里的夜班选手，太阳下班就轮到它上岗",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "道路设施",
+      "照明"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_NIGHT-02",
+    "answer": "商业街",
+    "hint": "一条街走下来，钱包多半要瘦一圈",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "地理与自然",
+    "environmentTags": [
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "购物",
+      "城市生活"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_NIGHT-03",
+    "answer": "广告",
+    "hint": "城市里最会抢镜的选手，总让路过的人多看两眼",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "科技与数码",
+    "environmentTags": [
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "朋友"
+    ],
+    "contentTags": [
+      "传播",
+      "城市生活"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_NIGHT-04",
+    "answer": "夜市",
+    "hint": "天一擦黑就支摊开张，烟火气最浓的那条街",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "饮食",
+    "environmentTags": [
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "夜游",
+      "聚会",
+      "目的地关联"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "CITY_NIGHT-05",
+    "answer": "便利店",
+    "hint": "城市里的全能补给站，半夜还亮着灯的小店",
+    "theme": "城区",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "城市夜晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "购物",
+      "城市生活"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SCENIC-01",
+    "answer": "瀑布",
+    "hint": "远远就能听见响，风景区里最自带气势的那位",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "地理与自然",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "水域",
+      "旅行"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SCENIC-02",
+    "answer": "湖泊",
+    "hint": "风景区里的天然镜子，天气好的时候天空和山峰都能装进去",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "地理与自然",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "水域",
+      "倒影"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SCENIC-03",
+    "answer": "野餐垫",
+    "hint": "露营的气氛担当，用时只需往草地上一铺",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "亲子",
+      "朋友"
+    ],
+    "contentTags": [
+      "露营",
+      "家庭出游"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SCENIC-04",
+    "answer": "观景台",
+    "hint": "风景区里位置最好的那个落脚点，站上去整片景色都归你",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "地理与自然",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "景区设施",
+      "旅行"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SCENIC-05",
+    "answer": "游客",
+    "hint": "风景区里最常见，举着手机走走停停，比谁都忙",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "角色与职业",
+    "environmentTags": [
+      "风景区"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "旅行",
+      "人物"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SUNSET-01",
+    "answer": "晚霞",
+    "hint": "通常只在太阳快下班时登场，每次配色都不太一样",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "傍晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "天空",
+      "颜色"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SUNSET-02",
+    "answer": "散步",
+    "hint": "一种不太追求效率的出行方式，目的地不重要",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "出行与交通",
+    "environmentTags": [
+      "傍晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "行为",
+      "休闲"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SUNSET-03",
+    "answer": "落日",
+    "hint": "每天都准时上演的谢幕表演，总有人愿意专程等它",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "傍晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "太阳",
+      "旅行"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "SUNSET-04",
+    "answer": "晚风",
+    "hint": "傍晚最会营造氛围的选手，看不见也摸不着",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "medium",
+    "category": "天气与天空",
+    "environmentTags": [
+      "傍晚"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "空气流动",
+      "天气"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "DEEP_NIGHT-01",
+    "answer": "月亮",
+    "hint": "有时在夜晚出现，最喜欢陪着你一直走",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "深夜"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "夜空",
+      "天体",
+      "观星"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "DEEP_NIGHT-02",
+    "answer": "星星",
+    "hint": "离我们非常遥远，却能把黑夜点缀得闪闪发亮",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "天气与天空",
+    "environmentTags": [
+      "深夜"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "夜空",
+      "天体",
+      "观星"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "DEEP_NIGHT-03",
+    "answer": "手电筒",
+    "hint": "黑暗中的显眼包，关键时刻能帮你找到前进的方向",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "日常与户外",
+    "environmentTags": [
+      "深夜"
+    ],
+    "audienceTags": [
+      "通用"
+    ],
+    "contentTags": [
+      "照明",
+      "露营"
+    ],
+    "scenarioTags": []
+  },
+  {
+    "id": "DEEP_NIGHT-04",
+    "answer": "猫头鹰",
+    "hint": "动物界的夜班高手，白天相对低调",
+    "theme": "风景",
+    "pool": "environment",
+    "difficulty": "easy",
+    "category": "动物与昆虫",
+    "environmentTags": [
+      "深夜"
+    ],
+    "audienceTags": [
+      "亲子"
+    ],
+    "contentTags": [
+      "鸟类",
+      "夜间"
+    ],
+    "scenarioTags": []
+  }
 ];
+// END GENERATED RIDDLE BANK
 
 const PASSENGER_PERSONAS_BY_RELATIONSHIP = {
   "父母+小孩": {
@@ -738,6 +2751,7 @@ const GOLDEN_TIMELINES = [
   {
     id: "golden_city_scenic_family",
     name: "城市风景亲子游",
+    welcomeText: "大小侦探集合！去迪士尼的路上，一起把快乐猜出来。",
     speed: 80,
     destination: "迪士尼",
     relationship: "父母+小孩",
@@ -755,7 +2769,6 @@ const GOLDEN_TIMELINES = [
       { delay: 260000, type: "cabin_laughing", label: "车内欢笑" },
       { delay: 280000, type: "near_destination", label: "快到目的地" },
     ],
-    riddleIndex: 1,
     trace: {
       perception: "载入城市风景亲子游体验线",
       decision: "默认副驾为真实用户，后排小朋友可自动加入",
@@ -767,12 +2780,13 @@ const GOLDEN_TIMELINES = [
   {
     id: "golden_cyber_city_friends",
     name: "赛博城市朋友夜游",
+    welcomeText: "夜游搭子集合！去夜市的路上，先来一场脑力热身吧。",
     speed: 50,
     destination: "夜市",
     relationship: "年轻朋友",
     environment: "城区夜晚",
     previewEnvironment: "城区夜晚",
-    personas: { driver: "maleYoung", front: "femaleYoung", rear_left: "maleYoung", rear_right: "femaleYoung" },
+    personas: { driver: "maleYoung", front: "femaleYoung2", rear_left: "empty", rear_right: "femaleYoung" },
     durationMs: 300_000,
     steps: [
       { delay: 60000, type: "cabin_laughing", label: "车内欢笑" },
@@ -785,7 +2799,6 @@ const GOLDEN_TIMELINES = [
       { delay: 260000, type: "driver_tired", label: "主驾疲惫" },
       { delay: 280000, type: "near_destination", label: "快到目的地" },
     ],
-    riddleIndex: 6,
     trace: {
       perception: "载入赛博城市朋友夜游体验线",
       decision: "朋友局采用轻松节奏，同时守住夜间驾驶安全",
@@ -797,12 +2810,13 @@ const GOLDEN_TIMELINES = [
   {
     id: "golden_snow_rain_elder_family",
     name: "雪景雨天长辈同行",
+    welcomeText: "窗外看雪，车里猜谜。今天咱们慢慢想，开心最重要。",
     speed: 50,
     destination: "草原",
     relationship: "中老年+儿女",
     environment: "风景区雪景白天",
     previewEnvironment: "风景区雪景白天",
-    personas: { driver: "maleYoung", front: "femaleYoung", rear_left: "grandpa", rear_right: "grandma" },
+    personas: { driver: "dad", front: "femaleYoung", rear_left: "grandpa", rear_right: "grandma" },
     durationMs: 300_000,
     steps: [
       { delay: 40000, type: "passenger_sleep", label: "有乘客睡着" },
@@ -813,7 +2827,6 @@ const GOLDEN_TIMELINES = [
       { delay: 260000, type: "driver_tired", label: "主驾疲惫" },
       { delay: 280000, type: "near_destination", label: "快到目的地" },
     ],
-    riddleIndex: 5,
     trace: {
       perception: "载入雪景雨天长辈同行体验线",
       decision: "放慢节奏，优先照顾休息乘员与驾驶安全",
@@ -825,12 +2838,13 @@ const GOLDEN_TIMELINES = [
   {
     id: "golden_sunset_night_family_return",
     name: "傍晚深夜家庭返程",
+    welcomeText: "晚风作伴，猜谜解闷。准备好了，咱们就轻轻松松出发。",
     speed: 50,
     destination: "观星营地",
     relationship: "父母+小孩",
     environment: "风景区傍晚",
     previewEnvironment: "风景区傍晚",
-    personas: { driver: "dad", front: "maleYoung", rear_left: "mom", rear_right: "baby" },
+    personas: { driver: "dad", front: "mom", rear_left: "empty", rear_right: "baby" },
     durationMs: 300_000,
     steps: [
       { delay: 20000, type: "driver_tired", label: "主驾疲惫" },
@@ -841,7 +2855,6 @@ const GOLDEN_TIMELINES = [
       { delay: 260000, type: "cabin_laughing", label: "车内欢笑" },
       { delay: 280000, type: "near_destination", label: "快到目的地" },
     ],
-    riddleIndex: 8,
     trace: {
       perception: "载入傍晚深夜家庭返程体验线",
       decision: "保持安静节奏，保护疲惫主驾和休息乘员",
@@ -853,12 +2866,13 @@ const GOLDEN_TIMELINES = [
   {
     id: "golden_scenic_city_family",
     name: "风景归城家人同行",
+    welcomeText: "一路风景一路谜题，家人们，今天的快乐一起猜出来！",
     speed: 50,
     destination: "草原",
     relationship: "年轻朋友",
     environment: "风景区晴天白天",
     previewEnvironment: "风景区晴天白天",
-    personas: { driver: "mom", front: "femaleYoung", rear_left: "maleYoung", rear_right: "femaleYoung" },
+    personas: { driver: "dad", front: "mom", rear_left: "maleYoung", rear_right: "femaleYoung" },
     durationMs: 300_000,
     steps: [
       { delay: 20000, type: "cabin_laughing", label: "车内欢笑" },
@@ -872,7 +2886,6 @@ const GOLDEN_TIMELINES = [
       { delay: 275000, type: "passenger_wake", label: "有乘客醒来" },
       { delay: 280000, type: "near_destination", label: "快到目的地" },
     ],
-    riddleIndex: 9,
     trace: {
       perception: "载入风景归城家人同行体验线",
       decision: "多事件重叠时优先安全并保留有效待答状态",
@@ -914,6 +2927,8 @@ const DEFAULT_STATE = {
     maxQuestions: 15,
     currentRiddleIndex: 1,
     playedRiddleIndices: [],
+    firstRoundSource: null,
+    allocationHistory: [],
     history: [],
     roundQuestionPlan: null,
     usedRoundQuestionStepIds: [],
@@ -983,6 +2998,7 @@ const DEFAULT_STATE = {
     activeRequestId: 0,
     activeLabel: "",
     activeController: null,
+    answerConfirmation: null,
     timeoutTimer: null,
     lastBubbleShownAt: 0,
     lastResumeAt: 0,
@@ -1088,18 +3104,24 @@ if (persistedDifyRoundScope) {
 }
 persistDifyRoundScope();
 const els = {};
+const riddleSelectionCache = new Map();
+let recentRiddleIds = loadRecentRiddleIds();
 let fullscreenHintTimer = 0;
 let fullscreenAskBarParent = null;
 let fullscreenAskBarNextSibling = null;
 let soundOnboardingTimer = 0;
+const soundOnboarding = { shownForEntry: false, dismissedForEntry: false, showCount: 0, enteredAt: null };
 let playerInputGuideDismissed = false;
 let audioContext = null;
 const backgroundMusic = {
   enabled: false,
-  volume: 0.25,
+  volume: 0.175,
 };
+let gameOpening = null;
+let gameOpeningMotion = null;
 let lastRenderedScreenMode = "";
 const hostSceneMotion = { mode: "", completed: false };
+const summarySound = { frameId: 0, entry: 0 };
 const clientRuntimeDiagnostic = { enabled: false, sessionId: "", lastVoiceSkip: "", startedAt: 0, count: 0, runtimeErrorCount: 0 };
 const questionClock = {
   intervalId: 0,
@@ -1142,6 +3164,7 @@ const hostSprite = {
   thinkingCycleId: 0,
 };
 const hostSpriteImageCache = new Map();
+const readyHostMediaCache = new Map();
 const manualEventCooldowns = new Set();
 const confettiAnimation = {
   frameId: 0,
@@ -1237,14 +3260,14 @@ async function runPreloadQueue(items, worker, concurrency = 2) {
 function startStartupLoading() {
   const images = new Set([
     RESOURCE_CONFIG.screenBackgrounds.default,
-    RESOURCE_CONFIG.host.greeting.src,
+    resolveEnvironmentAssets(getReadyCabinEnvironment()).cabin,
     ...[...document.querySelectorAll(".ready-stage img, .cabin-region img, .pencil-game-icon img, .question-counter img")]
       .map(image => image.getAttribute("src")).filter(Boolean),
   ]);
   const preparation = ensureCurrentRoundPreparation();
   const source = preparation.scenarioSource || preparation;
   const imageTasks = [...images].map(src => ({
-    id: src, weight: src === RESOURCE_CONFIG.host.greeting.src ? 4 : 1,
+    id: src, weight: 1,
     status: "created", attempts: 0, load: () => loadStartupImage(src),
   }));
   const previewTask = { id: "first-preview", weight: 8, status: "created", attempts: 0,
@@ -1258,12 +3281,58 @@ function startStartupLoading() {
   };
   const fontTask = { id: "fonts", weight: 1, status: "created", attempts: 0,
     load: () => document.fonts?.ready || Promise.resolve() };
-  startupLoading.tasks = [...imageTasks, fontTask, previewTask];
+  const hostTasks = createReadyHostPreloadTasks();
+  startupLoading.tasks = [...imageTasks, ...hostTasks, fontTask, previewTask];
   armStartupDeadline();
   void runPreloadQueue(imageTasks, runStartupTask, 4);
+  void runPreloadQueue(hostTasks, runStartupTask, 2);
   void runStartupTask(fontTask);
   void runStartupTask(previewTask);
   updateStartupLoading();
+}
+
+function createReadyHostPreloadTasks() {
+  const tasks = ["greeting", "readyNormal", "readySpeak"].map(key => ({
+    id: `ready-host-${key}`, weight: 4, status: "created", attempts: 0,
+    load: () => loadReadyHostMedia(RESOURCE_CONFIG.host[key]),
+  }));
+  tasks.push({ id: "ready-host-audio", weight: 1, status: "created", attempts: 0,
+    async load() {
+      const response = await fetch(RESOURCE_CONFIG.host.greeting.audio.src, { cache: "force-cache" });
+      if (!response.ok) throw new Error(`Greeting audio request failed: ${response.status}`);
+      await response.arrayBuffer();
+    } });
+  return tasks;
+}
+
+function loadReadyHostMedia(media) {
+  if (readyHostMediaCache.has(media.src)) return readyHostMediaCache.get(media.src);
+  const promise = Promise.all([
+    fetch(media.meta, { cache: "force-cache" }).then(response => {
+      if (!response.ok) throw new Error(`Sprite metadata request failed: ${response.status}`);
+      return response.json();
+    }),
+    loadHostSpriteImage(media.src),
+  ]).then(async ([metadata, image]) => {
+    const frames = Object.values(metadata.frames || {});
+    if (new URL(metadata.meta?.image || "", new URL(media.meta, document.baseURI)).pathname
+      !== new URL(media.src, document.baseURI).pathname
+      || frames.length !== media.frameCount || metadata.meta?.size?.w !== image.width
+      || metadata.meta?.size?.h !== image.height || frames.some(({ frame, duration, rotated }) =>
+        !frame || rotated || ["x", "y", "w", "h"].some(key => !Number.isFinite(frame[key]))
+        || frame.x < 0 || frame.y < 0 || frame.w <= 0 || frame.h <= 0
+        || frame.x + frame.w > image.width || frame.y + frame.h > image.height || !(duration > 0))) {
+      throw new Error("Ready host sprite metadata does not match its image");
+    }
+    await image.decode?.();
+    media.frames = frames;
+    return image;
+  });
+  readyHostMediaCache.set(media.src, promise);
+  promise.catch(() => {
+    if (readyHostMediaCache.get(media.src) === promise) readyHostMediaCache.delete(media.src);
+  });
+  return promise;
 }
 
 function armStartupDeadline() {
@@ -1342,7 +3411,7 @@ function startBackgroundPreloading() {
   void preloadHostSpriteImages();
   const images = new Set();
   for (const scenario of GOLDEN_TIMELINES) {
-    const environments = [scenario.environment, scenario.previewEnvironment,
+    const environments = [scenario.environment, getReadyCabinEnvironment(scenario), scenario.previewEnvironment,
       ...(scenario.steps || []).filter(step => step.type === "environment_change").map(step => step.value)];
     for (const environment of new Set(environments.filter(Boolean))) {
       const assets = resolveEnvironmentAssets(environment);
@@ -1460,10 +3529,15 @@ function bindEvents() {
   document.addEventListener("pointerdown", () => {
     if (simulationRuntime.paused) return;
     prepareAudioContext();
+    retryHostSpriteAudio();
     startBackgroundMusic();
   });
   els.gameFullscreenButton.addEventListener("click", toggleGameDisplayMode);
   document.addEventListener("keydown", (event) => {
+    if (!simulationRuntime.paused) {
+      prepareAudioContext();
+      retryHostSpriteAudio();
+    }
     if (event.key === "Escape" && els.appShell.classList.contains("game-display-expanded")) {
       exitGameDisplayMode();
     }
@@ -1523,9 +3597,9 @@ function bindEvents() {
         clearDriverSafetyAnnouncement();
       }
       const eventSeat = type === "passenger_wake" ? getManualWakeSeat()
-        : ["passenger_sleep", "cabin_laughing"].includes(type) ? "rearRight" : state.passengers.selectedSeat;
+        : ["passenger_sleep", "cabin_laughing"].includes(type) ? getManualPassengerEventSeat() : state.passengers.selectedSeat;
       if (!eventSeat) {
-        state.ui.alert = "当前没有睡着的乘客";
+        state.ui.alert = type === "passenger_wake" ? "当前没有睡着的乘客" : "当前没有可用的后排乘客";
         render();
         return;
       }
@@ -2091,6 +4165,17 @@ function getActiveGoldenLine() {
   return GOLDEN_TIMELINES[state.scenarioIndex] || GOLDEN_TIMELINES[0];
 }
 
+function getReadyCabinEnvironment(timeline = getActiveGoldenLine()) {
+  const environments = [timeline.environment,
+    ...(timeline.steps || []).filter(step => step.type === "environment_change")
+      .slice().sort((a, b) => a.delay - b.delay).map(step => step.value),
+    timeline.previewEnvironment];
+  return environments.find(environment => {
+    const mapping = getEnvironmentMapping(environment);
+    return mapping && mapping.cabin !== "garage" && mapping.cabin !== "tunnel";
+  }) || "风景区晴天白天";
+}
+
 function nextGoldenLine() {
   if (startupLoading.active) return;
   stopTimeline("已切换黄金体验线");
@@ -2209,16 +4294,12 @@ async function startRoundGoldenTimeline() {
     ? Math.round((simulationRuntime.now() - goldenExperience.startedAt) / 1000) : 0;
   state.timeline.currentEventType = "start_game";
   state.timeline.currentEvent = `第 ${state.game.roundIndex} 题 · ${roundTimeline.name}`;
-  render();
 
   await startGame();
-  await waitUntilRoundTimelineReady(runId);
   if (state.timeline.runId !== runId || state.game.status !== "playing") return;
 
-  startQuestionClock();
-  startQuestionIntro();
-  state.timeline.startedAt = simulationRuntime.now();
   startGoldenExperience();
+  void presentGameOpening(runId);
   const steps = roundTimeline.steps;
   for (let index = 0; index < steps.length;) {
     const step = steps[index];
@@ -2308,7 +4389,7 @@ async function runRoundTimelineStep(step) {
     const rearSeat = step.type === "passenger_wake"
       ? (state.timeline.goldenSleepingSeat && state.passengers.seats[state.timeline.goldenSleepingSeat]?.mood === "睡着"
         ? state.timeline.goldenSleepingSeat : getManualWakeSeat())
-      : selectRandomSimulatedSeat({ rearOnly: true, includeNonSpeakers: step.type === "passenger_sleep" });
+      : selectRandomSimulatedSeat({ rearOnly: true, includeNonSpeakers: true });
     if (!rearSeat) return;
     await runScriptedEvent(step.type, step.label, rearSeat, step.reason);
     return;
@@ -2335,7 +4416,7 @@ function selectRandomSimulatedSeat({ rearOnly = false, includeNonSpeakers = fals
     || ["疲惫", "睡着"].includes(state.passengers.seats.driver.mood)
     || ["safety_pause", "driver_focus"].includes(state.ui.cabinMode);
   const baseSeats = rearOnly ? ["rearLeft", "rearRight"] : ["driver", "rearLeft", "rearRight"];
-  let candidates = baseSeats.filter((seat) => !sleepingSeats.has(seat)
+  let candidates = baseSeats.filter((seat) => isSeatOccupied(seat) && !sleepingSeats.has(seat)
     && (seat !== "driver" || !driverUnavailable)
     && (includeNonSpeakers || getPassengerPersona(seat)?.can_guess !== false));
   if (!rearOnly) {
@@ -2522,13 +4603,21 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.car.environment = timeline.environment;
   state.passengers.relationship = timeline.relationship;
   state.passengers.selectedSeat = "front";
-  state.game.currentRiddleIndex = timeline.riddleIndex;
+  const firstRoundSource = !preparedGame && startupLoading.initialized
+    ? getScenarioFirstRoundPreparation(timeline, true) : null;
+  const newGameId = preparedGame?.gameId || createRuntimeId("game");
+  state.game.firstRoundSource = firstRoundSource;
+  state.game.currentRiddleIndex = preparedGame?.riddleIndex ?? firstRoundSource?.riddleIndex
+    ?? selectRiddleIndex({ gameId: newGameId, roundIndex: 1, scenario: timeline,
+      environment: timeline.environment, destination: timeline.destination,
+      relationship: timeline.relationship, playedIndices: [] });
   state.game.status = "idle";
   state.game.roundIndex = 1;
   state.game.totalRounds = GAME_ROUND_COUNT;
   state.game.questionCount = 0;
   state.game.history = [];
   state.game.playedRiddleIndices = [];
+  state.game.allocationHistory = [];
   state.game.performance = structuredClone(DEFAULT_STATE.game.performance);
   state.game.roundQuestionPlan = null;
   state.game.usedRoundQuestionStepIds = [];
@@ -2546,13 +4635,14 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
   state.host.text = "";
   hostSceneMotion.mode = "";
   hostSceneMotion.completed = false;
+  resetSoundOnboardingEntry();
   resetHostSprite();
   state.host.emotion = "normal";
   state.host.avatarState = HOST_AVATAR_DEFAULT_STATE;
   state.host.targetSeat = "front";
   state.workflow.lastPassengerActionKey = "";
   state.workflow.pendingChats = [];
-  state.workflow.gameId = preparedGame?.gameId || createRuntimeId("game");
+  state.workflow.gameId = newGameId;
   persistDifyRoundScope();
   resetRealtimeConversationState();
   state.perception.driverState = "normal";
@@ -2568,6 +4658,7 @@ function applyGoldenLineDefaults(timeline = getActiveGoldenLine(), announce = fa
 }
 
 function getPrestartHostText(timeline) {
+  if (timeline.welcomeText) return timeline.welcomeText;
   const sceneLead = {
     family_highway_disney: "各位大小侦探，去迪士尼的路上要不要先玩一局猜谜？",
     rainy_city_hotpot_friends: "朋友局已就位，去火锅店的路上来一局轻松猜谜吧。",
@@ -2579,6 +4670,7 @@ function getPrestartHostText(timeline) {
 
 async function runScriptedQuestion(seat, text, preparedStep = null) {
   if (seat === "front") return;
+  if (!canPassengerSpeak(seat) || getSleepingSeats().includes(seat)) return;
   if (state.game.status === "paused") return;
   const questionRoundIndex = state.game.roundIndex;
   state.passengers.selectedSeat = seat;
@@ -2713,6 +4805,7 @@ function ensureScriptedVictory(seat, text) {
 
 async function runScriptedEvent(type, label, targetSeat = state.passengers.selectedSeat, reason = "") {
   const seat = targetSeat;
+  if (["passenger_sleep", "passenger_wake", "cabin_laughing"].includes(type) && !isSeatOccupied(seat)) return;
   showImportantEvent(getImportantEventText(type, seat));
   if (type === "hard_brake") {
     applyImmediateSafetyPause();
@@ -2865,7 +4958,6 @@ function setBackgroundMusicEnabled(enabled, traceId = null) {
   backgroundMusic.enabled = Boolean(enabled);
   recordClientRuntimeDiagnostic("host_voice", { stage: "toggle" });
   if (!backgroundMusic.enabled) {
-    stopHostSpriteAudio();
     cancelHostVoiceSpeech();
     const speech = state.workflow.hostSpeech;
     speech.voiceRequested = true;
@@ -2909,27 +5001,65 @@ function playVictorySound() {
   });
 }
 
-function playSummarySound() {
+function cancelSummarySound() {
+  simulationRuntime.cancelAnimationFrame(summarySound.frameId);
+  summarySound.frameId = 0;
+  summarySound.entry += 1;
+}
+
+function scheduleSummarySound() {
+  cancelSummarySound();
+  const entry = summarySound.entry;
+  const gameId = state.workflow.gameId;
+  const syncWithMvp = () => {
+    summarySound.frameId = 0;
+    if (entry !== summarySound.entry || gameId !== state.workflow.gameId || getGameScreenMode() !== "summary") return;
+    const group = els.summaryMvp?.closest(".summary-mvp-group");
+    if (!group) return;
+    const animation = group.getAnimations().find(item => item.animationName === "summary-mvp-emphasis");
+    if (animation) {
+      const timing = animation.effect.getTiming();
+      // The CSS emphasis starts enlarging after its 18% fade-in keyframe.
+      const enlargeAt = Number(timing.delay) + Number(timing.duration) * 0.18;
+      if (animation.currentTime == null || Number(animation.currentTime) < enlargeAt) {
+        summarySound.frameId = simulationRuntime.requestAnimationFrame(syncWithMvp);
+        return;
+      }
+    }
+    // Reduced motion shows the MVP immediately without a scale animation.
+    playSummarySound(entry);
+  };
+  summarySound.frameId = simulationRuntime.requestAnimationFrame(syncWithMvp);
+}
+
+function playSummarySound(entry = summarySound.entry) {
   const context = prepareAudioContext();
   if (!context) return;
+  const gameId = state.workflow.gameId;
 
   const play = () => {
-    if (context.state !== "running") return;
+    if (context.state !== "running" || simulationRuntime.paused || entry !== summarySound.entry
+      || state.workflow.gameId !== gameId || getGameScreenMode() !== "summary") return;
 
     const startAt = context.currentTime;
-    [392, 523.25, 659.25, 783.99].forEach((frequency, index) => {
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      const noteStart = startAt + index * 0.1;
-      oscillator.type = "triangle";
-      oscillator.frequency.setValueAtTime(frequency, noteStart);
-      gain.gain.setValueAtTime(0.0001, noteStart);
-      gain.gain.exponentialRampToValueAtTime(0.12, noteStart + 0.018);
-      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.34);
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start(noteStart);
-      oscillator.stop(noteStart + 0.36);
+    [659.25, 659.25].forEach((frequency, index) => {
+      const noteStart = startAt + index * 0.26;
+      // Brief inharmonic overtones give each strike a bright bell timbre.
+      [1, 2.76, 5.4].forEach((partial, overtone) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const duration = overtone === 0 ? 0.65 : 0.28;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency * partial, noteStart);
+        gain.gain.setValueAtTime(0.00005, noteStart);
+        gain.gain.exponentialRampToValueAtTime(0.1 / (overtone + 1) ** 2, noteStart + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.00005, noteStart + duration);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+        oscillator.start(noteStart);
+        oscillator.stop(noteStart + duration + 0.02);
+      });
     });
   };
 
@@ -3120,13 +5250,14 @@ async function startGame() {
     return;
   }
   state.game.status = "opening";
+  ensureGameOpeningMotion();
   state.ui.screenEnvironment = state.car.environment;
-  if (!state.game.playedRiddleIndices.includes(state.game.currentRiddleIndex)) {
-    state.game.playedRiddleIndices.push(state.game.currentRiddleIndex);
-  }
+  recordRiddleStarted();
   state.ui.showAnswer = false;
   state.ui.correctSeat = null;
-  render();
+  // Arm the normal intro before the first game render; opening speech is parallel.
+  startQuestionClock();
+  startQuestionIntro();
   await dispatchWorkflow("event", { type: "start_game", source: "timeline" });
 }
 
@@ -3169,10 +5300,8 @@ async function sendQuestion() {
   els.playerInput.value = "";
   const input = buildWorkflowInput("chat", null, text);
   recordClientRuntimeDiagnostic("player_submission", { stage: "submitted" });
-  // A trusted answer hit must not wait behind dialogue playback or remote work.
-  if (state.game.status === "playing" && authorizedGamePause(text) === null && isExplicitAnswerHit(input)) {
-    applyWorkflowOutput(applyAnswerHitGuard({}, input), input, "local");
-    recordClientRuntimeDiagnostic("player_submission", { stage: "resolved", elapsed_ms: 0 });
+  if (isAnswerCandidate(input) && authorizedGamePause(text) === null) {
+    await dispatchAnswerConfirmation(input);
     return;
   }
   if (isHostBusy() || state.workflow.situationEvents.some(record => ["pending_analysis", "analyzing", "ready"].includes(record.status))) {
@@ -3202,7 +5331,9 @@ function setSpeed(speed) {
 }
 
 function setDestination(destination) {
+  const changed = state.car.destination !== destination;
   state.car.destination = destination;
+  if (changed) scheduleNextRiddleRefresh();
   render();
 }
 
@@ -3213,9 +5344,9 @@ function setEnvironment(environment) {
   clearScreenEnvironmentTransition();
   const previousScreenEnvironment = state.ui.screenEnvironment || state.car.environment;
   state.car.environment = environment;
-  const matchedIndex = findRiddleForEnvironment(environment);
-  if (state.game.status === "idle") {
-    state.game.currentRiddleIndex = matchedIndex;
+  if (environmentChanged && state.game.status === "idle" && state.timeline.status === "idle") {
+    state.game.firstRoundSource = null;
+    state.game.currentRiddleIndex = findRiddleForEnvironment(environment);
     persistDifyRoundScope();
     ensureCurrentRoundPreparation();
   }
@@ -3378,36 +5509,137 @@ function clearScreenEnvironmentTransition() {
   state.ui.screenEnvironmentTransitionId += 1;
 }
 
-function findRiddleForEnvironment(environment) {
-  if (environment.includes("雨")) return 0;
-  if (environment.includes("雪")) return 5;
-  if (environment.includes("城区")) return 6;
-  if (environment.includes("风景区")) return 9;
-  if (environment.includes("高速")) return 1;
-  return state.game.currentRiddleIndex;
+function loadRecentRiddleIds() {
+  try {
+    const value = JSON.parse(localStorage.getItem(RIDDLE_HISTORY_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value.filter(id => typeof id === "string" && RIDDLES.some(r => r.id === id)).slice(-12) : [];
+  } catch { return []; }
+}
+
+function getRiddleEnvironmentKey(environment) {
+  const text = String(environment || "");
+  if (/车库|隧道/.test(text)) return "";
+  if (text.includes("雨")) return "雨天";
+  if (text.includes("雪")) return "雪景";
+  if (/深夜|寂静/.test(text)) return "深夜";
+  if (text.includes("傍晚")) return "傍晚";
+  if (/城区|城市/.test(text)) return /夜|赛博/.test(text) ? "城市夜晚" : "城市白天";
+  if (/风景|景区/.test(text)) return "风景区";
+  return "";
 }
 
 function getEnvironmentRiddleCandidates(environment) {
-  const rules = [
-    { keyword: "雨", theme: "雨天" },
-    { keyword: "雪", theme: "雪景" },
-    { keyword: "城区", theme: "城区" },
-    { keyword: "风景区", theme: "风景" },
-    { keyword: "高速", theme: "高速" },
-  ];
-  return rules.filter(rule => String(environment).includes(rule.keyword))
-    .flatMap(rule => RIDDLES.flatMap((riddle, index) => riddle.theme === rule.theme ? [index] : []));
+  const key = getRiddleEnvironmentKey(environment);
+  return RIDDLES.flatMap((riddle, index) => riddle.pool === "environment" && riddle.environmentTags.includes(key) ? [index] : []);
+}
+
+function getRiddleAudience(relationship) {
+  if (/中老年|长辈|祖|爷|奶/.test(relationship)) return "长辈";
+  if (/小孩|亲子|父母/.test(relationship)) return "亲子";
+  if (/朋友|年轻/.test(relationship)) return "朋友";
+  return "通用";
+}
+
+function riddleSelectionUnit(seed) {
+  let hash = 2166136261;
+  for (const char of seed) hash = Math.imul(hash ^ char.codePointAt(0), 16777619);
+  // Avalanche adjacent game IDs as well as random UUIDs before weighted sampling.
+  hash ^= hash >>> 16; hash = Math.imul(hash, 0x7feb352d);
+  hash ^= hash >>> 15; hash = Math.imul(hash, 0x846ca68b); hash ^= hash >>> 16;
+  return ((hash >>> 0) + 0.5) / 4294967296;
+}
+
+function getRoundRiddleDifficulty(roundIndex, audience, seed) {
+  if (roundIndex <= 2) return "easy";
+  if (roundIndex <= 4) return "medium";
+  if (roundIndex === 5) {
+    const chance = audience === "朋友" ? 0.65 : audience === "通用" ? 0.4 : 0;
+    return riddleSelectionUnit(`${seed}:challenge`) < chance ? "hard" : "medium";
+  }
+  return riddleSelectionUnit(`${seed}:finish`) < 0.6 ? "easy" : "medium";
+}
+
+function getRiddleCategoryGroup(riddle) {
+  return ["工具与文具", "科技与数码", "日常与户外"].includes(riddle?.category) ? "日常用品" : riddle?.category;
+}
+
+function selectRiddleIndex({ gameId = state.workflow.gameId, roundIndex = 1,
+  environment = state.car.environment, destination = state.car.destination,
+  relationship = state.passengers.relationship, scenario = getActiveGoldenLine(),
+  playedIndices = state.game.playedRiddleIndices, previousIndex = null } = {}) {
+  const blocked = new Set([...playedIndices, previousIndex].filter(index => Number.isInteger(index) && RIDDLES[index]));
+  const environmentKey = getRiddleEnvironmentKey(environment);
+  const audience = getRiddleAudience(relationship);
+  const key = JSON.stringify([RIDDLE_BANK_VERSION, gameId, roundIndex, environmentKey, destination,
+    relationship, scenario.id, [...blocked].sort((a, b) => a - b)]);
+  if (riddleSelectionCache.has(key)) return riddleSelectionCache.get(key);
+  let candidates = RIDDLES.flatMap((riddle, index) => !blocked.has(index)
+    && (riddle.pool === "general" || riddle.environmentTags.includes(environmentKey)) ? [index] : []);
+  // Never borrow an unrelated environment's exclusive answer just to fill a slot.
+  if (!candidates.length) return null;
+  const fresh = candidates.filter(index => !recentRiddleIds.includes(RIDDLES[index].id));
+  if (fresh.length) candidates = fresh;
+  const difficulty = getRoundRiddleDifficulty(roundIndex, audience, `${gameId}:${roundIndex}:${audience}`);
+  const levels = difficulty === "hard" ? ["hard", "medium", "easy"]
+    : difficulty === "medium" ? ["medium", "easy", "hard"] : ["easy", "medium", "hard"];
+  const level = levels.find(level => candidates.some(index => RIDDLES[index].difficulty === level));
+  candidates = candidates.filter(index => RIDDLES[index].difficulty === level);
+  const contextualCount = [...blocked].filter(index => RIDDLES[index].pool === "environment").length;
+  const needed = Math.max(0, 4 - contextualCount);
+  const slotsLeft = Math.max(1, GAME_ROUND_COUNT - roundIndex + 1);
+  const wantEnvironment = needed > 0 && ([1, 2, 4, 5].includes(roundIndex) || needed >= slotsLeft);
+  const preferred = candidates.filter(index => (RIDDLES[index].pool === "environment") === wantEnvironment);
+  if (preferred.length) candidates = preferred;
+  const previous = RIDDLES[previousIndex];
+  const varied = candidates.filter(index => getRiddleCategoryGroup(RIDDLES[index]) !== getRiddleCategoryGroup(previous));
+  if (previous && varied.length) candidates = varied;
+  const destinationTags = [
+    [/迪士尼/, ["迪士尼", "动画角色"]], [/夜市|火锅|餐厅/, ["夜市", "饮食", "聚餐"]],
+    [/草原|景区|公园/, ["旅行", "户外", "动物", "植物"]],
+    [/观星|营地|露营/, ["观星", "夜空", "露营"]], [/学校/, ["上学", "学习", "文具"]],
+    [/博物馆|西安/, ["历史", "博物馆", "文物"]], [/海边/, ["海边", "水域"]],
+  ].filter(([pattern]) => pattern.test(destination)).flatMap(([, tags]) => tags);
+  const weighted = candidates.map(index => {
+    const riddle = RIDDLES[index];
+    const text = [riddle.answer, riddle.category, ...riddle.contentTags].join(" ");
+    let weight = 1;
+    if (riddle.environmentTags.includes(environmentKey)) weight *= 3;
+    if (riddle.audienceTags.includes(audience)) weight *= 2.5;
+    else if (riddle.audienceTags.includes("通用")) weight *= 1.4;
+    if (riddle.scenarioTags.includes(scenario.trace?.strategyId)) weight *= 1.5;
+    if (destinationTags.some(tag => text.includes(tag))) weight *= 3;
+    const recentPosition = recentRiddleIds.lastIndexOf(riddle.id);
+    if (recentPosition >= 0) weight *= (recentRiddleIds.length - recentPosition) / 24;
+    return { index, weight };
+  });
+  let cursor = riddleSelectionUnit(`${key}:pick`) * weighted.reduce((sum, row) => sum + row.weight, 0);
+  let chosen = weighted.at(-1).index;
+  for (const row of weighted) {
+    cursor -= row.weight;
+    if (cursor < 0) { chosen = row.index; break; }
+  }
+  riddleSelectionCache.set(key, chosen);
+  if (riddleSelectionCache.size > 512) riddleSelectionCache.delete(riddleSelectionCache.keys().next().value);
+  return chosen;
+}
+
+function findRiddleForEnvironment(environment) {
+  return selectRiddleIndex({ roundIndex: 1, environment, playedIndices: [] }) ?? state.game.currentRiddleIndex;
 }
 
 function selectNextRiddleIndex(previousIndex, environment = state.car.environment) {
-  const played = new Set([...state.game.playedRiddleIndices, previousIndex]);
-  const matching = getEnvironmentRiddleCandidates(environment).find(index => !played.has(index));
-  if (matching !== undefined) return matching;
-  for (let offset = 1; offset < RIDDLES.length; offset += 1) {
-    const index = (previousIndex + offset) % RIDDLES.length;
-    if (!played.has(index)) return index;
-  }
-  return null;
+  return selectRiddleIndex({ roundIndex: state.game.roundIndex + 1, previousIndex, environment });
+}
+
+function recordRiddleStarted() {
+  const index = state.game.currentRiddleIndex, riddle = RIDDLES[index];
+  if (!state.game.playedRiddleIndices.includes(index)) state.game.playedRiddleIndices.push(index);
+  if (state.game.allocationHistory.some(row => row.roundIndex === state.game.roundIndex)) return;
+  state.game.allocationHistory.push({ roundIndex: state.game.roundIndex, riddleId: riddle.id,
+    environment: getRiddleEnvironmentKey(state.car.environment), pool: riddle.pool, difficulty: riddle.difficulty });
+  recentRiddleIds = [...recentRiddleIds, riddle.id].slice(-12);
+  try { localStorage.setItem(RIDDLE_HISTORY_STORAGE_KEY, JSON.stringify(recentRiddleIds)); }
+  catch { /* The page-local history remains useful when storage is unavailable. */ }
 }
 
 function clearNextRiddleRefresh() {
@@ -3475,6 +5707,8 @@ function applyImmediateSafetyPause() {
 }
 
 function invalidateAsyncHostResults({ preserveSituationEvents = false, reason = "P0打断：保留事件，恢复后按最新状态重新分析" } = {}) {
+  cancelGameOpening("游戏状态已变化");
+  cancelAnswerConfirmation();
   cancelEnvironmentRoundIntro("P0或游戏状态已变化");
   for (const record of state.workflow.situationEvents) {
     if (isSituationEventFinished(record)) continue;
@@ -3630,6 +5864,7 @@ function scheduleEventRecovery(type) {
 }
 
 function applyImmediatePassengerSleep(seat) {
+  if (!isSeatOccupied(seat)) return;
   state.passengers.seats[seat].mood = "睡着";
   if (state.game.status === "paused") { render(); return; }
   state.ui.cabinMode = "soft";
@@ -3646,6 +5881,7 @@ function applyImmediatePassengerSleep(seat) {
 }
 
 function applyImmediatePassengerWake(seat) {
+  if (!isSeatOccupied(seat)) return;
   state.passengers.seats[seat].mood = "普通";
   state.passengers.seats[seat].activity = "idle";
   state.passengers.seats[seat].activityLabel = "";
@@ -3711,13 +5947,17 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
     void dispatchSituationWorkflow(normalizedEvent, { observationOnly: normalizedEvent.priority === "P0" || eventType === "temporary_interruption" });
     return;
   }
+  const input = buildWorkflowInput(triggerType, normalizedEvent, playerInput);
+  if (isAnswerCandidate(input) && authorizedGamePause(playerInput) === null) {
+    await dispatchAnswerConfirmation(input);
+    return;
+  }
   if (isHostBusy()) {
     state.ui.alert = "AI 正在处理上一条信息，请稍等";
     render();
     return;
   }
 
-  const input = buildWorkflowInput(triggerType, normalizedEvent, playerInput);
   const requestId = beginWorkflowRequest(input);
 
   try {
@@ -3731,7 +5971,6 @@ async function dispatchWorkflow(triggerType, event, playerInput = "") {
       if (requestId !== state.workflow.activeRequestId) return;
     }
 
-    output = applyAnswerHitGuard(output, input);
     applyWorkflowOutput(output, input, "chat");
   } catch (error) {
     if (requestId !== state.workflow.activeRequestId) return;
@@ -3794,6 +6033,7 @@ function ensureRoundPreparation({
   newGame = false,
   scenarioTemplate = false,
   preferredTimelineId = "",
+  firstRoundSource = null,
 } = {}) {
   const roundId = `${gameId}-round-${roundIndex}`;
   const existing = roundQuestionPreparations.get(roundId);
@@ -3801,12 +6041,9 @@ function ensureRoundPreparation({
     && existing.scenarioId === scenario.id && existing.relationship === relationship) return existing;
   if (existing) discardRoundPreparation(existing);
 
-  const cleanScenario = newGame || (state.car.environment === scenario.environment
-    && state.car.speed === scenario.speed && state.car.destination === scenario.destination
-    && getSleepingSeats().length === 0 && state.perception.driverState === "normal");
-  const scenarioSource = startupLoading.initialized && !scenarioTemplate && roundIndex === 1
-    && riddleIndex === scenario.riddleIndex && relationship === scenario.relationship
-    && !previousTimelineId && cleanScenario ? getScenarioFirstRoundPreparation(scenario, true) : null;
+  const scenarioSource = !scenarioTemplate && roundIndex === 1 && firstRoundSource
+    && firstRoundSource.riddleIndex === riddleIndex && firstRoundSource.relationship === relationship
+    && firstRoundSource.scenarioId === scenario.id ? firstRoundSource : null;
 
   const preparation = {
     gameId, roundId, roundIndex, riddleIndex,
@@ -3836,23 +6073,28 @@ function ensureRoundPreparation({
 }
 
 function getScenarioFirstRoundPreparation(scenario, forGame = false) {
-  const scenarioKey = `${scenario.id}:${scenario.relationship}:${scenario.riddleIndex}`;
-  const reservation = scenarioFirstRoundReservations.get(scenarioKey);
-  if (reservation && (!forGame || !reservation.claimed)) {
+  const scenarioKey = `${scenario.id}:${scenario.relationship}`;
+  let reservation = scenarioFirstRoundReservations.get(scenarioKey);
+  const recentlyPlayed = reservation && recentRiddleIds.includes(RIDDLES[reservation.source.riddleIndex].id);
+  if (reservation && (!forGame || !reservation.claimed && !recentlyPlayed)) {
     if (forGame) reservation.claimed = true;
     return reservation.source;
   }
+  const selectionGameId = createRuntimeId("first-riddle");
+  const riddleIndex = reservation && !recentlyPlayed ? reservation.source.riddleIndex : selectRiddleIndex({ gameId: selectionGameId, roundIndex: 1, scenario,
+    relationship: scenario.relationship, destination: scenario.destination,
+    environment: scenario.environment, playedIndices: [] });
   const timelineId = pickRoundGoldenTimeline("").id;
-  const key = `${scenarioKey}:${timelineId}`;
+  const key = `${scenarioKey}:${RIDDLES[riddleIndex].id}:${timelineId}`;
   if (!scenarioFirstRoundPreparations.has(key)) {
     scenarioFirstRoundPreparations.set(key, ensureRoundPreparation({
       gameId: createRuntimeId("preview-cache"), roundIndex: 1,
-      riddleIndex: scenario.riddleIndex, scenario, relationship: scenario.relationship,
+      riddleIndex, scenario, relationship: scenario.relationship,
       previousTimelineId: "", newGame: true, scenarioTemplate: true, preferredTimelineId: timelineId,
     }));
   }
   const source = scenarioFirstRoundPreparations.get(key);
-  if (!reservation) scenarioFirstRoundReservations.set(scenarioKey, { source, claimed: forGame });
+  scenarioFirstRoundReservations.set(scenarioKey, { source, claimed: forGame });
   return source;
 }
 
@@ -3875,7 +6117,7 @@ async function adoptScenarioPreview(preparation, source) {
 }
 
 function ensureCurrentRoundPreparation() {
-  const preparation = ensureRoundPreparation();
+  const preparation = ensureRoundPreparation({ firstRoundSource: state.game.firstRoundSource });
   for (const entry of roundQuestionPreparations.values()) {
     if (entry.gameId === state.workflow.gameId && entry.roundIndex < state.game.roundIndex) {
       discardRoundPreparation(entry);
@@ -3902,9 +6144,129 @@ function prepareFollowingRound(preparation) {
   if (previous !== next) console.info("[next-riddle]", {
     game_id: next.gameId, round_id: next.roundId, environment: state.car.environment,
     riddle_index: riddleIndex, theme: RIDDLES[riddleIndex].theme,
-    reason: getEnvironmentRiddleCandidates(state.car.environment).includes(riddleIndex) ? "environment_match" : "unused_sequence",
+    riddle_id: RIDDLES[riddleIndex].id, difficulty: RIDDLES[riddleIndex].difficulty,
+    reason: getEnvironmentRiddleCandidates(state.car.environment).includes(riddleIndex) ? "weighted_environment" : "weighted_general",
   });
   return next;
+}
+
+function getGameOpeningContext() {
+  return JSON.stringify([state.car.environment, state.car.destination, state.passengers.relationship,
+    getActiveGoldenLine().id, state.workflow.p0Epoch,
+    Object.values(state.passengers.seats).map(seat => seat.mood)]);
+}
+
+function isCurrentGameOpening(entry) {
+  return Boolean(entry && gameOpening === entry && !["cancelled", "failed", "completed"].includes(entry.status)
+    && entry.gameId === state.workflow.gameId && entry.roundId === getDifyRoundScopeKey()
+    && entry.context === getGameOpeningContext() && state.game.roundIndex === 1
+    && ["idle", "opening", "playing"].includes(state.game.status) && state.game.questionCount === 0
+    && !state.workflow.pendingChats.length && !Object.values(state.passengers.seats).some(seat => seat.bubble));
+}
+
+function ensureGameOpeningMotion() {
+  if (state.game.roundIndex !== 1 || !["opening", "playing"].includes(state.game.status)) return;
+  if (gameOpeningMotion?.gameId === state.workflow.gameId) return;
+  gameOpeningMotion = { gameId: state.workflow.gameId, roundId: getDifyRoundScopeKey(), completed: false, cancelled: false };
+}
+
+function isGameOpeningMotionActive() {
+  return Boolean(gameOpeningMotion && !gameOpeningMotion.completed && !gameOpeningMotion.cancelled
+    && gameOpeningMotion.gameId === state.workflow.gameId && gameOpeningMotion.roundId === getDifyRoundScopeKey()
+    && state.game.roundIndex === 1 && ["opening", "playing"].includes(state.game.status)
+    && state.game.questionCount === 0 && !state.workflow.pendingChats.length
+    && !Object.values(state.passengers.seats).some(seat => seat.bubble));
+}
+
+function finishGameOpeningMotion() {
+  if (!isGameOpeningMotionActive() || hostSprite.source !== RESOURCE_CONFIG.host.smile.src) return false;
+  gameOpeningMotion.completed = true;
+  if (gameOpening?.gameId === gameOpeningMotion.gameId) gameOpening.heartCompleted = true;
+  render();
+  return true;
+}
+
+function cancelGameOpening(reason, { preserveMotion = false } = {}) {
+  if (!preserveMotion && gameOpeningMotion) gameOpeningMotion.cancelled = true;
+  const entry = gameOpening;
+  if (!entry || ["cancelled", "failed", "completed"].includes(entry.status)) return;
+  entry.status = "cancelled";
+  entry.controller.abort();
+  window.clearTimeout(entry.timer);
+  if (state.workflow.hostSpeech.source === "game_opening") {
+    clearHostSpeechLock("game_opening");
+    state.host.text = "";
+  }
+  recordExecutionReceipt(entry.traceId, "speech", "cancelled", `游戏开场：${reason}`);
+}
+
+function ensureGameOpening() {
+  if (startupLoading.active || state.game.status !== "idle" || state.game.roundIndex !== 1) return gameOpening;
+  const context = getGameOpeningContext();
+  if (gameOpening?.gameId === state.workflow.gameId && gameOpening.context === context) return gameOpening;
+  cancelGameOpening("准备场景已变化");
+  const event = { id: createRuntimeId("game-opening"), type: "round_changed", source: "game_opening",
+    priority: "P3", value: "游戏即将开始" };
+  const fullInput = buildFullWorkflowInput("event", event, "");
+  const input = { ...buildRealtimeChatInput(fullInput), timeline: fullInput.timeline,
+    trigger_type: "event", dialogue_request: { kind: "game_opening" } };
+  input.perception.current_observation = "游戏即将开始";
+  const entry = { id: event.id, gameId: input.game_id, roundId: input.round_id, context, input,
+    controller: new AbortController(), status: "pending", text: "", presented: false, traceId: null, timer: null };
+  gameOpening = entry;
+  entry.timer = window.setTimeout(() => {
+    if (entry.status !== "pending") return;
+    entry.status = "failed";
+    entry.controller.abort();
+    recordClientRuntimeDiagnostic("workflow_failure", { stage: "game_opening", reason: "prefetch_timeout" });
+  }, 20000);
+  entry.promise = requestWorkflow(input, entry.controller.signal).then(output => {
+    if (!isCurrentGameOpening(entry)) return;
+    const text = sanitizeHostReplyText(output?.ai_reply_text || "");
+    if (output?._bff?.operation !== "game_opening" || output.decision_trace?.guard_status !== "passed"
+      || output.intent !== "event" || output.reply_mode !== "chat_only" || !text || text.length > 40
+      || text.includes(input.game.current_answer) || output.is_correct || output.ui_change?.show_answer
+      || output.game_status && output.game_status !== "opening"
+      || output.passenger_action || output.execution?.actions?.length || output.covered_fact_keys?.length) {
+      throw new Error("Game opening failed its speech-only guard.");
+    }
+    entry.text = text;
+    entry.status = "ready";
+  }).catch(error => {
+    if (entry.status !== "pending") return;
+    entry.status = "failed";
+    recordClientRuntimeDiagnostic("workflow_failure", { stage: "game_opening", reason: "prefetch_failed" });
+    console.warn("Game opening unavailable:", error.message);
+  }).finally(() => window.clearTimeout(entry.timer));
+  return entry;
+}
+
+async function presentGameOpening(runId) {
+  const entry = gameOpening;
+  if (!isCurrentGameOpening(entry) || entry.presented || state.game.roundIndex !== 1) return;
+  ensureGameOpeningMotion();
+  entry.presented = true;
+  const deadline = simulationRuntime.now() + QUESTION_INTRO_DURATION_MS;
+  const current = () => state.timeline.runId === runId && isCurrentGameOpening(entry);
+  while (current() && entry.status === "pending" && simulationRuntime.now() < deadline) await sleep(100);
+  if (!current()) return;
+  if (entry.status !== "ready" || isHostBusy()
+    || state.workflow.hostSpeech.expiresAt > simulationRuntime.now()) {
+    cancelGameOpening("开场窗口已结束，不再补播", { preserveMotion: true });
+    return;
+  }
+  entry.traceId = updateDecisionTrace({ perception: "游戏即将开始", priority: "P3",
+    decision: "使用准备页预取的 Dify 简短开场串词", execution: "主持人串场与首题展示、倒计时并行" });
+  entry.status = "shown";
+  publishHostLine(entry.text, { priority: "P3", source: "game_opening", traceId: entry.traceId });
+  entry.speechId = state.workflow.hostSpeech.id;
+  entry.heartCompleted = Boolean(gameOpeningMotion?.gameId === entry.gameId && gameOpeningMotion.completed);
+  render();
+  // Track speech completion without holding the question clock or intro presentation.
+  while (current() && state.workflow.hostSpeech.source === "game_opening"
+    && (state.workflow.hostSpeech.expiresAt > simulationRuntime.now()
+      || state.workflow.hostSpeech.voicePending || state.workflow.hostSpeech.voicePlaying)) await sleep(100);
+  if (entry.status === "shown") entry.status = "completed";
 }
 
 function isCurrentEnvironmentRoundIntro(entry) {
@@ -4010,7 +6372,9 @@ function prepareNextGameFirstRound() {
   nextGamePreparation = ensureRoundPreparation({
     gameId: createRuntimeId("game"),
     roundIndex: 1,
-    riddleIndex: scenario.riddleIndex,
+    riddleIndex: selectRiddleIndex({ gameId: createRuntimeId("next-game-selection"), roundIndex: 1, scenario,
+      environment: scenario.environment, destination: scenario.destination,
+      relationship: scenario.relationship, playedIndices: [] }),
     scenario,
     relationship: scenario.relationship,
     previousTimelineId: "",
@@ -4172,6 +6536,7 @@ function getSituationEventInvalidReason(record) {
 }
 
 function registerSituationEvent(event) {
+  if (normalizeHostSpeechPriority(event.priority) > HOST_SPEECH_PRIORITIES.P3) cancelGameOpening("更高优先级事件先行");
   if (normalizeHostSpeechPriority(event.priority) > HOST_SPEECH_PRIORITIES.P3
     && state.workflow.environmentRoundIntro?.status === "generating") {
     cancelEnvironmentRoundIntro("更高优先级事件先行，取消未播开场");
@@ -4415,7 +6780,41 @@ function describeSituationReplyFailure(output) {
 
 function isHostBusy() {
   const speech = state.workflow.hostSpeech;
-  return Boolean(state.workflow.inFlight || speech.voicePending || speech.voicePlaying);
+  return Boolean(state.workflow.inFlight || state.workflow.answerConfirmation || speech.voicePending || speech.voicePlaying);
+}
+
+function cancelAnswerConfirmation() {
+  const pending = state.workflow.answerConfirmation;
+  state.workflow.answerConfirmation = null;
+  if (!pending) return;
+  pending.controller.abort();
+  simulationRuntime.clearTimeout(pending.timer);
+}
+
+async function dispatchAnswerConfirmation(input) {
+  cancelAnswerConfirmation();
+  const pending = { controller: new AbortController(), startedAt: simulationRuntime.now() };
+  pending.timer = simulationRuntime.setTimeout(() => pending.controller.abort(), 5000);
+  state.workflow.answerConfirmation = pending;
+  recordClientRuntimeDiagnostic("player_submission", { stage: "answer_confirmation" });
+  try {
+    const output = await requestWorkflow(input, pending.controller.signal);
+    if (state.workflow.answerConfirmation !== pending || !isCurrentWorkflowInput(input)) return;
+    applyWorkflowOutput(output, input, "chat");
+    recordClientRuntimeDiagnostic("player_submission", { stage: "resolved", elapsed_ms: simulationRuntime.now() - pending.startedAt });
+  } catch (error) {
+    if (state.workflow.answerConfirmation !== pending || !isCurrentWorkflowInput(input)) return;
+    const output = localDecision(input, error);
+    output.decision_trace = { ...output.decision_trace, layer: "fallback", matched_rule: "local_answer_confirmation",
+      decision: "Dify快速确认不可用，按相同的明确猜测规则本地校验" };
+    applyWorkflowOutput(output, input, "local");
+    recordClientRuntimeDiagnostic("workflow_failure", { stage: "answer_confirmation_fallback", reason: "workflow_error" });
+  } finally {
+    simulationRuntime.clearTimeout(pending.timer);
+    if (state.workflow.answerConfirmation === pending) state.workflow.answerConfirmation = null;
+    render();
+    void processNextPendingChat();
+  }
 }
 
 function beginWorkflowRequest(input) {
@@ -4563,6 +6962,7 @@ function clearWorkflowTimeout() {
 
 async function processNextPendingChat() {
   if (simulationRuntime.paused) return;
+  state.workflow.pendingChats = state.workflow.pendingChats.filter(chat => canPassengerSpeak(chat.seat));
   if (isHostBusy()) return;
   if (state.game.status === "paused") {
     if (!isPlayerGamePaused()) return;
@@ -4618,6 +7018,7 @@ async function processNextPendingChat() {
 }
 
 async function dispatchPendingChat(nextChat) {
+  if (!canPassengerSpeak(nextChat.seat)) return;
   state.passengers.selectedSeat = nextChat.seat;
   if (!nextChat.bubbleShown) showPassengerBubble(nextChat.seat, nextChat.text);
   if (Number.isFinite(nextChat.submittedAt)) recordClientRuntimeDiagnostic("player_submission", {
@@ -4680,9 +7081,11 @@ function getPassengerPersonas(relationship = state.passengers.relationship, scen
     girl: { role: "小女孩", age_group: "child", persona: "好奇、表达简短自然", can_guess: true },
     maleYoung: { role: "男青年", age_group: "young_adult", persona: "轻松、善于观察", can_guess: true },
     femaleYoung: { role: "女青年", age_group: "young_adult", persona: "表达自然、观察细致", can_guess: true },
+    femaleYoung2: { role: "女青年2", age_group: "young_adult", persona: "轻松活泼、善于观察", can_guess: true },
     grandpa: { role: "爷爷", age_group: "elder", persona: "沉稳、有生活经验", can_guess: true },
     grandma: { role: "奶奶", age_group: "elder", persona: "耐心、善于从生活经验判断", can_guess: true },
     baby: { role: "婴儿", age_group: "infant", persona: "只展示状态和表情，不生成完整发言", can_guess: false },
+    empty: { role: "空座", age_group: "none", persona: "无人乘坐，不发言、不参与游戏或乘客事件", can_guess: false, occupied: false },
   };
   const seatLabels = { driver: "主驾", front: "副驾", rear_left: "后排左", rear_right: "后排右" };
   const personas = structuredClone(base);
@@ -4699,6 +7102,7 @@ function getPassengerPersonas(relationship = state.passengers.relationship, scen
       persona: isRealUser ? "真实用户自行决定发言，不自动模拟" : profile.persona,
       style: isRealUser ? "由真实用户决定" : personas[seatKey]?.style,
       can_guess: isRealUser || profile.can_guess,
+      occupied: profile.occupied !== false,
       is_real_user: isRealUser,
     };
   }
@@ -4709,8 +7113,16 @@ function getPassengerPersona(seat) {
   return getPassengerPersonas()[getPersonaSeatKey(seat)] || null;
 }
 
+function isSeatOccupied(seat) {
+  return Boolean(state.passengers.seats[seat]) && getPassengerPersona(seat)?.occupied !== false;
+}
+
+function canPassengerSpeak(seat) {
+  return isSeatOccupied(seat) && getPassengerPersona(seat)?.can_guess !== false;
+}
+
 function getScenarioPersonaKeys(scenario) {
-  return [...new Set(Object.values(scenario.personas || {}))];
+  return [...new Set(Object.values(scenario.personas || {}))].filter(key => RESOURCE_CONFIG.passengers[key]);
 }
 
 function getCurrentRoundTimelineTemplate() {
@@ -4784,7 +7196,7 @@ function buildRoundPreviewInput(preparation) {
     selected_persona: personas.front,
     personas,
     states: preparation.newGame
-      ? { driver: "普通", front: "普通", rear_left: "普通", rear_right: "普通" }
+      ? Object.fromEntries(Object.entries(personas).map(([seat, persona]) => [seat, persona.occupied === false ? "空座" : "普通"]))
       : input.passengers.states,
   };
 
@@ -4822,6 +7234,7 @@ function buildRoundPreviewInput(preparation) {
       question_count: 0,
       current_answer: riddle.answer,
       current_theme: riddle.theme,
+      public_clues: [riddle.hint],
       progress: "normal",
       asked_questions: [],
       covered_fact_keys: [],
@@ -4901,8 +7314,8 @@ function buildFullWorkflowInput(triggerType, event, playerInput) {
       states: {
         driver: state.passengers.seats.driver.mood,
         front: state.passengers.seats.front.mood,
-        rear_left: state.passengers.seats.rearLeft.mood,
-        rear_right: state.passengers.seats.rearRight.mood,
+        rear_left: personas.rear_left.occupied === false ? "空座" : state.passengers.seats.rearLeft.mood,
+        rear_right: personas.rear_right.occupied === false ? "空座" : state.passengers.seats.rearRight.mood,
       },
       personas,
     },
@@ -5000,6 +7413,10 @@ function buildRealtimeChatInput(fullInput) {
       selected_persona: fullInput.passengers.selected_persona,
       user_seat: "front",
       states: fullInput.passengers.states,
+      personas: Object.fromEntries(Object.entries(fullInput.passengers.personas || {}).map(([seat, persona]) => [seat, {
+        role: persona.role, age_group: persona.age_group, can_guess: persona.can_guess,
+        occupied: persona.occupied !== false, is_real_user: Boolean(persona.is_real_user),
+      }])),
     },
     game: {
       status: fullInput.game.status,
@@ -5076,8 +7493,12 @@ function getDriverState(event) {
 
 function getSleepingSeats() {
   return Object.entries(state.passengers.seats)
-    .filter(([, seatState]) => seatState.mood === "睡着")
+    .filter(([seat, seatState]) => isSeatOccupied(seat) && seatState.mood === "睡着")
     .map(([seat]) => seat);
+}
+
+function getManualPassengerEventSeat() {
+  return ["rearRight", "rearLeft"].find(seat => isSeatOccupied(seat) && !getSleepingSeats().includes(seat)) || null;
 }
 
 function getManualWakeSeat() {
@@ -5089,7 +7510,7 @@ function getManualWakeSeat() {
 function getInactiveSeat(currentSpeaker, event) {
   if (event?.type === "passenger_inactive") {
     const eventSeat = normalizeTargetSeat(event.seat) || event.seat;
-    if (["rearLeft", "rearRight"].includes(eventSeat) && !getSleepingSeats().includes(eventSeat)) {
+    if (["rearLeft", "rearRight"].includes(eventSeat) && canPassengerSpeak(eventSeat) && !getSleepingSeats().includes(eventSeat)) {
       return eventSeat;
     }
   }
@@ -5107,7 +7528,7 @@ function getInactiveSeat(currentSpeaker, event) {
   if (currentSpeaker in participation) participation[currentSpeaker] += 1;
 
   const candidates = Object.keys(participation)
-    .filter((seat) => !sleepingSeats.has(seat))
+    .filter((seat) => canPassengerSpeak(seat) && !sleepingSeats.has(seat))
     .sort((seatA, seatB) => participation[seatA] - participation[seatB]);
 
   if (!candidates.length || participation[candidates[0]] > 0) return null;
@@ -5175,9 +7596,25 @@ function getPublicClues() {
 
 function publicClueRecap(input) {
   const answer = input.game?.current_answer || "";
-  const clue = [...(input.game?.public_clues || [])].reverse().find(line => typeof line === "string"
-    && line.trim() && line.length <= 54 && (!answer || !line.includes(answer)));
-  return clue ? `已公开：${clue}` : "目前没有可重述的公开线索，可以继续问是或否问题。";
+  const cleanClue = (line) => {
+    let clue = typeof line === "string" ? line.trim() : "";
+    while (true) {
+      const cleaned = clue.replace(/^(?:题面|已公开(?:回答|线索)?|公开线索|线索|提示)\s*[:：]\s*/, "");
+      if (cleaned === clue) break;
+      clue = cleaned;
+    }
+    return clue.replace(/[。！？!?]+$/, "");
+  };
+  const clue = [...(input.game?.public_clues || [])].reverse().map(cleanClue).find(line => line
+    && line.length <= 54 && (!answer || !line.includes(answer)));
+  if (!clue) return "目前还没有可复述的公开线索，侦探也不能空手变答案。先从一个是非问题开始吧。";
+  const variants = [
+    `线索小抄来啦：${clue}。接下来轮到你推理了！`,
+    `再多就要剧透啦，先给你这一条：${clue}。换个角度问问？`,
+    `侦探进度更新：${clue}。看看下一问能不能缩小范围？`,
+  ];
+  const count = Number(input.game?.question_count) || 0;
+  return variants[count % variants.length];
 }
 
 function getRecentMessages() {
@@ -5362,11 +7799,12 @@ function describeWorkflowFailure(error) {
 async function exchangeWorkflow(input, signal, { situationHandoff = null, diagnostic = {} } = {}) {
   const situationReply = input.dialogue_request?.kind === "situation_event";
   const roundIntro = input.dialogue_request?.kind === "environment_round_intro";
-  const expectedRoute = input.trigger_type === "chat" || situationReply || roundIntro
+  const opening = input.dialogue_request?.kind === "game_opening";
+  const expectedRoute = input.trigger_type === "chat" || situationReply || roundIntro || opening
     ? "chat"
     : input.event?.type === "start_game" ? "preview" : "situation";
   diagnostic.route = expectedRoute;
-  const submittedConversationId = expectedRoute === "chat" ? getPersistentDifyConversationId() : "";
+  const submittedConversationId = expectedRoute === "chat" && !opening ? getPersistentDifyConversationId() : "";
   const response = await fetch(DEFAULT_WORKFLOW_ENDPOINT, {
     method: "POST",
     headers: {
@@ -5377,6 +7815,7 @@ async function exchangeWorkflow(input, signal, { situationHandoff = null, diagno
       route: expectedRoute,
       ...(situationReply ? { operation: "situation_reply", situation_handoff: situationHandoff } : {}),
       ...(roundIntro ? { operation: "environment_round_intro" } : {}),
+      ...(opening ? { operation: "game_opening" } : {}),
       query: input.trigger_type === "chat" ? input.player_input : "",
       conversation_id: submittedConversationId,
       user_id: getPersistentDifyUserId(),
@@ -5415,6 +7854,7 @@ async function exchangeWorkflow(input, signal, { situationHandoff = null, diagno
   if (payload.route !== expectedRoute) throw new Error("BFF returned the wrong workflow route.");
   if (situationReply && payload.operation !== "situation_reply") throw new Error("BFF returned a different dialogue operation.");
   if (roundIntro && payload.operation !== "environment_round_intro") throw new Error("BFF returned a different round intro operation.");
+  if (opening && payload.operation !== "game_opening") throw new Error("BFF returned a different game opening operation.");
   if (input.event && (payload.event_type !== input.event.type || payload.event_id !== input.event.id)) {
     throw new Error("BFF returned a different event.");
   }
@@ -5428,7 +7868,7 @@ async function exchangeWorkflow(input, signal, { situationHandoff = null, diagno
   diagnostic.stage = "normalize";
   const output = normalizeWorkflowPayload(payload);
   output._diagnostic = payload.diagnostic || null;
-  if (expectedRoute === "chat" && payload.conversation_id && input.round_id === getDifyRoundScopeKey()) {
+  if (expectedRoute === "chat" && !opening && payload.conversation_id && input.round_id === getDifyRoundScopeKey()) {
     savePersistentDifyConversationId(payload.conversation_id, input.round_id);
   }
   output._bff = {
@@ -5724,6 +8164,7 @@ function publishHostLine(text, {
       sceneScope, eventValue, startActions, publicClue });
   }
 
+  if (source !== "game_opening" && gameOpeningMotion) gameOpeningMotion.cancelled = true;
   cancelHostVoiceSpeech();
   if (speech.timer) {
     recordExecutionReceipt(speech.traceId, "speech", "interrupted", "主持话术：被P0话术替换");
@@ -5976,7 +8417,7 @@ function getDefaultHostReply(output, input) {
   if (isHintRequestInput(input)) {
     return publicClueRecap(input);
   }
-  if (input?.trigger_type === "chat" && isExplicitAnswerHit(input)) {
+  if (output?.is_correct && input?.trigger_type === "chat" && isExplicitAnswerHit(input)) {
     return `${SEATS[state.passengers.selectedSeat] || "这位侦探"}答对了，谜底揭晓。`;
   }
   return "收到，我们继续沿着这个方向推进。";
@@ -6157,44 +8598,32 @@ function showResultFeedback(entry) {
   } else clearResultFeedback();
 }
 
-function applyAnswerHitGuard(output, input) {
-  if (!isExplicitAnswerHit(input)) {
-    return output;
-  }
+function answerCandidateKind(input) {
+  if (input?.trigger_type !== "chat" || input.game?.status !== "playing") return "none";
+  const answer = normalizeAnswerText(input.game.current_answer);
+  const guess = normalizeAnswerText(input.player_input);
+  if (!answer || !guess.includes(answer)) return "none";
+  const prefixes = ["", "是", "就是", "是不是", "是否是", "会是", "会不会是", "难道是", "莫非是", "应该是", "可能是",
+    "我猜", "我猜是", "我觉得是", "我认为是", "我选", "我确定是", "答案是", "答案就是", "答案应该是",
+    "谜底是", "谜底就是", "我猜答案是", "我猜谜底是", "我觉得可能是", "我觉得应该是", "我的答案是",
+    "那是", "那是不是", "那我猜是"];
+  const suffixes = ["", "吗", "嘛", "么", "吧", "呢", "啦", "对吗", "对不对", "是不是", "没错吧"];
+  if (prefixes.some(prefix => suffixes.some(suffix => guess === prefix + answer + suffix))) return "confirmed";
+  return /不是|不可能|不会是|不能是|不选|别选|排除|不像/.test(guess) ? "negated" : "uncertain";
+}
 
-  const answer = input.game?.current_answer || getCurrentRiddle().answer;
-  return {
-    ...output,
-    ai_reply_text: output.ai_reply_text || `${input.passengers.selected_seat_label}答对了，谜底就是${answer}。`,
-    game_status: "victory",
-    is_correct: true,
-    answer,
-    decision_trace: output.is_correct || output.game_status === "victory" ? output.decision_trace : {
-      schema_version: 2, layer: "rule", matched_rule: "frontend_answer_hit",
-      decision: "本地命中校验通过，进入答对揭晓", upstream: output.decision_trace,
-    },
-    ui_change: {
-      ...(output.ui_change || {}),
-      cabin_mode: "victory",
-      target_seat: input.passengers?.selected_seat,
-      host_emotion: "celebrating",
-      animation: "victory",
-      show_answer: true,
-    },
-  };
+function isAnswerCandidate(input) {
+  return answerCandidateKind(input) !== "none";
 }
 
 function isExplicitAnswerHit(input) {
-  if (input.trigger_type !== "chat") return false;
-  const answer = normalizeAnswerText(input.game?.current_answer || getCurrentRiddle().answer);
-  const playerInput = normalizeAnswerText(input.player_input);
-  return Boolean(answer && playerInput.includes(answer));
+  return answerCandidateKind(input) === "confirmed";
 }
 
 function normalizeAnswerText(text) {
   return String(text || "")
     .toLowerCase()
-    .replace(/[\s，。！？、,.!?:"'“”‘’（）()【】\[\]-]/g, "");
+    .replace(/[\s，。！？、,.!?:："'“”‘’（）()【】\[\]-]/g, "");
 }
 
 function isHintRequestInput(input) {
@@ -6349,8 +8778,7 @@ function localDecision(input, error) {
   }
 
   if (input.trigger_type === "chat") {
-    const guess = input.player_input.trim();
-    const isCorrect = guess.includes(riddle.answer);
+    const isCorrect = isExplicitAnswerHit(input);
     const reachedLimit = input.game.question_count >= input.game.max_questions;
 
     if (isCorrect) {
@@ -6366,6 +8794,16 @@ function localDecision(input, error) {
           animation: "victory",
           show_answer: true,
         },
+      };
+    }
+
+    if (isAnswerCandidate(input)) {
+      return {
+        intent: "game_related_chat", reply_mode: "chat_only", game_status: "playing", is_correct: false,
+        ai_reply_text: answerCandidateKind(input) === "negated" ? "好，这次是在排除，不算提交答案。咱们接着想。"
+          : "候选我听到了。要提交猜测的话，直接说“我猜是……”就好。",
+        covered_fact_keys: [], execution: { actions: [] },
+        ui_change: { cabin_mode: "normal", host_emotion: "normal", animation: "speak", show_answer: false },
       };
     }
 
@@ -6406,6 +8844,9 @@ function localDecision(input, error) {
 
     return {
       ai_reply_text: makeLocalAnswer(input.player_input, riddle),
+      intent: "fallback",
+      reply_mode: "chat_only",
+      covered_fact_keys: [],
       game_status: "playing",
       is_correct: false,
       answer: riddle.answer,
@@ -6436,6 +8877,9 @@ function localDecision(input, error) {
 }
 
 function makeLocalAnswer(playerInput, riddle) {
+  if (!["RAIN-01", "R001", "R002", "R003", "R004", "SNOW-01", "CITY_DAY-01", "R005"].includes(riddle.id)) {
+    return "这轮判断暂时没有接上，我先不乱答。这次不计次数，稍后再试一下吧。";
+  }
   const text = playerInput.toLowerCase();
   if (text.includes("活") || text.includes("生命")) {
     return "不是，它没有生命。这个问题很关键，类别已经缩小了。";
@@ -7123,7 +9567,7 @@ function applyPassengerAction(passengerAction) {
   }
 
   const seat = normalizeTargetSeat(passengerAction.seat) || passengerAction.seat;
-  if (!state.passengers.seats[seat]) {
+  if (!canPassengerSpeak(seat)) {
     return false;
   }
 
@@ -7165,12 +9609,13 @@ function applyPassengerVisualStates(output) {
   let hasActivity = false;
   candidates.forEach((candidate) => {
     const seat = normalizeTargetSeat(candidate?.seat || candidate?.target_seat);
-    if (!seat || !state.passengers.seats[seat]) return;
+    if (!seat || !isSeatOccupied(seat)) return;
 
     const activity = normalizePassengerActivity(
       candidate.action || candidate.activity || candidate.state || candidate.type,
     );
     if (activity) {
+      if (["thinking", "asking", "answering"].includes(activity) && !canPassengerSpeak(seat)) return;
       if (activity === "celebrating" && !(output.is_correct || output.game_status === "victory")) {
         return;
       }
@@ -7555,6 +10000,8 @@ function suppressPassengerActionForEvent(eventType) {
 }
 
 function showPassengerBubble(seat, text) {
+  if (!canPassengerSpeak(seat)) return false;
+  if (String(text || "").trim()) cancelGameOpening("乘客已开始问答");
   if (String(text || "").trim()) cancelEnvironmentRoundIntro("乘客已开始问答，不再补播开场");
   recordParticipationActivity(seat, text);
   clearPassengerBubbles(seat);
@@ -7562,6 +10009,7 @@ function showPassengerBubble(seat, text) {
   state.workflow.lastBubbleShownAt = simulationRuntime.now();
   playPassengerBubbleSound();
   scheduleBubbleClear();
+  return true;
 }
 
 function getBubbleOutputDelayMs(input) {
@@ -7645,15 +10093,24 @@ function getHostPresentation() {
       ? HOST_AVATAR_DEFAULT_STATE
       : requestedHostState;
   const readyScreen = getGameScreenMode() === "ready";
-  const hostBubbleText = readyScreen || hostThinking ? "" : String(state.host.text || "");
-  const hostBubbleHidden = readyScreen || hostThinking || !hostBubbleText.trim();
+  const readyWelcome = readyScreen && hostSceneMotion.completed && state.workflow.hostSpeech.source === "ready_welcome";
+  const hostBubbleText = readyScreen && !readyWelcome || hostThinking ? "" : String(state.host.text || "");
+  const hostBubbleHidden = readyScreen && !readyWelcome || hostThinking || !hostBubbleText.trim();
   const hostSpeechVisible = !hostBubbleHidden;
-  const mediaHostState =
+  let mediaHostState =
     hostSpeechVisible && !state.workflow.hostSpeech.voiceFinished && renderedHostState === HOST_AVATAR_DEFAULT_STATE
       ? "speak"
       : renderedHostState === "speak" && state.workflow.hostSpeech.voiceFinished
         ? HOST_AVATAR_DEFAULT_STATE
       : renderedHostState;
+  if (readyScreen) {
+    const speech = state.workflow.hostSpeech;
+    const silentWelcome = !backgroundMusic.enabled || !state.health.hostVoiceConfigured;
+    mediaHostState = readyWelcome && hostSpeechVisible && !speech.voiceFinished
+      && (speech.voicePlaying || silentWelcome) ? "speak" : HOST_AVATAR_DEFAULT_STATE;
+  } else if (getGameScreenMode() === "playing" && !shouldShowThinking && isGameOpeningMotionActive()) {
+    mediaHostState = "smile";
+  }
   return { hostBusy, hostThinking, renderedHostState, hostBubbleText, hostBubbleHidden, hostSpeechVisible, mediaHostState };
 }
 
@@ -7664,22 +10121,32 @@ function render() {
   if (els.playerInputGuide) els.playerInputGuide.hidden = !shouldShowPlayerInputGuide(screenMode);
   const enteredReadyScreen =
     screenMode === "ready" && lastRenderedScreenMode !== "ready";
+  const enteredSummaryScreen =
+    screenMode === "summary" && lastRenderedScreenMode !== "summary";
+  const leftSummaryScreen =
+    screenMode !== "summary" && lastRenderedScreenMode === "summary";
   lastRenderedScreenMode = screenMode;
+  if (leftSummaryScreen) cancelSummarySound();
+  if (enteredSummaryScreen) scheduleSummarySound();
   if (enteredReadyScreen) {
-    scheduleSoundOnboarding();
+    clearHostSpeechLock();
+    state.host.text = "";
+    resetSoundOnboardingEntry();
     resetBackgroundMusicForReadyEntry();
     cancelHostVoiceSpeech();
   } else if (screenMode !== "ready") {
     hideSoundOnboarding();
   }
+  if (screenMode === "ready") ensureGameOpening();
   const { hostBusy, hostThinking, renderedHostState, hostBubbleText, hostBubbleHidden, hostSpeechVisible, mediaHostState } = getHostPresentation();
   const noWinnerReveal = state.game.status === "failed" && state.ui.showAnswer;
-  const environmentAssets = resolveEnvironmentAssets(state.car.environment);
+  const cabinEnvironment = screenMode === "ready" ? getReadyCabinEnvironment() : state.car.environment;
+  const environmentAssets = resolveEnvironmentAssets(cabinEnvironment);
   const screenEnvironmentAssets = resolveEnvironmentAssets(
     state.ui.screenEnvironment || state.car.environment,
   );
   const environmentMapping =
-    getEnvironmentMapping(state.car.environment)
+    getEnvironmentMapping(cabinEnvironment)
     || RESOURCE_CONFIG.environments["高速路晴天白天"];
   const screenBackground =
     screenMode === "ready"
@@ -7722,8 +10189,9 @@ function render() {
       },
     );
   }
-  els.environmentLabel.textContent = `车外环境：${getEnvironmentDescription(state.car.environment).name}`;
+  els.environmentLabel.textContent = `车外环境：${getEnvironmentDescription(cabinEnvironment).name}`;
   els.speedLabel.textContent = `${state.car.speed} km/h`;
+  els.speedLabel.closest(".speed-badge").hidden = !(Number(state.car.speed) > OVERSPEED_KMH);
   els.destinationLabel.textContent = `目的地：${state.car.destination}`;
 
   renderGameProgress();
@@ -7761,12 +10229,15 @@ function render() {
   els.summaryMvp.textContent = SEATS[getSummaryMvpSeat()] || "副驾";
   els.hostBubble.classList.remove("thinking");
   els.hostBubble.classList.toggle("hidden", hostBubbleHidden);
+  if (screenMode === "ready") {
+    scheduleSoundOnboarding();
+  }
   els.hostBubble.classList.remove("medium-text", "long-text");
   els.hostBubble.style.height = "167px";
   if (!els.hostBubble.dataset.baseTop) {
     els.hostBubble.dataset.baseTop = getComputedStyle(els.hostBubble).top;
   }
-  els.hostBubble.style.top = els.hostBubble.dataset.baseTop;
+  els.hostBubble.style.top = screenMode === "ready" ? "34px" : els.hostBubble.dataset.baseTop;
   els.hostBubble.setAttribute("aria-busy", hostBusy ? "true" : "false");
   const hostBubbleTextElement = setHostBubbleText(hostBubbleText);
   if (!hostBubbleHidden) {
@@ -7779,6 +10250,7 @@ function render() {
         paddingY: 48,
         anchorLines: 2,
         anchorLineHeight: 52,
+        anchorOffsetY: screenMode === "ready" ? -30 : 0,
       });
     });
   } else {
@@ -7948,7 +10420,8 @@ async function loadHostSprite(media) {
   const loadId = ++hostSprite.loadId;
 
   try {
-    const image = await loadHostSpriteImage(media.src);
+    const readyMedia = [RESOURCE_CONFIG.host.greeting, RESOURCE_CONFIG.host.readyNormal, RESOURCE_CONFIG.host.readySpeak].includes(media);
+    const image = await (readyMedia ? loadReadyHostMedia(media) : loadHostSpriteImage(media.src));
     if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
     if (loadId !== hostSprite.loadId || hostSprite.source !== media.src) return;
 
@@ -7979,12 +10452,17 @@ async function loadHostSprite(media) {
       hostSprite.fallbackTimerId = simulationRuntime.setTimeout(() => {
         if (loadId === hostSprite.loadId) finishHostSceneMotion();
       }, Number(media.frameCount) * HOST_SPRITE_FRAME_DURATION_MS);
+    } else if (media === RESOURCE_CONFIG.host.smile && isGameOpeningMotionActive()) {
+      hostSprite.fallbackTimerId = simulationRuntime.setTimeout(() => {
+        if (loadId === hostSprite.loadId) finishGameOpeningMotion();
+      }, Number(media.frameCount) * HOST_SPRITE_FRAME_DURATION_MS);
     }
     console.warn("Host sprite could not be loaded; using static fallback.", error);
   }
 }
 
 function createHostSpriteFrames(media) {
+  if (media.frames) return media.frames;
   const frameCount = Math.max(1, Number(media.frameCount) || 1);
   return Array.from({ length: frameCount }, (_, index) => ({
     frame: {
@@ -8026,8 +10504,9 @@ function preloadHostSpriteImages() {
 
 function configureHostCanvas() {
   const canvas = els.hostCanvas;
-  canvas.width = 564;
-  canvas.height = 572;
+  const readyScreen = getGameScreenMode() === "ready";
+  canvas.width = readyScreen ? 556 : 564;
+  canvas.height = readyScreen ? 556 : 572;
   canvas.dataset.frameCount = String(hostSprite.frames.length);
   canvas.getContext("2d").imageSmoothingEnabled = true;
 }
@@ -8103,6 +10582,7 @@ function stepHostSprite(timestamp) {
     hostSprite.completed = true;
     hostSprite.animationFrameId = 0;
     if (finishHostSceneMotion()) return;
+    if (finishGameOpeningMotion()) return;
     if (hostSprite.source === RESOURCE_CONFIG.host.thinking.src) {
       state.workflow.hostThinkingActive = false;
       state.workflow.hostThinkingStartedAt = 0;
@@ -8124,9 +10604,14 @@ function stepHostSprite(timestamp) {
 
 function finishHostSceneMotion() {
   const mode = hostSceneMotion.mode;
-  const matching = mode === "summary" && hostSprite.source === RESOURCE_CONFIG.host.celebration.src;
+  const matching = mode === "summary" && hostSprite.source === RESOURCE_CONFIG.host.celebration.src
+    || mode === "ready" && hostSprite.source === RESOURCE_CONFIG.host.greeting.src;
   if (!matching || hostSceneMotion.completed || getGameScreenMode() !== mode) return false;
   hostSceneMotion.completed = true;
+  if (mode === "ready") {
+    stopHostSpriteAudio();
+    publishHostLine(getPrestartHostText(getActiveGoldenLine()), { source: "ready_welcome", priority: "P2", force: true });
+  }
   render();
   return true;
 }
@@ -8242,27 +10727,39 @@ function setHostVoiceState(speechId, { pending, playing }) {
   speech.voicePending = pending;
   speech.voicePlaying = playing;
   speech.voiceFinished = !pending && !playing;
-  if (speech.source === "ready_welcome" && speech.voiceFinished) scheduleSoundOnboarding();
   refreshHostSpeechMedia();
 }
 
-function isSoundOnboardingDismissed() {
+function getSoundOnboardingShowCount() {
   try {
-    return localStorage.getItem(SOUND_ONBOARDING_DISMISSED_KEY) === "1";
-  } catch {
-    return false;
-  }
+    const stored = Number(localStorage.getItem(SOUND_ONBOARDING_COUNT_KEY));
+    if (Number.isInteger(stored) && stored >= 0) {
+      soundOnboarding.showCount = Math.max(soundOnboarding.showCount, Math.min(2, stored));
+    }
+  } catch { /* Keep the in-memory limit when browser storage is unavailable. */ }
+  return soundOnboarding.showCount;
+}
+
+function canShowSoundOnboarding() {
+  return !backgroundMusic.enabled && !soundOnboarding.shownForEntry
+    && !soundOnboarding.dismissedForEntry && getSoundOnboardingShowCount() < 2
+    && getGameScreenMode() === "ready";
 }
 
 function scheduleSoundOnboarding() {
-  if (backgroundMusic.enabled || isSoundOnboardingDismissed() || getGameScreenMode() !== "ready"
-    || soundOnboardingTimer || !els.soundOnboarding?.hidden) return;
+  if (!canShowSoundOnboarding() || soundOnboardingTimer || !els.soundOnboarding?.hidden) return;
+  soundOnboarding.enteredAt ??= Date.now();
   soundOnboardingTimer = window.setTimeout(() => {
     soundOnboardingTimer = 0;
-    if (!backgroundMusic.enabled && !isSoundOnboardingDismissed() && getGameScreenMode() === "ready") {
+    if (canShowSoundOnboarding()) {
+      soundOnboarding.showCount = getSoundOnboardingShowCount() + 1;
+      soundOnboarding.shownForEntry = true;
       els.soundOnboarding.hidden = false;
+      try {
+        localStorage.setItem(SOUND_ONBOARDING_COUNT_KEY, String(soundOnboarding.showCount));
+      } catch { /* The current page still counts this display. */ }
     }
-  }, 4000);
+  }, Math.max(0, 2000 - (Date.now() - soundOnboarding.enteredAt)));
 }
 
 function hideSoundOnboarding() {
@@ -8274,16 +10771,15 @@ function hideSoundOnboarding() {
 }
 
 function dismissSoundOnboarding() {
-  if (soundOnboardingTimer) {
-    window.clearTimeout(soundOnboardingTimer);
-    soundOnboardingTimer = 0;
-  }
-  if (els.soundOnboarding) els.soundOnboarding.hidden = true;
-  try {
-    localStorage.setItem(SOUND_ONBOARDING_DISMISSED_KEY, "1");
-  } catch {
-    // Keep the button interaction responsive when storage is unavailable.
-  }
+  hideSoundOnboarding();
+  soundOnboarding.dismissedForEntry = true;
+}
+
+function resetSoundOnboardingEntry() {
+  hideSoundOnboarding();
+  soundOnboarding.shownForEntry = false;
+  soundOnboarding.dismissedForEntry = false;
+  soundOnboarding.enteredAt = Date.now();
 }
 
 function refreshHostSpeechMedia() {
@@ -8620,16 +11116,12 @@ async function startHostVoiceSpeech(speechId, text) {
 async function playHostSpriteAudio(audioMeta) {
   const loadId = hostSprite.loadId;
   const generation = hostSprite.audioGeneration;
-  const isCurrent = () => backgroundMusic.enabled && loadId === hostSprite.loadId && generation === hostSprite.audioGeneration;
+  const isCurrent = () => loadId === hostSprite.loadId && generation === hostSprite.audioGeneration;
   if (!isCurrent()) return false;
   if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
   if (!audioMeta?.src || !isCurrent()) return false;
   const context = prepareAudioContext();
   if (!context) return playHostSpriteAudioElement(audioMeta);
-  if (context.state === "suspended") {
-    await context.resume().catch(() => {});
-    if (simulationRuntime.paused) await simulationRuntime.waitUntilRunning();
-  }
   if (!isCurrent()) return false;
   if (context.state !== "running") return playHostSpriteAudioElement(audioMeta);
 
@@ -8681,8 +11173,8 @@ async function playHostSpriteAudio(audioMeta) {
 }
 
 function playHostSpriteAudioElement(audioMeta) {
-  if (!backgroundMusic.enabled) return false;
   const loadId = hostSprite.loadId;
+  const generation = hostSprite.audioGeneration;
   const audio = new Audio(new URL(audioMeta.src, document.baseURI).href);
   audio.preload = "auto";
   audio.volume = Math.min(1, Math.max(0, Number(audioMeta.volume) || 0.85));
@@ -8690,15 +11182,32 @@ function playHostSpriteAudioElement(audioMeta) {
   hostSprite.audioElement = audio;
   const start = () => {
     hostSprite.audioTimerId = 0;
-    if (!backgroundMusic.enabled || loadId !== hostSprite.loadId || hostSprite.audioElement !== audio) return;
+    if (loadId !== hostSprite.loadId || generation !== hostSprite.audioGeneration || hostSprite.audioElement !== audio || hostSprite.completed) return;
     audio.currentTime = Math.max(0, Number(audioMeta.trimStartMs) || 0) / 1000;
-    audio.play().catch(() => {});
+    audio.play().catch(error => {
+      if (hostSprite.audioElement === audio && error.name === "NotAllowedError") audio.spriteNeedsGesture = true;
+    });
   };
   hostSprite.audioTimerId = simulationRuntime.setTimeout(start, Math.max(0, Number(audioMeta.delayMs) || 0));
   audio.addEventListener("ended", () => {
     if (hostSprite.audioElement === audio) hostSprite.audioElement = null;
   }, { once: true });
   return true;
+}
+
+function retryHostSpriteAudio() {
+  const audio = hostSprite.audioElement;
+  if (!audio?.spriteNeedsGesture || !hostSprite.playing || hostSprite.completed || simulationRuntime.paused) return;
+  audio.spriteNeedsGesture = false;
+  // Resume only the active animation's sound; never replay an earlier scene.
+  const trim = Math.max(0, Number(hostSprite.audio?.trimStartMs) || 0) / 1000;
+  const delay = Math.max(0, Number(hostSprite.audio?.delayMs) || 0) / 1000;
+  const offset = trim + Math.max(0, hostSprite.elapsedMs / 1000 - delay);
+  if (Number.isFinite(audio.duration) && offset >= audio.duration) return;
+  audio.currentTime = offset;
+  audio.play().catch(error => {
+    if (hostSprite.audioElement === audio && error.name === "NotAllowedError") audio.spriteNeedsGesture = true;
+  });
 }
 
 function stopHostSpriteAudio() {
@@ -8719,7 +11228,10 @@ function stopHostSpriteAudio() {
 }
 
 function resolveHostMedia(screenMode, avatarState) {
-  if (screenMode === "ready") return RESOURCE_CONFIG.host.greeting;
+  if (screenMode === "ready") {
+    if (!hostSceneMotion.completed) return RESOURCE_CONFIG.host.greeting;
+    return avatarState === "speak" ? RESOURCE_CONFIG.host.readySpeak : RESOURCE_CONFIG.host.readyNormal;
+  }
   if (screenMode === "summary" && !hostSceneMotion.completed) return RESOURCE_CONFIG.host.celebration;
   const stateKey = normalizeHostAvatarState(avatarState);
   return RESOURCE_CONFIG.host[stateKey] || RESOURCE_CONFIG.host.normal;
@@ -9163,6 +11675,7 @@ function fitBubbleHeight(container, textElement, {
   paddingY,
   anchorLines,
   anchorLineHeight,
+  anchorOffsetY = 0,
 }) {
   const range = document.createRange();
   range.selectNodeContents(textElement);
@@ -9177,7 +11690,7 @@ function fitBubbleHeight(container, textElement, {
     const baseTop = Number.parseFloat(container.dataset.baseTop || getComputedStyle(container).top);
     if (Number.isFinite(baseTop)) {
       const anchorHeight = Math.min(maxHeight, Math.max(minHeight, anchorLines * anchorLineHeight + paddingY));
-      container.style.top = `${baseTop + anchorHeight - height - 10}px`;
+      container.style.top = `${baseTop + anchorHeight - height - 10 + anchorOffsetY}px`;
     }
   }
 }
@@ -9185,6 +11698,8 @@ function fitBubbleHeight(container, textElement, {
 function renderSeats() {
   els.seats.forEach((seatButton) => {
     const seat = seatButton.dataset.seat;
+    seatButton.hidden = !isSeatOccupied(seat);
+    if (seatButton.hidden) return;
     const seatState = state.passengers.seats[seat];
     const bubble = seatButton.querySelector("[data-bubble]");
     const avatar = seatButton.querySelector("[data-avatar]");
@@ -9228,10 +11743,10 @@ function renderSeats() {
     avatar.src = resolvePassengerAsset(seat, seatState, effectiveActivity);
   });
   els.sleepShades.forEach((shade) => {
-    shade.hidden = state.ui.zoneLights[shade.dataset.sleepShade] !== false;
+    shade.hidden = !isSeatOccupied(shade.dataset.sleepShade) || state.ui.zoneLights[shade.dataset.sleepShade] !== false;
   });
   els.comfortZones.forEach((zone) => {
-    zone.hidden = !state.ui.sleepComfortSeats.includes(zone.dataset.comfortZone);
+    zone.hidden = !isSeatOccupied(zone.dataset.comfortZone) || !state.ui.sleepComfortSeats.includes(zone.dataset.comfortZone);
   });
 }
 
@@ -9241,6 +11756,7 @@ function resolvePassengerAsset(seat, seatState, activity) {
     || RESOURCE_CONFIG.relationshipSeats["父母+小孩"];
   const scenarioSeats = getActiveGoldenLine().personas || {};
   const personaKey = scenarioSeats[getPersonaSeatKey(seat)] || relationshipSeats[seat] || "maleYoung";
+  if (personaKey === "empty") return "";
   const personaAssets = RESOURCE_CONFIG.passengers[personaKey] || RESOURCE_CONFIG.passengers.maleYoung;
   const stateKey = activity === "celebrating" || seatState.mood === "大笑"
     ? "laugh"

@@ -202,7 +202,7 @@ async function synthesizeCosyVoice({ apiKey, text, baseUrl = "https://dashscope-
       payload: {
         task_group: "audio", task: "tts", function: "SpeechSynthesizer", model,
         input: {},
-        parameters: { text_type: "PlainText", voice, format: "mp3", sample_rate: 24000, volume: 50, rate: 1, pitch: 1 },
+        parameters: { text_type: "PlainText", voice, format: "mp3", sample_rate: 24000, volume: 50, rate: 1.2, pitch: 0.99 },
       },
     });
     await taskStarted;

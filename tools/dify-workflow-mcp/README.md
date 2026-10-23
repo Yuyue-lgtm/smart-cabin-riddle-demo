@@ -1,6 +1,6 @@
 # Dify Workflow MCP
 
-2026-10-18最新座舱协同规则维护入口为 `scripts/update-cabin-policy.mjs`，知识库六条增量源为 `scripts/update-cabin-knowhow.mjs`。先读项目 `docs/DIFY_CURRENT_STATE.md` 和 `docs/CABIN_SCENARIO_POLICY.md`；不要用早期整图生成器覆盖当前发布图或删除策略包装层。Console凭证与Demo API Key仍分开保管。
+2026-10-23知识库唯一内容源为 `docs/主持经验库-v1.jsonl`，28个ID保留，其中13条按黄金线补强至5.0。`scripts/sync-host-knowhow.mjs` 生成上传Markdown；历史入口 `scripts/update-cabin-knowhow.mjs` 仅校验并导出，不再回写旧文案。范围、验证和未同步远端状态见 `docs/HOST_KNOWHOW_GOLDEN_LINES.md`。先读 `docs/DIFY_CURRENT_STATE.md`；ECS日常维护必须使用独立测试环境及对应客户端，不能用旧Cloud维护脚本代替。不要用早期整图生成器覆盖当前发布图或删除策略包装层。Console凭证与Demo API Key仍分开保管。
 
 Local stdio MCP server for Dify Cloud. It exposes draft read/preview/update, DSL create, Chatflow replacement, and published workflow run tools. Management requests are restricted to `cloud.dify.ai`; writes require the exact current draft hash and app ID confirmation, and never publish.
 

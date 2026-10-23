@@ -56,6 +56,16 @@ function stubMusicEffects(app) {
   `);
 }
 
+test("music volume is 70 percent of its previous level; disabling it stops TTS but not animation sound", () => {
+  const app = createClient();
+  assert.equal(app.value("backgroundMusic.volume"), 0.175);
+  app.run(`let stoppedSprite=0, stoppedVoice=0;
+    stopHostSpriteAudio=()=>stoppedSprite++; cancelHostVoiceSpeech=()=>stoppedVoice++;
+    refreshHostSpeechMedia=()=>{}; setBackgroundMusicEnabled(false);`);
+  assert.equal(app.value("stoppedSprite"), 0);
+  assert.equal(app.value("stoppedVoice"), 1);
+});
+
 test("music changes remain in the current page and do not write a stored preference", () => {
   const storage = new Map();
   const first = createClient(storage);

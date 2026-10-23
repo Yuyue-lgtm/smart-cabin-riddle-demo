@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const {previewFixture}=require('./helpers/preview-fixture.cjs');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
@@ -13,7 +14,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       const body = route.request().postDataJSON(), input = JSON.parse(body.input_payload);
       const scope = { game_id: input.game_id, round_id: input.round_id, scene_version: input.scene_version,
         event_id: input.event?.id, event_type: input.event?.type };
-      if (body.route === 'preview') return route.fulfill({ json: { route: 'preview', ...scope, workflow_output: '{}' } });
+      if (body.route === 'preview') return route.fulfill({json:previewFixture(input)});
+      if (body.operation === 'game_opening') return route.fulfill({status:503,json:{error:'fixture_no_opening'}});
       const sleep = input.event.type === 'passenger_sleep';
       if (body.route === 'situation') {
         const scene = { ...scope, generated_at_ms: Date.now(), expires_at_ms: Date.now() + 60000,
@@ -31,6 +33,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
           execution: { actions: sleep ? [{ type: 'cabin.apply_sleep_comfort', seat: input.event.seat }] : [] } }) } });
     });
     await page.goto(process.env.TEST_DEMO_URL || 'http://127.0.0.1:4186/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(()=>!startupLoading.active&&getGameScreenMode()==='ready');
     await page.locator('#readyStartButton').click();
     await page.evaluate(() => {
       finishTimelineSilently(); clearHostSpeechLock(); state.host.text = '';

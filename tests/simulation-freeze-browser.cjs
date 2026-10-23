@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const {previewFixture}=require('./helpers/preview-fixture.cjs');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
@@ -14,6 +15,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.route('**/api/client-diagnostic', route => route.fulfill({ status: 202, json: { ok: true } }));
     await page.route('**/api/workflow', async route => {
       const body = route.request().postDataJSON(), input = JSON.parse(body.input_payload);
+      if(body.route==='preview')return route.fulfill({json:previewFixture(input)});
+      if(body.operation==='game_opening')return route.fulfill({status:503,json:{error:'fixture_no_opening'}});
       if (body.route === 'chat') {
         chatSent = true;
         await new Promise(resolve => { releaseChat = resolve; });
@@ -25,6 +28,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
           is_valid_question: body.route === 'chat', is_correct: false, decision_trace: { guard_status: 'passed' } }) } });
     });
     await page.goto(process.env.TEST_DEMO_URL || 'http://127.0.0.1:4186/', { waitUntil: 'networkidle' });
+    await page.waitForFunction(()=>!startupLoading.active&&getGameScreenMode()==='ready');
     await page.locator('#readyStartButton').click();
     await page.evaluate(() => {
       finishTimelineSilently(); clearHostSpeechLock();

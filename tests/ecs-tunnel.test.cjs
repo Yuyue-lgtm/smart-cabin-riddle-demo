@@ -12,7 +12,7 @@ test('persistent tunnel binds only loopback and requires pinned host and key aut
     assert.ok(args.includes(setting), setting);
   }
   assert.equal(args.at(-1), 'root@47.83.188.59');
-  assert.ok(args.includes('UserKnownHostsFile="/keys/known hosts"'));
+  assert.ok(args.includes('UserKnownHostsFile=/keys/known\\ hosts'));
   assert.ok(!args.includes('-f'));
   assert.equal(sshArguments({ viaClient: true }).at(-1), 'root@127.0.0.1');
   const xml = launchAgentXml(args, '/logs/a&b');

@@ -1,6 +1,6 @@
 {
   "milestone": "V1.4",
-  "release": "V1.4.1-pre-competition",
-  "build_date": "2026-10-22",
-  "focus": "赛前体验收口：界面与场景资源、主持人语音动效、加载和Dify预演稳定性"
+  "release": "V1.4.2-competition-candidate",
+  "build_date": "2026-10-23",
+  "focus": "赛前候选版：黄金线座位、场景题库分配、主持人动效与语音、资源压缩及故障恢复"
 }

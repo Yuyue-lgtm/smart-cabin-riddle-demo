@@ -22,6 +22,7 @@ function client() {
   });
   vm.runInContext(source, context);
   const run = code => vm.runInContext(code, context);
+  run('riddleSelectionUnit=()=>0;');
   run('render=()=>{}; applyGoldenLineDefaults(); state.game.status="playing"; state.game.playedRiddleIndices=[state.game.currentRiddleIndex]; const first=ensureCurrentRoundPreparation(); prepareFollowingRound(first);');
   function advance(ms) {
     const end = now + ms;
@@ -46,20 +47,21 @@ function reply(request, question = '它是人造的吗？') {
   }) });
 }
 
-test('weather matches before place, and garage/tunnel do not force a puzzle', () => {
+test('specific weather wins over place, day/night stay separate, and garage/tunnel have no exclusive pool', () => {
   const app = client();
-  assert.deepEqual(app.value('getEnvironmentRiddleCandidates("城区雨天白天").map(i=>RIDDLES[i].answer)'), ['雨伞', '红绿灯']);
-  assert.deepEqual(app.value('getEnvironmentRiddleCandidates("风景区雪景白天").map(i=>RIDDLES[i].answer)'), ['雪人', '草原']);
+  assert.deepEqual(app.value('getEnvironmentRiddleCandidates("城区雨天白天").map(i=>RIDDLES[i].answer)'), ['雨伞', '雨衣', '雨靴', '雨刷器', '快递柜', '地铁口', '外卖员']);
+  assert.deepEqual(app.value('getEnvironmentRiddleCandidates("风景区雪景白天").map(i=>RIDDLES[i].answer)'), ['雪人', '雪花', '围巾', '手套', '雪橇', '雪地靴', '冰雕', '雪地摩托']);
+  assert.equal(app.run('getEnvironmentRiddleCandidates("城区夜晚").every(i=>RIDDLES[i].environmentTags.includes("城市夜晚"))'), true);
   assert.deepEqual(app.value('getEnvironmentRiddleCandidates("隧道")'), []);
   assert.deepEqual(app.value('getEnvironmentRiddleCandidates("车库")'), []);
 });
 
-test('selection skips all played puzzles and uses normal unused order when no suitable match remains', () => {
+test('selection never repeats played puzzles and falls back to general rather than unrelated exclusive pools', () => {
   const app = client();
   app.run('state.game.playedRiddleIndices=[1,0,6];');
-  assert.equal(app.run('selectNextRiddleIndex(1,"城区雨天白天")'), 2);
-  app.run('state.game.playedRiddleIndices=[1,2,3,4,5,6,7,8,9];');
-  assert.equal(app.run('selectNextRiddleIndex(9,"隧道")'), 0);
+  assert.equal(app.run('RIDDLES[selectNextRiddleIndex(1,"城区雨天白天")].answer'), '雨衣');
+  app.run('state.game.playedRiddleIndices=RIDDLES.map((r,i)=>i).filter(i=>RIDDLES[i].id!=="R006");');
+  assert.equal(app.run('RIDDLES[selectNextRiddleIndex(1,"隧道")].answer'), '彩虹');
   app.run('state.game.playedRiddleIndices=RIDDLES.map((_,i)=>i);');
   assert.equal(app.run('selectNextRiddleIndex(9,"城区晴天白天")'), null);
 });
@@ -155,7 +157,7 @@ test('after a question begins, later changes can only replace the following ques
   app.advance(800);
   assert.equal(app.run('getCurrentRiddle().answer'), '雪人');
   assert.equal(app.requests.at(-1).input.game.round_index, 3);
-  assert.equal(app.requests.at(-1).input.game.current_answer, '雨伞');
+  assert.equal(app.requests.at(-1).input.game.current_answer, app.run('RIDDLES[selectNextRiddleIndex(5)].answer'));
 });
 
 test('manual freeze parks environment selection and safety pauses still permit future preparation', () => {
@@ -188,6 +190,7 @@ test('a changing environment still yields six unique puzzles in one complete gam
   const app = client();
   app.run(`
     startRoundGoldenTimeline=async()=>{await startGame();};
+    startQuestionClock=()=>{};startQuestionIntro=()=>{};
     dispatchWorkflow=async()=>{state.game.status="playing";};
     const seen=[state.game.currentRiddleIndex];
   `);

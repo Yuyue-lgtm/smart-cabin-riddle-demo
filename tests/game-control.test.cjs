@@ -132,7 +132,7 @@ test('six-dot progress keeps its 46px spacing and a centered 270px rail', () => 
     els.roundProgress={}; els.questionProgress={}; els.pencilProgressRail={style:{}}; els.pencilRailFill={style:{}};
     let dots=[]; els.pencilProgressDots={replaceChildren(...next){dots=next;}}; renderGameProgress();`);
   assert.equal(app.run('state.game.totalRounds'), 6);
-  assert.equal(app.run('RIDDLES.length'), 10);
+  assert.equal(app.run('RIDDLES.length'), 91);
   assert.equal(app.run('els.questionProgress.textContent'), '1 / 6');
   assert.equal(app.run('els.pencilProgressRail.style.width'), '270px');
   assert.deepEqual(app.value('dots.map(dot=>dot.style.left)'), ['20px', '66px', '112px', '158px', '204px', '250px']);

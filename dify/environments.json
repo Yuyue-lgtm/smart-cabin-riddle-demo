@@ -5,7 +5,7 @@
   "evidence": "../docs/ALIBABA_CLOUD_PRODUCTION.md",
   "live_readback_in_this_archive": true,
   "live_readback_environment": "alibaba",
-  "latest_verified_ecs_snapshot": "releases/2026-10-20T05-17-33-943Z-ecs",
+  "latest_verified_ecs_snapshot": "releases/2026-10-23T06-18-41-925Z-ecs",
   "local_demo_configuration": "alibaba-test",
   "alibaba_test_apps_created": true,
   "environments": {
@@ -42,8 +42,8 @@
         "preview": "695710b2-b79e-4d8f-ab2f-6cfc543e7674"
       },
       "knowledge": {
-        "dataset_id": "923e8e72-56cb-45c5-9eb4-486a6d5afed3",
-        "document_id": "ea3a4ca1-1efa-44a4-a412-8e94daf13a4c",
+        "dataset_id": "ef99372e-418d-4757-a2d7-88ea255decdd",
+        "document_id": "cb86af77-2c2e-4fd8-b992-92b04785582a",
         "indexing_technique": "economy",
         "segmentation": {
           "separator": "\n\n",
@@ -52,11 +52,11 @@
         }
       },
       "published_graph_hashes": {
-        "host": "d357550934c9db7c8fe195bc356fc44fb66f45a91859e0ce6955f904b8d7ef90",
-        "situation": "c4433accfa39e7c44c1e095b2e6cd70ba50e89d4a97a2eadffce2740fc961ca9",
-        "preview": "2062de0b9cd123bc9e7401a222453d159551d859c516650493fed3c9e04e60bb"
+        "host": "d7afa8cd4a7d338182040e8b13d1bd6fdcb690f8d31ec6ba86cda87ead52d4ce",
+        "situation": "cb47e6a1455171e4542acf6f3955c98c9dcdc7151586111a08599a452cb3289f",
+        "preview": "dc60b9f3a56d7b4a065ba45b2ef39b89ee09c52a7536fc198792e5bf284f90c4"
       },
-      "last_release": "2026-10-20T05-17-33-943Z-ecs"
+      "last_release": "2026-10-23T06-18-41-925Z-ecs"
     },
     "alibaba-test": {
       "role": "Testing",
@@ -68,10 +68,14 @@
         "preview": "aa30333f-4a8d-4d89-9d6f-557ee7296263"
       },
       "knowledge": {
-        "dataset_id": "387156dd-5587-43ec-87ae-4976ca04c18a",
-        "document_id": "37c487ee-15be-4ffd-8176-01a1ca28e181",
+        "dataset_id": "8bde5f27-73f8-43dd-adae-1b34d20625bf",
+        "document_id": "a1062731-3be2-46f1-b198-4227945aa0c2",
         "indexing_technique": "economy",
-        "segmentation": { "separator": "\n\n", "max_tokens": 1024, "chunk_overlap": 1 }
+        "segmentation": {
+          "separator": "\n\n",
+          "max_tokens": 1024,
+          "chunk_overlap": 1
+        }
       },
       "created_at": "2026-10-20T05:01:52.548Z"
     }

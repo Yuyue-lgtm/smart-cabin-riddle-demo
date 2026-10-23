@@ -58,6 +58,9 @@ async function handleWorkflowBody(rawBody) {
   const route = body.route || (input.trigger_type === "chat" ? "chat" : "situation");
   if (input.trigger_type === "event") {
     const eventType = input.event?.type || "";
+    if (route === "chat" && body.operation === "game_opening") {
+      return runGameOpening(body, input);
+    }
     if (route === "chat" && body.operation === "environment_round_intro") {
       return runEnvironmentRoundIntro(body, input);
     }
@@ -234,6 +237,30 @@ function previewStepSignature(step) {
   ]);
 }
 
+async function runGameOpening(body, input) {
+  if (input.event?.type !== "round_changed" || input.event?.source !== "game_opening"
+    || input.event?.priority !== "P3" || !input.event?.id || input.event?.value !== "游戏即将开始"
+    || input.dialogue_request?.kind !== "game_opening" || !["idle", "opening"].includes(input.game?.status)
+    || input.game?.round_index !== 1 || input.game?.question_count !== 0 || String(input.player_input || "").trim()) {
+    return result(409, { route: "chat", operation: "game_opening", error: "INVALID_GAME_OPENING" });
+  }
+  const scope = deriveScope(input, normalizeId(body.user_id, "demo-user"));
+  const now = Date.now();
+  const scene = { ...scope, event_type: "round_changed", event_id: input.event.id, event_priority: "P3",
+    generated_at_ms: now, expires_at_ms: now + 60000, analysis_status: "ready",
+    request_proactive_speech: true, usable_for_dialogue: false, strategy: "soft_response",
+    reason_codes: ["game_about_to_start"],
+    dialogue_context: { selected_snapshot: { current_observation: "游戏即将开始", environment: input.car?.environment,
+      destination: input.car?.destination, relationship: input.passengers?.relationship, scenario: input.timeline?.name },
+      knowhow: { status: "not_relevant", retrieved: [] },
+      guidance: { strategy: "soft_response", instruction: "感知内容：游戏即将开始。倒计时和第一题展示已经同步开始，只说一句15至25字、最多30字的简短串场。结合当前出游主题，语气温暖、活泼、有点幽默，直接鼓励开猜；不重复欢迎语，不报题数，不复述规则，不说等你准备好。不透露谜底、题目属性、类别或新增线索，不回答历史问题，不点名或安排具体乘客说话，不声称执行设备动作或改变游戏状态。execution_actions必须为空。" } } };
+  // Ready-screen prefetch uses the existing event-dialogue guard's opening state only in the snapshot.
+  return runChat({ ...body, conversation_id: "" }, { ...input,
+    game: { ...input.game, status: "opening", current_theme: "", public_clues: [], asked_questions: [], covered_fact_keys: [] },
+    round_question_plan: null, interaction: { ...input.interaction, recent_messages: [] },
+  }, scene, "game_opening");
+}
+
 async function runEnvironmentRoundIntro(body, input) {
   const environment = String(input.car?.environment || "");
   const matches = [["雨", "雨天"], ["雪", "雪景"], ["城区", "城区"], ["风景区", "风景"], ["高速", "高速"]];
@@ -275,7 +302,9 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
   const userId = normalizeId(body.user_id, "demo-user");
   const scope = deriveScope(input, userId);
   const situation = eventSituation || getSituationCache(userId, scope);
-  const query = eventSituation
+  const query = operation === "game_opening"
+    ? "游戏即将开始。请结合当前出游主题，用15至25字说一句热情幽默的简短开场串词，不报题数、不复述规则、不透露线索。"
+    : eventSituation
     ? `座舱事件：${input.event.type}。请依据当前事件和情境分析，自然地回应一句。`
     : String(body.query || input.player_input || "").trim().slice(0, 800);
   const snapshot = withScope(input, scope);
@@ -298,7 +327,7 @@ async function runChat(body, input, eventSituation = null, operation = "situatio
   };
 
   let conversationRecovered = false;
-  const deadline = Date.now() + config.timeoutMs;
+  const deadline = Date.now() + (operation === "game_opening" ? Math.min(config.timeoutMs, 20000) : config.timeoutMs);
   try {
     const exchange = async () => {
       if (Date.now() >= deadline) {
@@ -958,6 +987,7 @@ module.exports = {
       cache_entries: situationCache.size,
       situation_dialogue_protocol: "serial-v1",
       environment_round_intro: true,
+      game_opening: true,
       timeout_ms: Math.max(chat.timeoutMs, situation.timeoutMs, preview.timeoutMs),
     };
   },

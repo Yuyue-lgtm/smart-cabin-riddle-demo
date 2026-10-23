@@ -6,6 +6,15 @@ const test = require("node:test");
 const { appendWorkflowDiagnostic } = require("../api/local-diagnostics");
 const { sanitizeRecord } = require("../api/local-diagnostics");
 
+test("opening diagnostics retain categorical failures without clues or dialogue", () => {
+  for (const reason of ["prefetch_timeout", "prefetch_failed"]) {
+    const safe = sanitizeRecord({client_diagnostic:{type:"workflow_failure",stage:"game_opening",reason,
+      player_input:"private answer",text:"private opening",api_key:"private secret"}});
+    assert.deepEqual(safe.client_diagnostic,{type:"workflow_failure",stage:"game_opening",reason});
+    assert.doesNotMatch(JSON.stringify(safe),/private/);
+  }
+});
+
 test("submission timing diagnostics omit the answer and question text", () => {
   const safe = sanitizeRecord({ client_diagnostic: { type: "player_submission", stage: "dispatched",
     elapsed_ms: 12000, player_input: "private answer", text: "private question" } });

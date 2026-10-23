@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const {previewFixture}=require('./helpers/preview-fixture.cjs');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
   try {
@@ -12,7 +13,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       const body = route.request().postDataJSON(), input = JSON.parse(body.input_payload);
       const scope = { game_id: input.game_id, round_id: input.round_id, scene_version: input.scene_version,
         event_id: input.event?.id, event_type: input.event?.type };
-      if (body.route === 'preview') return route.fulfill({ json: { route: 'preview', ...scope, workflow_output: '{}' } });
+      if (body.route === 'preview') return route.fulfill({json:previewFixture(input)});
+      if (body.operation === 'game_opening') return route.fulfill({status:503,json:{error:'fixture_no_opening'}});
       if (body.route === 'situation') {
         const scene = { ...scope, analysis_status: 'ready', request_proactive_speech: false, generated_at_ms: Date.now(), expires_at_ms: Date.now() + 60000 };
         return route.fulfill({ json: { route: 'situation', ...scope, scene_output: scene, workflow_output: JSON.stringify({ scene_output: scene }) } });
@@ -26,6 +28,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       try { await route.fulfill({ json: { route: 'chat', ...scope, workflow_output: JSON.stringify(output) } }); } catch { /* Interrupted requests may already be aborted. */ }
     });
     await page.goto(process.env.TEST_DEMO_URL || 'http://127.0.0.1:4186/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(()=>!startupLoading.active&&getGameScreenMode()==='ready');
     await page.locator('#readyStartButton').click();
     await page.evaluate(() => { finishTimelineSilently(); clearHostSpeechLock(); state.host.text = ''; state.timeline.status='running'; startQuestionClock(); render(); });
     await page.locator('#playerInput').fill('关闭副驾灯光'); await page.locator('#sendQuestion').click();

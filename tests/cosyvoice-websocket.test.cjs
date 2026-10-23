@@ -51,8 +51,8 @@ test("CosyVoice streams MP3 and sends the selected voice/rate/pitch without retu
   assert.equal(bytes, Buffer.concat(chunks).length);
   const parameters = f.messages[0].payload.parameters;
   assert.equal(parameters.voice, "longhua_v3");
-  assert.equal(parameters.rate, 1);
-  assert.equal(parameters.pitch, 1);
+  assert.equal(parameters.rate, 1.2);
+  assert.equal(parameters.pitch, 0.99);
   assert.equal(f.socket.destroyed, true);
 });
 

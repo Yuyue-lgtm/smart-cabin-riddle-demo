@@ -1,0 +1,2804 @@
+{
+  "schema_version": 1,
+  "version": "20261022-images-v6",
+  "created_at": "2026-10-22T15:24:23.525Z",
+  "backup_directory": "tmp/image-optimization/2026-10-22T15-24-23-170Z",
+  "inventory": [
+    {
+      "name": "background-music.mp3",
+      "bytes": 1557456,
+      "sha256": "b19f690f18e59a906ff062796600dfe344011eba16212df6248a2fa7f2d72ff9"
+    },
+    {
+      "name": "bubble-tail.svg",
+      "bytes": 217,
+      "sha256": "ee9176e0443e6c1602f5d3b5acf00a47a7aad96ab47f86291d27812253371e58"
+    },
+    {
+      "name": "cabin-bubble-tail.svg",
+      "bytes": 213,
+      "sha256": "d8b293a6864930ac5ab5a56eeac8f300dda3a0d5b95d3275931486804323155c"
+    },
+    {
+      "name": "cabin-correct-light.png",
+      "bytes": 135663,
+      "sha256": "93c4459bbd6f75a63d895b1568f677443fb5d1bd60780c88f043f6328b17aacc"
+    },
+    {
+      "name": "cabin-env-city-day.png",
+      "bytes": 902091,
+      "sha256": "0b5d98c6c9238535006fc1d5088a946aeaf5cd4c61e7ab44d765b601bf045969"
+    },
+    {
+      "name": "cabin-env-city-night.png",
+      "bytes": 869160,
+      "sha256": "3427e0c0940c3ea7c0a65d47d2fd70d8a71ff1f72403ca2dd69dd88e3d3a866b"
+    },
+    {
+      "name": "cabin-env-deep-night.png",
+      "bytes": 682624,
+      "sha256": "c9667a11ef52aed9908ed187368a3f4ab7ed990cef7348dfca3d70ab9733c04c"
+    },
+    {
+      "name": "cabin-env-garage.png",
+      "bytes": 894574,
+      "sha256": "ea39428a39af2faf3f913f77e6f28ba6caa5cd86b1c888b28a7673a12e30c5d8"
+    },
+    {
+      "name": "cabin-env-rain.png",
+      "bytes": 809711,
+      "sha256": "62d3c6b7f8acc837acb0067f5e3f8fc058431088943b27e14ff03aeb2d12299c"
+    },
+    {
+      "name": "cabin-env-scenic-day.png",
+      "bytes": 685394,
+      "sha256": "eeded415f13647056fed4d50c4a57875e774f6ad4a12531cb38b7f04354fceed"
+    },
+    {
+      "name": "cabin-env-scenic-sunset.png",
+      "bytes": 740432,
+      "sha256": "de5292beaf43dce0da63ab4f17192594294998569e2c3006aacb0447ee18f4fe"
+    },
+    {
+      "name": "cabin-env-snow-day.png",
+      "bytes": 843501,
+      "sha256": "cb274f85b92886fe6fc3a550358eaf5be84fa93720c5079709c358c6fc40d792"
+    },
+    {
+      "name": "cabin-env-tunnel.png",
+      "bytes": 808383,
+      "sha256": "2f507a716291b5d3b8009565ae4ca1a78e07fb967d228e5c8fad344d6cc20dea"
+    },
+    {
+      "name": "cabin-interior.png",
+      "bytes": 489924,
+      "sha256": "575b2f5031c368b3a66c7539cda32abf0c9dd76f80f15eaa9dad8ab7f0885ae0"
+    },
+    {
+      "name": "cabin-location-icon.svg",
+      "bytes": 794,
+      "sha256": "078ce5861fdc5e3df0717b6c3897c639defbda7e3791b437a81bfd6b760aabaa"
+    },
+    {
+      "name": "cabin-sleep-dim-front.svg",
+      "bytes": 704,
+      "sha256": "b9cfb0a9fb0e2c196ef5d464b4a8644e71bd4c3debd6838793731aa1f4918052"
+    },
+    {
+      "name": "cabin-sleep-dim-rear.svg",
+      "bytes": 708,
+      "sha256": "170db7704fbe7f2770fc571108db2457972ed5d347cb9093f1250f995759b97e"
+    },
+    {
+      "name": "cabin-speed-icon.svg",
+      "bytes": 1418,
+      "sha256": "bd0d7e71f454e4c1325f56fd7861e0572dacd91a7b9e76a05bdcaf35e7a80b7e"
+    },
+    {
+      "name": "cabin-zone-climate-icon.svg",
+      "bytes": 1309,
+      "sha256": "3f4ec54ea49eddc608ba54e96949f2eba5400a36a780e3450e6ab9dd54e992b2"
+    },
+    {
+      "name": "cabin-zone-volume-icon.svg",
+      "bytes": 711,
+      "sha256": "a97d1f50a19553f748ec7304d018a73af9f79709668ea6263ae7e0a6c4b0c5b6"
+    },
+    {
+      "name": "figma-playing-ribbon.svg",
+      "bytes": 1230,
+      "sha256": "f2545eec0e2fbbbc1e932b038e2c8e5b13ae7e77c212eaa89f6a9ad937dcf982"
+    },
+    {
+      "name": "figma-ready-button.png",
+      "bytes": 139195,
+      "sha256": "969b10bf17a657a11f798f1ed0a58acb8140cec0166db2b92898fe6f057e8009"
+    },
+    {
+      "name": "figma-ready-logo.png",
+      "bytes": 373656,
+      "sha256": "9717871859cc2d581b8e379564c9ecb8175750a3ed74020e8772649d1be96f39"
+    },
+    {
+      "name": "figma-ready-panel-mosaic.png",
+      "bytes": 270871,
+      "sha256": "76947a2241fad48694ea7ee68fabf5843533122e4dea87ae186b0a8892a23ae6"
+    },
+    {
+      "name": "figma-ready-ring-mosaic.png",
+      "bytes": 291211,
+      "sha256": "3f86d60d98e89982d53d89ff5a34770a31cb09a9bb762aa7fa9b1c1c8299eb03"
+    },
+    {
+      "name": "figma-reveal-ribbon.svg",
+      "bytes": 1211,
+      "sha256": "88e5550a315c2b706e8f28582110fdc8bcb2c62acff6f908ebb96b8b8514df12"
+    },
+    {
+      "name": "figma-reveal-stars.png",
+      "bytes": 18569,
+      "sha256": "11901be469aabc0258eb7b7496c0c32a405b5a4c93b6034f46d8c1c6b91c004e"
+    },
+    {
+      "name": "figma-summary-bright-light.png",
+      "bytes": 267111,
+      "sha256": "e8a8305fe055a26387a034e455a7941784e3b5498ed315dee09fc18b0344e8c7"
+    },
+    {
+      "name": "figma-summary-light-base.png",
+      "bytes": 23471,
+      "sha256": "1cc71cccb195e339be43201f59467d4c13c48ffd49e5fd71d06256eff649b125"
+    },
+    {
+      "name": "figma-summary-light-ring.png",
+      "bytes": 127834,
+      "sha256": "9645e69f28d7b887deb1a84b6dd8cef08f73ae8ac9d0588216ad1f46a91067a8"
+    },
+    {
+      "name": "figma-summary-mosaic.png",
+      "bytes": 499179,
+      "sha256": "78d8d23bb2cd99083a8e556e82fd0b62eb0ec299d90a2e3fd3f3711f3f96dfc5"
+    },
+    {
+      "name": "figma-summary-mvp.png",
+      "bytes": 34477,
+      "sha256": "2d2ed58e1020c54f7ac7a84a846e433d1fda4b2eba2aac80f512d0afdf9a2c2e"
+    },
+    {
+      "name": "figma-summary-ribbon.png",
+      "bytes": 60926,
+      "sha256": "7593f450e2fb79c13e6587263dd2e77bea40426b7b9df4db20141b30b1308052"
+    },
+    {
+      "name": "figma-summary-title.png",
+      "bytes": 285977,
+      "sha256": "b1794ad8b66c29dec44fb71caa7c45ba7e266adf95944df88bc74a99eef54409"
+    },
+    {
+      "name": "game-icon-loading.png",
+      "bytes": 37804,
+      "sha256": "5de080117ce74795261321096ea6bc7e9d1249042bc2f61ac75c9963b6cce170"
+    },
+    {
+      "name": "hi-audio.mp3",
+      "bytes": 109921,
+      "sha256": "42b6de10749217bd139b9d131d48d86251d764d496f6dff76234a0fbb2e58685"
+    },
+    {
+      "name": "hi.json",
+      "bytes": 22464,
+      "sha256": "795c1e56dd4ce179d81a576fb0e1e35ed9aca084ae55fefa6341795039af7bd0"
+    },
+    {
+      "name": "hi.webp",
+      "bytes": 6096542,
+      "sha256": "13c3fc6fbcdf4097fdf0f217a2d94beba52276ebbd6388fe98fcf4a0854a377d"
+    },
+    {
+      "name": "host-cheer.json",
+      "bytes": 22474,
+      "sha256": "7d73a3dac6a1dec290fd7b2e46f2ac897801cc73d9c9b1611e59e63e9c1d44ff"
+    },
+    {
+      "name": "host-cheer.mp3",
+      "bytes": 96432,
+      "sha256": "fafde25bee05b082fac28c2a77da8101adb6db0ae7bda493f872253ffc68c914"
+    },
+    {
+      "name": "host-cheer.png",
+      "bytes": 307057,
+      "sha256": "d218b4140a361bdcd2ca79aa6d645ad1182f821c2c8771a00f17831e2393ca2d"
+    },
+    {
+      "name": "host-cheer.webp",
+      "bytes": 4301858,
+      "sha256": "846f79d42a15b3acae1ddaabc40ad45c97601c5be73dea5df440ccd47c3dc5bc"
+    },
+    {
+      "name": "host-heart.json",
+      "bytes": 10210,
+      "sha256": "4890d053d34e5bbdd22ca76bcdf578ca4d0f7adac5bda21b4020660bedc65269"
+    },
+    {
+      "name": "host-heart.png",
+      "bytes": 266326,
+      "sha256": "d03823c1ad48d17f3e454919dfab642ea7f08de06198e9d8f2e478435ecef0f8"
+    },
+    {
+      "name": "host-heart.webp",
+      "bytes": 1594798,
+      "sha256": "bf5c47548792989914e7caea4138772acc5e28e098c6edfbff6ebcafbb2e25c7"
+    },
+    {
+      "name": "host-normal.json",
+      "bytes": 12051,
+      "sha256": "b5090486877acbd542de6913ae6c06f711b047f4fa605cf9ae89d47741a6ea4a"
+    },
+    {
+      "name": "host-normal.png",
+      "bytes": 252945,
+      "sha256": "443db14b58402698c1b00e6e94a5b420dffd1f16430825787537f10a721955bb"
+    },
+    {
+      "name": "host-normal.webp",
+      "bytes": 1899358,
+      "sha256": "23f3b2d792f19b1c3358b339444f01db750b5bd0e9df275a977206a0aec0c931"
+    },
+    {
+      "name": "host-ready-normal.json",
+      "bytes": 15006,
+      "sha256": "af0dff645b65d1bdaf7983f4ebcf8c75ef87eea50cc101993c3624c0813e3f55"
+    },
+    {
+      "name": "host-ready-normal.webp",
+      "bytes": 3622984,
+      "sha256": "d6d2c023403069111d50013c33c374edacb63f9f570c2ee1b269386ba969e64b"
+    },
+    {
+      "name": "host-ready-speak.json",
+      "bytes": 12795,
+      "sha256": "eeba5e2a88854ca57edc0af0ab340421747dc855e5179fae6621c3939d059a7c"
+    },
+    {
+      "name": "host-ready-speak.webp",
+      "bytes": 2849448,
+      "sha256": "372f5431d3ad9ac84c8b661e1228115c9afe007eb7e14b81b2404cc697154c05"
+    },
+    {
+      "name": "host-speak.json",
+      "bytes": 15737,
+      "sha256": "acbe037c695b686256219d2437a3cbf3c4bd0235c717b85a737f850e7eea2826"
+    },
+    {
+      "name": "host-speak.webp",
+      "bytes": 2537366,
+      "sha256": "9a1dd5246ac3635fd38c16c57606f5ef6296f84b17c3d188d0010358df2a1e39"
+    },
+    {
+      "name": "host-thinking.json",
+      "bytes": 15002,
+      "sha256": "d33d8597e3a0423375ceba8b394eef97f51b9ceb19930812ae050748e57e85f9"
+    },
+    {
+      "name": "host-thinking.png",
+      "bytes": 228641,
+      "sha256": "75413bb8dff0d45a04997fd82541e34547826fc3bbc4913d0a3913d05b7005a3"
+    },
+    {
+      "name": "host-thinking.webp",
+      "bytes": 2521980,
+      "sha256": "61a25c37af86428e1f2ade9214b511ac92d0f7569ab890a99a01970dd21d923a"
+    },
+    {
+      "name": "host-yes.json",
+      "bytes": 15098,
+      "sha256": "36b7539f6a24adaa4c217d3c2e843d2af529e2d21ba24540b54f89b754593462"
+    },
+    {
+      "name": "host-yes.mp3",
+      "bytes": 63636,
+      "sha256": "33c7c1551a4aa6fcec7dc1e6742cfa1fc89aca2293aafaafb624ce87d2ba09ea"
+    },
+    {
+      "name": "host-yes.png",
+      "bytes": 287342,
+      "sha256": "e464273b23ad478da46504e9707531a3ab7b2fff6b24410186f7d140efc5ec6b"
+    },
+    {
+      "name": "host-yes.webp",
+      "bytes": 2690416,
+      "sha256": "dba56d34139e10af6a50ac7e60311a4d48b8764d713bbbe7b2960d3873ab973c"
+    },
+    {
+      "name": "important-event-icon.svg",
+      "bytes": 959,
+      "sha256": "5c3ec15d55d02ab4b10697cb328348ff51d68fede1f551974ebd314f774175de"
+    },
+    {
+      "name": "passenger-baby-laugh.png",
+      "bytes": 106102,
+      "sha256": "c14cb8351dcfb0829b88c1572a8cc1974002dd57ccb956fd6ac3ef919445767d"
+    },
+    {
+      "name": "passenger-baby-normal.png",
+      "bytes": 106338,
+      "sha256": "f3154cef7c4269afdaf9590371260b91e68ff87d9fbd040cebbbf531d7eb7ce9"
+    },
+    {
+      "name": "passenger-baby-sleep.png",
+      "bytes": 105663,
+      "sha256": "7c3d1dbddde089ef568979adbc9962962092fd0d044fe4f36d5f0b98d8b48c46"
+    },
+    {
+      "name": "passenger-boy-laugh.png",
+      "bytes": 74921,
+      "sha256": "f52cfac5d6e8ac05304bd993a4d669159ec326ca6167b2a187bfc053f59cde69"
+    },
+    {
+      "name": "passenger-boy-normal.png",
+      "bytes": 65533,
+      "sha256": "51762f2f8758debafc36ceb18680c569380b7f4a2c267e0611cc28dd2ff03d2b"
+    },
+    {
+      "name": "passenger-boy-sleep.png",
+      "bytes": 72840,
+      "sha256": "197691c3e0623d981c506652f629cf639218ede47bb4b5e33643d504ad9f1540"
+    },
+    {
+      "name": "passenger-dad-laugh.png",
+      "bytes": 107038,
+      "sha256": "4b35608d1b3fa8c6ba2a8364a9eb75215ad8ae65cf24dff7bbdb2e8313a08048"
+    },
+    {
+      "name": "passenger-dad-normal.png",
+      "bytes": 105595,
+      "sha256": "29495f91c4d693613849cb042f042a892245985387e0563de17be7590a03d548"
+    },
+    {
+      "name": "passenger-dad-sleep.png",
+      "bytes": 104833,
+      "sha256": "a3d1a715fa8632376b98550237274e3ab24ea93c53f4aa78e9c8ff2a240479c6"
+    },
+    {
+      "name": "passenger-dad-tired.png",
+      "bytes": 105977,
+      "sha256": "5ed34b3f39a2c3ced0abfb087359101798b859023c0745a2c940723902380d90"
+    },
+    {
+      "name": "passenger-female-young-laugh.png",
+      "bytes": 115283,
+      "sha256": "126386ea0d599d5526d8251dd0db113834dbfc9258b2d832e9c348269210ea5c"
+    },
+    {
+      "name": "passenger-female-young-normal.png",
+      "bytes": 109057,
+      "sha256": "6632106efd0ab9619d9321f1217ac7b5795fac578a437219ffee06687bac99fc"
+    },
+    {
+      "name": "passenger-female-young-sleep.png",
+      "bytes": 110978,
+      "sha256": "02300f7ed2e23f43a906402dfa1afa409ac970ee5161ad7491d9aa7ea8026cb6"
+    },
+    {
+      "name": "passenger-female-young-tired.png",
+      "bytes": 114006,
+      "sha256": "83b3cd7d742b6959b0c3358e8381e7fc11ed565feb9d284afc2f791e5c943add"
+    },
+    {
+      "name": "passenger-girl-laugh.png",
+      "bytes": 92031,
+      "sha256": "d07cd665cab38f5a58c522fa51d19648ba6bd08cf0ae470d7ffefc1c51e4f7c8"
+    },
+    {
+      "name": "passenger-girl-normal.png",
+      "bytes": 91677,
+      "sha256": "719fa47d0864d530f6033867190c2d463c7fdc7dd192fe9efcf9a6f9cff20bf6"
+    },
+    {
+      "name": "passenger-girl-sleep.png",
+      "bytes": 98300,
+      "sha256": "4c6a04192c0eac4293ef241d9db0f3170ff18620c6a9ebc014540df66139a564"
+    },
+    {
+      "name": "passenger-grandma-laugh.png",
+      "bytes": 102805,
+      "sha256": "a09dca3837b45b6f33205e1fc2eb9a0e29d7f97743662af9a3ddda17bfc19370"
+    },
+    {
+      "name": "passenger-grandma-normal.png",
+      "bytes": 107480,
+      "sha256": "f61e18319ed37190c85fbb4c4b0b31f8bb79191c72fff50d9de6a85fdc5ecf5d"
+    },
+    {
+      "name": "passenger-grandma-sleep.png",
+      "bytes": 105699,
+      "sha256": "159de0c35eae56fdb0bdaa5dff59b9ded2b39861b366f9a68fc7a4fc59b926f3"
+    },
+    {
+      "name": "passenger-grandpa-laugh.png",
+      "bytes": 124092,
+      "sha256": "727a713574365d60877b96cd25e9763eec4bb764d8eb128f8b8bdc87d4498cab"
+    },
+    {
+      "name": "passenger-grandpa-normal.png",
+      "bytes": 124930,
+      "sha256": "a276dfd7f7ca97e06632d0b8b0f1b79c47977991a03482a146543c398973d1ee"
+    },
+    {
+      "name": "passenger-grandpa-sleep.png",
+      "bytes": 125002,
+      "sha256": "4a2b4cbacd5e93320bc3dc2d1576561452c77a5bc62fe2edb428b460fa2433e1"
+    },
+    {
+      "name": "passenger-male-young-laugh.png",
+      "bytes": 102371,
+      "sha256": "92af09d4c8a06e18bc3e8bde869182da9f0deff6d7c48bbe907f7ed2d4f47eb2"
+    },
+    {
+      "name": "passenger-male-young-normal.png",
+      "bytes": 107175,
+      "sha256": "33a60a82ed3ed3d7352d07e9738d74e82ac3db69a53b7dbd96c765440649d1b6"
+    },
+    {
+      "name": "passenger-male-young-sleep.png",
+      "bytes": 95910,
+      "sha256": "24bdf1f213c3383aee8b13e0f0ed070ff16d2a890326697f84dc60dca7162c3a"
+    },
+    {
+      "name": "passenger-male-young-tired.png",
+      "bytes": 100198,
+      "sha256": "94739bafd6e08a742bef9d3a0971a90ae14ec2cc22d5f87f16a147d713300b66"
+    },
+    {
+      "name": "passenger-mom-laugh.png",
+      "bytes": 99632,
+      "sha256": "2c219a95469600da2c4eca643e7ccc246f28d242fb0af47afb64ade5e26a7278"
+    },
+    {
+      "name": "passenger-mom-normal.png",
+      "bytes": 99212,
+      "sha256": "841038706e38c237b466669057f1e8b8bb4552e3216a5406a236e48479aa3712"
+    },
+    {
+      "name": "passenger-mom-sleep.png",
+      "bytes": 102444,
+      "sha256": "a2650b02f391506ef831e6967c0205ce014215023ca5df566c4cad994fceaa39"
+    },
+    {
+      "name": "passenger-mom-tired.png",
+      "bytes": 99186,
+      "sha256": "31752e21aba0abd844ad0327abf8c192415ce40b7d57668a8c4c8d0c2cf6b673"
+    },
+    {
+      "name": "question-icon.svg",
+      "bytes": 1146,
+      "sha256": "e6142d434f61fedbb08eb436fd4a1b7a1ab9e6327a5dfa43f1e862026c3b168a"
+    },
+    {
+      "name": "screen-city-day.png",
+      "bytes": 1934524,
+      "sha256": "5638a138825b21c79bc1ef4a51fe3853925e5f4e0bdf34c4db5533621ada72e5"
+    },
+    {
+      "name": "screen-city-night.png",
+      "bytes": 2059710,
+      "sha256": "39e6cf7d682056299e3d98a6936f0ab1f9f1436ca244f7a60de34da6b46269c9"
+    },
+    {
+      "name": "screen-deep-night.png",
+      "bytes": 1777820,
+      "sha256": "712e099c5a27142df945d18285589359f9b4b740e89273d7927d9fe965fcffff"
+    },
+    {
+      "name": "screen-default.png",
+      "bytes": 4921673,
+      "sha256": "eccf5e284ec68fff07128acef474b37a131861cadda46d52045a3521ff2bd668"
+    },
+    {
+      "name": "screen-rain.png",
+      "bytes": 1552894,
+      "sha256": "abc712fd984ba702213e65258b3b154eb089cc59542ede9820e5e89b624e2e30"
+    },
+    {
+      "name": "screen-scenic-day.png",
+      "bytes": 1684752,
+      "sha256": "0bf28c8f50e55740540c88b899841632d1b50518f997dbb03f15469ae6c9dcee"
+    },
+    {
+      "name": "screen-scenic-sunset.png",
+      "bytes": 1281487,
+      "sha256": "788bb7684c7784d7fd052c11f32771fd294d9a6e7e47b901e4cb6768e69ba9d3"
+    },
+    {
+      "name": "screen-snow-day.png",
+      "bytes": 1708758,
+      "sha256": "a72f0e33354510f2d29629f86d28666b15310bfb990630078fa4e78738267359"
+    },
+    {
+      "name": "stage-beam.png",
+      "bytes": 174582,
+      "sha256": "4598e6210362c863ef6ab719d2f6930e8673de3093bbe6c84bd3c6a17e99a75f"
+    }
+  ],
+  "assets": [
+    {
+      "source": "cabin-env-garage.png",
+      "target": "cabin-env-garage.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 807,
+      "height": 651,
+      "original_bytes": 894574,
+      "bytes": 25984,
+      "original_sha256": "ea39428a39af2faf3f913f77e6f28ba6caa5cd86b1c888b28a7673a12e30c5d8",
+      "sha256": "b509c8a1053ab0a17d7e16465ff3096c90c756f52419672f6b33cd86e09a3d3e",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 31.170216054662284,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-rain.png",
+      "target": "cabin-env-rain.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 807,
+      "height": 651,
+      "original_bytes": 809711,
+      "bytes": 10758,
+      "original_sha256": "62d3c6b7f8acc837acb0067f5e3f8fc058431088943b27e14ff03aeb2d12299c",
+      "sha256": "edcd31935c97c300496bc4f62f18f6c1e5bce682d66cfb80771c6448f6ae3b15",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 34.25105694524519,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "figma-ready-button.png",
+      "target": "figma-ready-button.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1104,
+      "height": 226,
+      "original_bytes": 139195,
+      "bytes": 18458,
+      "original_sha256": "969b10bf17a657a11f798f1ed0a58acb8140cec0166db2b92898fe6f057e8009",
+      "sha256": "67d8cea0ad56b3491c6585bd11c93451ab8e77d5748a9435fcf78b1122aa559f",
+      "encoding": "webp_q58",
+      "quality": 58,
+      "psnr": 41.24249610393713,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 32
+    },
+    {
+      "source": "game-icon-loading.png",
+      "target": "game-icon-loading.png",
+      "profile": "png",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 130,
+      "height": 130,
+      "original_bytes": 37804,
+      "bytes": 14049,
+      "original_sha256": "5de080117ce74795261321096ea6bc7e9d1249042bc2f61ac75c9963b6cce170",
+      "sha256": "0eccf627f5c1331db281993d446b933e419ed7b5a23041bd9e5ee881138c3e60",
+      "encoding": "png_palette_128",
+      "psnr": 35.46655207387593,
+      "exact": false,
+      "alpha_exact": true,
+      "visible_pixels_exact": false,
+      "quality": 80,
+      "alpha_quantized": true,
+      "alpha_rmse": 0,
+      "alpha_max_error": 0,
+      "refinement_minimum_psnr": 30
+    },
+    {
+      "source": "hi.webp",
+      "target": "hi.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 7200,
+      "original_bytes": 6096542,
+      "bytes": 2924484,
+      "original_sha256": "13c3fc6fbcdf4097fdf0f217a2d94beba52276ebbd6388fe98fcf4a0854a377d",
+      "sha256": "893758d42f5a14469d4dd763fb53f8767470d71d09cde2426dbaa5120f4d4891",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 43.789453453370356,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 37.38945373102253,
+          "exact": false
+        },
+        {
+          "index": 30,
+          "psnr": 37.27702001838323,
+          "exact": false
+        },
+        {
+          "index": 59,
+          "psnr": 37.27762411515926,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-mom-normal.png",
+      "target": "passenger-mom-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 99212,
+      "bytes": 13722,
+      "original_sha256": "841038706e38c237b466669057f1e8b8bb4552e3216a5406a236e48479aa3712",
+      "sha256": "46c05bd27b5fb755683f72c5d9c85c4391e553bc70e36cb9995c30f6f93966e9",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.58298719978608,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "screen-default.png",
+      "target": "screen-default.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 2880,
+      "height": 1620,
+      "original_bytes": 4921673,
+      "bytes": 84108,
+      "original_sha256": "eccf5e284ec68fff07128acef474b37a131861cadda46d52045a3521ff2bd668",
+      "sha256": "18bdc859e188ce7013180ef56b39196c32f1518e54be366529621c5d2c433f2a",
+      "encoding": "webp_q68",
+      "quality": 68,
+      "psnr": 41.919006573570655,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 31
+    },
+    {
+      "source": "bubble-tail.svg",
+      "target": "bubble-tail.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 217,
+      "bytes": 217,
+      "original_sha256": "ee9176e0443e6c1602f5d3b5acf00a47a7aad96ab47f86291d27812253371e58",
+      "sha256": "ee9176e0443e6c1602f5d3b5acf00a47a7aad96ab47f86291d27812253371e58"
+    },
+    {
+      "source": "cabin-bubble-tail.svg",
+      "target": "cabin-bubble-tail.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 213,
+      "bytes": 213,
+      "original_sha256": "d8b293a6864930ac5ab5a56eeac8f300dda3a0d5b95d3275931486804323155c",
+      "sha256": "d8b293a6864930ac5ab5a56eeac8f300dda3a0d5b95d3275931486804323155c"
+    },
+    {
+      "source": "cabin-correct-light.png",
+      "target": "cabin-correct-light.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 512,
+      "height": 364,
+      "original_bytes": 135663,
+      "bytes": 20524,
+      "original_sha256": "93c4459bbd6f75a63d895b1568f677443fb5d1bd60780c88f043f6328b17aacc",
+      "sha256": "c1bc1ee66a596d5299b6070d412609c55a7fa2f95a9436b6abc89b933c1e23cd",
+      "encoding": "webp_q32",
+      "quality": 32,
+      "psnr": 42.72752755024665,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 26
+    },
+    {
+      "source": "cabin-env-city-day.png",
+      "target": "cabin-env-city-day.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 810,
+      "height": 651,
+      "original_bytes": 902091,
+      "bytes": 20384,
+      "original_sha256": "0b5d98c6c9238535006fc1d5088a946aeaf5cd4c61e7ab44d765b601bf045969",
+      "sha256": "ee94f0d5fe26b4a3678beb7400278de14bcee552976b59d4b91776317373d031",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 31.746975922051156,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-city-night.png",
+      "target": "cabin-env-city-night.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 810,
+      "height": 651,
+      "original_bytes": 869160,
+      "bytes": 26202,
+      "original_sha256": "3427e0c0940c3ea7c0a65d47d2fd70d8a71ff1f72403ca2dd69dd88e3d3a866b",
+      "sha256": "b233850300d160401f87daa30d8915dee55fb219b049546abc725dfc6cb54c06",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 30.824803113068665,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-deep-night.png",
+      "target": "cabin-env-deep-night.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 810,
+      "height": 651,
+      "original_bytes": 682624,
+      "bytes": 6366,
+      "original_sha256": "c9667a11ef52aed9908ed187368a3f4ab7ed990cef7348dfca3d70ab9733c04c",
+      "sha256": "2d8177e1ff3aeccb7528084f70f76cad1b78d47226891059bfdbce4e9d2b8638",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 37.68700330672073,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-scenic-day.png",
+      "target": "cabin-env-scenic-day.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 810,
+      "height": 651,
+      "original_bytes": 685394,
+      "bytes": 10776,
+      "original_sha256": "eeded415f13647056fed4d50c4a57875e774f6ad4a12531cb38b7f04354fceed",
+      "sha256": "7145937f98b3705e1f0417da9818ab6b90fd91e533c7baf2aa16a6d7c17d4183",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 34.43364950232583,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-scenic-sunset.png",
+      "target": "cabin-env-scenic-sunset.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 810,
+      "height": 651,
+      "original_bytes": 740432,
+      "bytes": 7362,
+      "original_sha256": "de5292beaf43dce0da63ab4f17192594294998569e2c3006aacb0447ee18f4fe",
+      "sha256": "e7edba3d1f2f37846f589e4bbf2f821b2b175f32c22bc305745f740e37f02202",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 35.94047313636371,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-snow-day.png",
+      "target": "cabin-env-snow-day.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 810,
+      "height": 651,
+      "original_bytes": 843501,
+      "bytes": 14854,
+      "original_sha256": "cb274f85b92886fe6fc3a550358eaf5be84fa93720c5079709c358c6fc40d792",
+      "sha256": "bae4299c9d514449d2d610b4f80460747918e2873ec4eacdf5516494f32179af",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 33.364036952993466,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-env-tunnel.png",
+      "target": "cabin-env-tunnel.webp",
+      "profile": "cabin",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 807,
+      "height": 651,
+      "original_bytes": 808383,
+      "bytes": 12194,
+      "original_sha256": "2f507a716291b5d3b8009565ae4ca1a78e07fb967d228e5c8fad344d6cc20dea",
+      "sha256": "67c54c02ed2fa3f61559a54badc6002318bdee09aefa61916a2cc02bc3baf80b",
+      "encoding": "webp_q28",
+      "quality": 28,
+      "psnr": 34.30927975489069,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-interior.png",
+      "target": "cabin-interior.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 765,
+      "height": 1024,
+      "original_bytes": 489924,
+      "bytes": 65790,
+      "original_sha256": "575b2f5031c368b3a66c7539cda32abf0c9dd76f80f15eaa9dad8ab7f0885ae0",
+      "sha256": "99a4b85032915a559ea3266e89e99a5c1713ae627bbbdbe92ac8318ca3500175",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 43.68108308454972,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "cabin-location-icon.svg",
+      "target": "cabin-location-icon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 794,
+      "bytes": 794,
+      "original_sha256": "078ce5861fdc5e3df0717b6c3897c639defbda7e3791b437a81bfd6b760aabaa",
+      "sha256": "078ce5861fdc5e3df0717b6c3897c639defbda7e3791b437a81bfd6b760aabaa"
+    },
+    {
+      "source": "cabin-sleep-dim-front.svg",
+      "target": "cabin-sleep-dim-front.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 704,
+      "bytes": 704,
+      "original_sha256": "b9cfb0a9fb0e2c196ef5d464b4a8644e71bd4c3debd6838793731aa1f4918052",
+      "sha256": "b9cfb0a9fb0e2c196ef5d464b4a8644e71bd4c3debd6838793731aa1f4918052"
+    },
+    {
+      "source": "cabin-sleep-dim-rear.svg",
+      "target": "cabin-sleep-dim-rear.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 708,
+      "bytes": 708,
+      "original_sha256": "170db7704fbe7f2770fc571108db2457972ed5d347cb9093f1250f995759b97e",
+      "sha256": "170db7704fbe7f2770fc571108db2457972ed5d347cb9093f1250f995759b97e"
+    },
+    {
+      "source": "cabin-speed-icon.svg",
+      "target": "cabin-speed-icon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 1418,
+      "bytes": 1418,
+      "original_sha256": "bd0d7e71f454e4c1325f56fd7861e0572dacd91a7b9e76a05bdcaf35e7a80b7e",
+      "sha256": "bd0d7e71f454e4c1325f56fd7861e0572dacd91a7b9e76a05bdcaf35e7a80b7e"
+    },
+    {
+      "source": "cabin-zone-climate-icon.svg",
+      "target": "cabin-zone-climate-icon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 1309,
+      "bytes": 1309,
+      "original_sha256": "3f4ec54ea49eddc608ba54e96949f2eba5400a36a780e3450e6ab9dd54e992b2",
+      "sha256": "3f4ec54ea49eddc608ba54e96949f2eba5400a36a780e3450e6ab9dd54e992b2"
+    },
+    {
+      "source": "cabin-zone-volume-icon.svg",
+      "target": "cabin-zone-volume-icon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 711,
+      "bytes": 711,
+      "original_sha256": "a97d1f50a19553f748ec7304d018a73af9f79709668ea6263ae7e0a6c4b0c5b6",
+      "sha256": "a97d1f50a19553f748ec7304d018a73af9f79709668ea6263ae7e0a6c4b0c5b6"
+    },
+    {
+      "source": "figma-playing-ribbon.svg",
+      "target": "figma-playing-ribbon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 1230,
+      "bytes": 1230,
+      "original_sha256": "f2545eec0e2fbbbc1e932b038e2c8e5b13ae7e77c212eaa89f6a9ad937dcf982",
+      "sha256": "f2545eec0e2fbbbc1e932b038e2c8e5b13ae7e77c212eaa89f6a9ad937dcf982"
+    },
+    {
+      "source": "figma-ready-logo.png",
+      "target": "figma-ready-logo.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 872,
+      "height": 286,
+      "original_bytes": 373656,
+      "bytes": 28858,
+      "original_sha256": "9717871859cc2d581b8e379564c9ecb8175750a3ed74020e8772649d1be96f39",
+      "sha256": "88ace08dbbfb94605ca0d14191af7139e5f9aff6f1a2d743088d7b514a9e3a4d",
+      "encoding": "webp_q58",
+      "quality": 58,
+      "psnr": 33.272928494448415,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 32
+    },
+    {
+      "source": "figma-ready-panel-mosaic.png",
+      "target": "figma-ready-panel-mosaic.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 128,
+      "height": 84,
+      "original_bytes": 270871,
+      "bytes": 2500,
+      "original_sha256": "76947a2241fad48694ea7ee68fabf5843533122e4dea87ae186b0a8892a23ae6",
+      "sha256": "653b66d20a24b6af80b5f054b2119f03cfa6b9ce99a3f6684f1eda4e1f1b1802",
+      "encoding": "webp_q24",
+      "quality": 24,
+      "psnr": 49.87602278459606,
+      "exact": false,
+      "alpha_exact": false,
+      "refinement_minimum_psnr": 0,
+      "original_width": 658,
+      "original_height": 433,
+      "resized": true,
+      "visible_pixels_exact": false,
+      "alpha_quantized": true,
+      "alpha_rmse": 0,
+      "alpha_max_error": 0
+    },
+    {
+      "source": "figma-ready-ring-mosaic.png",
+      "target": "figma-ready-ring-mosaic.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 658,
+      "height": 370,
+      "original_bytes": 291211,
+      "bytes": 77998,
+      "original_sha256": "3f86d60d98e89982d53d89ff5a34770a31cb09a9bb762aa7fa9b1c1c8299eb03",
+      "sha256": "150bc656ad73d009de450ecb7add03286b3e6592c56febdf92e288f41543fa93",
+      "encoding": "webp_q32",
+      "quality": 32,
+      "psnr": 41.03572225492574,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 26
+    },
+    {
+      "source": "figma-reveal-ribbon.svg",
+      "target": "figma-reveal-ribbon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 1211,
+      "bytes": 1211,
+      "original_sha256": "88e5550a315c2b706e8f28582110fdc8bcb2c62acff6f908ebb96b8b8514df12",
+      "sha256": "88e5550a315c2b706e8f28582110fdc8bcb2c62acff6f908ebb96b8b8514df12"
+    },
+    {
+      "source": "figma-reveal-stars.png",
+      "target": "figma-reveal-stars.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 480,
+      "height": 480,
+      "original_bytes": 18569,
+      "bytes": 7708,
+      "original_sha256": "11901be469aabc0258eb7b7496c0c32a405b5a4c93b6034f46d8c1c6b91c004e",
+      "sha256": "140d3980ab4da4b2a6582229b19864c8099334fbc103a09dfe1c4dae0b87bddb",
+      "encoding": "webp_lossless",
+      "psnr": null,
+      "exact": true,
+      "alpha_exact": true,
+      "visible_pixels_exact": true
+    },
+    {
+      "source": "figma-summary-bright-light.png",
+      "target": "figma-summary-bright-light.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 480,
+      "height": 640,
+      "original_bytes": 267111,
+      "bytes": 47484,
+      "original_sha256": "e8a8305fe055a26387a034e455a7941784e3b5498ed315dee09fc18b0344e8c7",
+      "sha256": "fd6b670e02add46067675722e08ac64c0502ac8bf14891995d8ee8b90608f5e6",
+      "encoding": "webp_q32",
+      "quality": 32,
+      "psnr": 49.69658408290712,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 26
+    },
+    {
+      "source": "figma-summary-light-base.png",
+      "target": "figma-summary-light-base.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 240,
+      "height": 134,
+      "original_bytes": 23471,
+      "bytes": 9344,
+      "original_sha256": "1cc71cccb195e339be43201f59467d4c13c48ffd49e5fd71d06256eff649b125",
+      "sha256": "a4a04e2c3f6255638c55af0f6cb3cdaece945bf79d63ae5d10f0c66475e518ef",
+      "encoding": "webp_lossless",
+      "psnr": null,
+      "exact": true,
+      "alpha_exact": true,
+      "visible_pixels_exact": true
+    },
+    {
+      "source": "figma-summary-light-ring.png",
+      "target": "figma-summary-light-ring.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 256,
+      "height": 256,
+      "original_bytes": 127834,
+      "bytes": 22322,
+      "original_sha256": "9645e69f28d7b887deb1a84b6dd8cef08f73ae8ac9d0588216ad1f46a91067a8",
+      "sha256": "e3257c3f097d117872cf081642e2f939c22031451c50eddf458aa9d82e59cd6e",
+      "encoding": "webp_q32",
+      "quality": 32,
+      "psnr": 46.86144037657299,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 26
+    },
+    {
+      "source": "figma-summary-mosaic.png",
+      "target": "figma-summary-mosaic.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 658,
+      "height": 433,
+      "original_bytes": 499179,
+      "bytes": 79472,
+      "original_sha256": "78d8d23bb2cd99083a8e556e82fd0b62eb0ec299d90a2e3fd3f3711f3f96dfc5",
+      "sha256": "f1a4ab49f5dcf6d271181d7cb5148b9f6f96b0ec0f89e28d7d65558c99558642",
+      "encoding": "webp_q32",
+      "quality": 32,
+      "psnr": 37.34588912802064,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 26
+    },
+    {
+      "source": "figma-summary-mvp.png",
+      "target": "figma-summary-mvp.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 228,
+      "height": 116,
+      "original_bytes": 34477,
+      "bytes": 7930,
+      "original_sha256": "2d2ed58e1020c54f7ac7a84a846e433d1fda4b2eba2aac80f512d0afdf9a2c2e",
+      "sha256": "424a2252768826b771423392c1989c63db210a2f4b750a2b9f7796683de4bb94",
+      "encoding": "webp_q58",
+      "quality": 58,
+      "psnr": 32.8639860233033,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 32
+    },
+    {
+      "source": "figma-summary-ribbon.png",
+      "target": "figma-summary-ribbon.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 480,
+      "height": 480,
+      "original_bytes": 60926,
+      "bytes": 25464,
+      "original_sha256": "7593f450e2fb79c13e6587263dd2e77bea40426b7b9df4db20141b30b1308052",
+      "sha256": "3717ba4a9ccd171ee83721d43dae838163d3f3e1c7436c987222ab74747820a6",
+      "encoding": "webp_q64",
+      "quality": 64,
+      "psnr": 36.665253840787145,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 33
+    },
+    {
+      "source": "figma-summary-title.png",
+      "target": "figma-summary-title.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1018,
+      "height": 245,
+      "original_bytes": 285977,
+      "bytes": 24080,
+      "original_sha256": "b1794ad8b66c29dec44fb71caa7c45ba7e266adf95944df88bc74a99eef54409",
+      "sha256": "cbb664f4e879ccb9c88c55c09929508588125e46ca9503075f595078fe5a2d21",
+      "encoding": "webp_q58",
+      "quality": 58,
+      "psnr": 37.56079950962072,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 32
+    },
+    {
+      "source": "host-cheer.png",
+      "target": "host-cheer-static.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 564,
+      "height": 572,
+      "original_bytes": 307057,
+      "bytes": 32930,
+      "original_sha256": "d218b4140a361bdcd2ca79aa6d645ad1182f821c2c8771a00f17831e2393ca2d",
+      "sha256": "52c36e959f7728b0d31b973edf714616b2ec6d4e938df5ca6c41673741d5b036",
+      "encoding": "webp_q64",
+      "quality": 64,
+      "psnr": 34.320102093731805,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 33
+    },
+    {
+      "source": "host-cheer.webp",
+      "target": "host-cheer.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 7200,
+      "original_bytes": 4301858,
+      "bytes": 2280264,
+      "original_sha256": "846f79d42a15b3acae1ddaabc40ad45c97601c5be73dea5df440ccd47c3dc5bc",
+      "sha256": "1e2900b80d8f743d6258860fd7f224b6dda010b5c3fbc9d82c3b8e43dfeddde8",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 44.29222598328636,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 38.342971554643036,
+          "exact": false
+        },
+        {
+          "index": 30,
+          "psnr": 38.198689522156236,
+          "exact": false
+        },
+        {
+          "index": 59,
+          "psnr": 38.14200490963627,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-heart.png",
+      "target": "host-heart-static.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 564,
+      "height": 572,
+      "original_bytes": 266326,
+      "bytes": 27250,
+      "original_sha256": "d03823c1ad48d17f3e454919dfab642ea7f08de06198e9d8f2e478435ecef0f8",
+      "sha256": "fc36fe7a3c890c592c0cc9b996f08a04e9a45549751f470c56e7f7b4a7528bd2",
+      "encoding": "webp_q64",
+      "quality": 64,
+      "psnr": 33.64995967618316,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 33
+    },
+    {
+      "source": "host-heart.webp",
+      "target": "host-heart.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 5040,
+      "original_bytes": 1594798,
+      "bytes": 856552,
+      "original_sha256": "bf5c47548792989914e7caea4138772acc5e28e098c6edfbff6ebcafbb2e25c7",
+      "sha256": "aa908041b4a325b03f16ff925d0b2875272589201a86ce85fad4ed528ea296ea",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 47.898576755651334,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 38.79331531426925,
+          "exact": false
+        },
+        {
+          "index": 13,
+          "psnr": 37.987674093903955,
+          "exact": false
+        },
+        {
+          "index": 26,
+          "psnr": 38.62504031494606,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-normal.png",
+      "target": "host-normal-static.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 564,
+      "height": 572,
+      "original_bytes": 252945,
+      "bytes": 24214,
+      "original_sha256": "443db14b58402698c1b00e6e94a5b420dffd1f16430825787537f10a721955bb",
+      "sha256": "c4499b3bd04681f95417c27bc6b5fbc94c6ef3078edf438b7fb3a0a493553a30",
+      "encoding": "webp_q64",
+      "quality": 64,
+      "psnr": 33.6684763306353,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 33
+    },
+    {
+      "source": "host-normal.webp",
+      "target": "host-normal.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 5040,
+      "original_bytes": 1899358,
+      "bytes": 1017874,
+      "original_sha256": "23f3b2d792f19b1c3358b339444f01db750b5bd0e9df275a977206a0aec0c931",
+      "sha256": "2636b29420d23204ea1f487b0d2ed4816ff04ad39d4ce9290c94d2823867f4e7",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 46.90322990364328,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 38.345880209225015,
+          "exact": false
+        },
+        {
+          "index": 16,
+          "psnr": 38.14606834606256,
+          "exact": false
+        },
+        {
+          "index": 31,
+          "psnr": 38.209871920202644,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-ready-normal.webp",
+      "target": "host-ready-normal.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 5040,
+      "original_bytes": 3622984,
+      "bytes": 1810636,
+      "original_sha256": "d6d2c023403069111d50013c33c374edacb63f9f570c2ee1b269386ba969e64b",
+      "sha256": "d6662e41fcbd148fd2f9715a822509aeafe5329d7006fac6610a0115b2563a92",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 43.07632684363334,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 37.507852545742836,
+          "exact": false
+        },
+        {
+          "index": 20,
+          "psnr": 37.31212184108254,
+          "exact": false
+        },
+        {
+          "index": 39,
+          "psnr": 37.192317211385976,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-ready-speak.webp",
+      "target": "host-ready-speak.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 4320,
+      "original_bytes": 2849448,
+      "bytes": 1444334,
+      "original_sha256": "372f5431d3ad9ac84c8b661e1228115c9afe007eb7e14b81b2404cc697154c05",
+      "sha256": "556f3b0b4fa9fddff6d0bc9fc71783499bcf4b6f1aa145c3da5ccc2812aeb2d5",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 42.899436388237284,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 37.88170621602055,
+          "exact": false
+        },
+        {
+          "index": 17,
+          "psnr": 37.91763681469715,
+          "exact": false
+        },
+        {
+          "index": 33,
+          "psnr": 37.92420840001415,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-speak.webp",
+      "target": "host-speak.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 5040,
+      "original_bytes": 2537366,
+      "bytes": 1331776,
+      "original_sha256": "9a1dd5246ac3635fd38c16c57606f5ef6296f84b17c3d188d0010358df2a1e39",
+      "sha256": "2797d3b1f5f4daaaf1209caf790ae50806398b128e464e4107e9fc1da410d354",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 44.05307984197901,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 38.46134411885525,
+          "exact": false
+        },
+        {
+          "index": 21,
+          "psnr": 38.37738934438815,
+          "exact": false
+        },
+        {
+          "index": 41,
+          "psnr": 38.458682069215776,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-thinking.png",
+      "target": "host-thinking-static.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 564,
+      "height": 572,
+      "original_bytes": 228641,
+      "bytes": 21882,
+      "original_sha256": "75413bb8dff0d45a04997fd82541e34547826fc3bbc4913d0a3913d05b7005a3",
+      "sha256": "05ecc88a194ca106054be01f44758213759e3d0ea5d682088dad1da080b31b80",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 44.79045595905882,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "host-thinking.webp",
+      "target": "host-thinking.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 5040,
+      "original_bytes": 2521980,
+      "bytes": 1313964,
+      "original_sha256": "61a25c37af86428e1f2ade9214b511ac92d0f7569ab890a99a01970dd21d923a",
+      "sha256": "390c1e833efeea76cbf184690bffed3e9f6c163d0265c93541c6b37d522e68a8",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 44.32547160920289,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 38.361688223634516,
+          "exact": false
+        },
+        {
+          "index": 20,
+          "psnr": 37.81861037266272,
+          "exact": false
+        },
+        {
+          "index": 39,
+          "psnr": 38.15297711854435,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "host-yes.png",
+      "target": "host-yes-static.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 564,
+      "height": 572,
+      "original_bytes": 287342,
+      "bytes": 28784,
+      "original_sha256": "e464273b23ad478da46504e9707531a3ab7b2fff6b24410186f7d140efc5ec6b",
+      "sha256": "28b506a0c071cccf7c39acb7276f59fbe7117383a1abe08afd362da37dca46a5",
+      "encoding": "webp_q64",
+      "quality": 64,
+      "psnr": 33.71029420875323,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 33
+    },
+    {
+      "source": "host-yes.webp",
+      "target": "host-yes.webp",
+      "profile": "sprite",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 4320,
+      "height": 5040,
+      "original_bytes": 2690416,
+      "bytes": 1442492,
+      "original_sha256": "dba56d34139e10af6a50ac7e60311a4d48b8764d713bbbe7b2960d3873ab973c",
+      "sha256": "b66b707f53b45378a3f68a76919bf9660c5639468f0ebbcfec856716ed390b88",
+      "encoding": "webp_q78",
+      "quality": 78,
+      "psnr": 44.48125271854943,
+      "exact": false,
+      "frame_samples": [
+        {
+          "index": 0,
+          "psnr": 38.08910457711746,
+          "exact": false
+        },
+        {
+          "index": 20,
+          "psnr": 37.837532950766445,
+          "exact": false
+        },
+        {
+          "index": 39,
+          "psnr": 37.90898794016981,
+          "exact": false
+        }
+      ],
+      "alpha_exact": true
+    },
+    {
+      "source": "important-event-icon.svg",
+      "target": "important-event-icon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 959,
+      "bytes": 959,
+      "original_sha256": "5c3ec15d55d02ab4b10697cb328348ff51d68fede1f551974ebd314f774175de",
+      "sha256": "5c3ec15d55d02ab4b10697cb328348ff51d68fede1f551974ebd314f774175de"
+    },
+    {
+      "source": "passenger-baby-laugh.png",
+      "target": "passenger-baby-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 106102,
+      "bytes": 15862,
+      "original_sha256": "c14cb8351dcfb0829b88c1572a8cc1974002dd57ccb956fd6ac3ef919445767d",
+      "sha256": "a29ff6945cfff8f9de181406032f9c351198d746ccacdafd88f3e5b74fde0e1b",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.29863442526509,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-baby-normal.png",
+      "target": "passenger-baby-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 106338,
+      "bytes": 16242,
+      "original_sha256": "f3154cef7c4269afdaf9590371260b91e68ff87d9fbd040cebbbf531d7eb7ce9",
+      "sha256": "9a5c610aa538e10c3445e52d814b70ad0ad33ee5efb412a1c24159772e08ca71",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.08057114267586,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-baby-sleep.png",
+      "target": "passenger-baby-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 105663,
+      "bytes": 16580,
+      "original_sha256": "7c3d1dbddde089ef568979adbc9962962092fd0d044fe4f36d5f0b98d8b48c46",
+      "sha256": "2003471b4e37c07d14a3de03403727e9811193c152778e769629c2852465b590",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.54657025087107,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-boy-laugh.png",
+      "target": "passenger-boy-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 74921,
+      "bytes": 15478,
+      "original_sha256": "f52cfac5d6e8ac05304bd993a4d669159ec326ca6167b2a187bfc053f59cde69",
+      "sha256": "a40ecbb2ff390618cd94c1c5c55f47a5399724348a238065dd3e087c2815ecf2",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 38.71967057557508,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-boy-normal.png",
+      "target": "passenger-boy-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 65533,
+      "bytes": 11950,
+      "original_sha256": "51762f2f8758debafc36ceb18680c569380b7f4a2c267e0611cc28dd2ff03d2b",
+      "sha256": "f34e0a50536628a00831c730f62e0474d40e67b8ccabe97ff58bad54958d87a8",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 38.767923059754814,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-boy-sleep.png",
+      "target": "passenger-boy-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 72840,
+      "bytes": 13692,
+      "original_sha256": "197691c3e0623d981c506652f629cf639218ede47bb4b5e33643d504ad9f1540",
+      "sha256": "a7e5fa90d06a7f453e32294102872251b5401952d6b6d537085f8db36100194b",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 38.65058367339267,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-dad-laugh.png",
+      "target": "passenger-dad-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 107038,
+      "bytes": 15858,
+      "original_sha256": "4b35608d1b3fa8c6ba2a8364a9eb75215ad8ae65cf24dff7bbdb2e8313a08048",
+      "sha256": "59045f0506400185b7be80c84470e50a90ab7eacb81a218a591fd85783f8c1df",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.246097856730174,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-dad-normal.png",
+      "target": "passenger-dad-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 105595,
+      "bytes": 17216,
+      "original_sha256": "29495f91c4d693613849cb042f042a892245985387e0563de17be7590a03d548",
+      "sha256": "81fddf91ee2b0c92806079c54096065da1f5cd00c23a6e6fa71fe84d0e3c538f",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.94520836481803,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-dad-sleep.png",
+      "target": "passenger-dad-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 104833,
+      "bytes": 14374,
+      "original_sha256": "a3d1a715fa8632376b98550237274e3ab24ea93c53f4aa78e9c8ff2a240479c6",
+      "sha256": "575a76d2c76b3a904a54fe8f4175c353eb7c5091d8268f07f7f3e6bb330eef0c",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.37736468749696,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-dad-tired.png",
+      "target": "passenger-dad-tired.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 105977,
+      "bytes": 14954,
+      "original_sha256": "5ed34b3f39a2c3ced0abfb087359101798b859023c0745a2c940723902380d90",
+      "sha256": "2cbbdd21bd006e6f8a8f3704ceef60e3a8b173290556854dc0f9b36fe244a527",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.5063604065505,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-female-young-laugh.png",
+      "target": "passenger-female-young-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 115283,
+      "bytes": 21094,
+      "original_sha256": "126386ea0d599d5526d8251dd0db113834dbfc9258b2d832e9c348269210ea5c",
+      "sha256": "eb6b5b6aa3422c29d6407c4f22aa7e5f5af3524b8336367ec7410876852bc6f1",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.43650132762014,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-female-young-normal.png",
+      "target": "passenger-female-young-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 109057,
+      "bytes": 19338,
+      "original_sha256": "6632106efd0ab9619d9321f1217ac7b5795fac578a437219ffee06687bac99fc",
+      "sha256": "9cde1c33d4fe2316c9245135a8183ea3ece2cda94228db74a372666be29a24ed",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.432222266078824,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-female-young-sleep.png",
+      "target": "passenger-female-young-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 110978,
+      "bytes": 20256,
+      "original_sha256": "02300f7ed2e23f43a906402dfa1afa409ac970ee5161ad7491d9aa7ea8026cb6",
+      "sha256": "d1cccfb97875374e34cf3b9cb8f464055390446f9fadc561ff6facd99bd2b5e3",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.53011548551235,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-female-young-tired.png",
+      "target": "passenger-female-young-tired.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 114006,
+      "bytes": 20504,
+      "original_sha256": "83b3cd7d742b6959b0c3358e8381e7fc11ed565feb9d284afc2f791e5c943add",
+      "sha256": "20561611ec7a6fb45984116c4add201a2892bd9011a8ef7f9bfe509a852c0e37",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.62881109953547,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-girl-laugh.png",
+      "target": "passenger-girl-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 92031,
+      "bytes": 19060,
+      "original_sha256": "d07cd665cab38f5a58c522fa51d19648ba6bd08cf0ae470d7ffefc1c51e4f7c8",
+      "sha256": "e4afb79af92ad6ccca6e969aabd600f9b31098ba010d96a344720b46f00b25f9",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.34863218382825,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-girl-normal.png",
+      "target": "passenger-girl-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 91677,
+      "bytes": 18366,
+      "original_sha256": "719fa47d0864d530f6033867190c2d463c7fdc7dd192fe9efcf9a6f9cff20bf6",
+      "sha256": "e36597b41fa2e4e1b2c9c2a8884107daaf8e5badacc2875c91a53eaca835b9ca",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.50715937725102,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-girl-sleep.png",
+      "target": "passenger-girl-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 98300,
+      "bytes": 20340,
+      "original_sha256": "4c6a04192c0eac4293ef241d9db0f3170ff18620c6a9ebc014540df66139a564",
+      "sha256": "f96fbee7acddeecbca9b40686ba07c7f37def6a59010a8024cc830c87aebc403",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.728219378939336,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-grandma-laugh.png",
+      "target": "passenger-grandma-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 102805,
+      "bytes": 15470,
+      "original_sha256": "a09dca3837b45b6f33205e1fc2eb9a0e29d7f97743662af9a3ddda17bfc19370",
+      "sha256": "eec33eb91f45b94a96b3be5490fc91ff2427e461719e331efe06fac7f4ad1663",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.42615572099913,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-grandma-normal.png",
+      "target": "passenger-grandma-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 107480,
+      "bytes": 17018,
+      "original_sha256": "f61e18319ed37190c85fbb4c4b0b31f8bb79191c72fff50d9de6a85fdc5ecf5d",
+      "sha256": "cb47fe9358a557b1ca61081b2e75910819514cc42231832db526121abcc0eb30",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.248240751050446,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-grandma-sleep.png",
+      "target": "passenger-grandma-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 105699,
+      "bytes": 15540,
+      "original_sha256": "159de0c35eae56fdb0bdaa5dff59b9ded2b39861b366f9a68fc7a4fc59b926f3",
+      "sha256": "a803ae86cf098d3dbf79eb21182e7547cd4252c66edbf930517df591609dbc9f",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.03323676069477,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-grandpa-laugh.png",
+      "target": "passenger-grandpa-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 124092,
+      "bytes": 21092,
+      "original_sha256": "727a713574365d60877b96cd25e9763eec4bb764d8eb128f8b8bdc87d4498cab",
+      "sha256": "813f4ed6e2f954b3ca7828ef973cb5111f5a38836597becf5aad64f6220b16fa",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.70967713858661,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-grandpa-normal.png",
+      "target": "passenger-grandpa-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 124930,
+      "bytes": 22126,
+      "original_sha256": "a276dfd7f7ca97e06632d0b8b0f1b79c47977991a03482a146543c398973d1ee",
+      "sha256": "7b12f6249419fbe341e3a29e3eec9f453bc5a25cd71a2f96a8914c21bdcc1a88",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.84546514948259,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-grandpa-sleep.png",
+      "target": "passenger-grandpa-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 125002,
+      "bytes": 22290,
+      "original_sha256": "4a2b4cbacd5e93320bc3dc2d1576561452c77a5bc62fe2edb428b460fa2433e1",
+      "sha256": "ba5c111093d13c00ad7d0bd41d549d8a351a828d7f35a50d14cf5eaea723b864",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.12941486635458,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-male-young-laugh.png",
+      "target": "passenger-male-young-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 102371,
+      "bytes": 18108,
+      "original_sha256": "92af09d4c8a06e18bc3e8bde869182da9f0deff6d7c48bbe907f7ed2d4f47eb2",
+      "sha256": "20b7a27fb4e1143af92f8b12dce891645abb2d1459fcaf45cd3ce4d58acd2af3",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 39.4232226157956,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-male-young-normal.png",
+      "target": "passenger-male-young-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 107175,
+      "bytes": 16700,
+      "original_sha256": "33a60a82ed3ed3d7352d07e9738d74e82ac3db69a53b7dbd96c765440649d1b6",
+      "sha256": "09dc2b06f5b0cb77968cf09c9d33fe3cd52d7589e103a5c9968101e7f3665926",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.40165603791995,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-male-young-sleep.png",
+      "target": "passenger-male-young-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 95910,
+      "bytes": 15636,
+      "original_sha256": "24bdf1f213c3383aee8b13e0f0ed070ff16d2a890326697f84dc60dca7162c3a",
+      "sha256": "d878d4e67462c39a0fee254de5622b371a6d77c76a98e22da328500cfae6b97a",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.18036019212337,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-male-young-tired.png",
+      "target": "passenger-male-young-tired.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 100198,
+      "bytes": 17586,
+      "original_sha256": "94739bafd6e08a742bef9d3a0971a90ae14ec2cc22d5f87f16a147d713300b66",
+      "sha256": "a0f02b928b00ac98fdd052d2c34593ae366493d0f24a2364ddaf533caa3dc5ee",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.26423735374739,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-mom-laugh.png",
+      "target": "passenger-mom-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 99632,
+      "bytes": 15332,
+      "original_sha256": "2c219a95469600da2c4eca643e7ccc246f28d242fb0af47afb64ade5e26a7278",
+      "sha256": "e25bab55de17309d3987d8f5c56061dca182fd1f1eefc19c7040ac644be18c06",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.27238545130181,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-mom-sleep.png",
+      "target": "passenger-mom-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 102444,
+      "bytes": 15330,
+      "original_sha256": "a2650b02f391506ef831e6967c0205ce014215023ca5df566c4cad994fceaa39",
+      "sha256": "1c4cef8dbac4791f6f88ce40b157e53a81ee9938a4e3d08664dec639e59a57c9",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.32954987350384,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "passenger-mom-tired.png",
+      "target": "passenger-mom-tired.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 287,
+      "height": 328,
+      "original_bytes": 99186,
+      "bytes": 15340,
+      "original_sha256": "31752e21aba0abd844ad0327abf8c192415ce40b7d57668a8c4c8d0c2cf6b673",
+      "sha256": "c219a023e7e4b975e08a01b9dd838447d25757479ccf6f6d37420da3dcc2df5a",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "psnr": 40.604332045131734,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "question-icon.svg",
+      "target": "question-icon.svg",
+      "profile": "svg",
+      "status": "retained",
+      "reason": "tiny_vector_preserved",
+      "original_bytes": 1146,
+      "bytes": 1146,
+      "original_sha256": "e6142d434f61fedbb08eb436fd4a1b7a1ab9e6327a5dfa43f1e862026c3b168a",
+      "sha256": "e6142d434f61fedbb08eb436fd4a1b7a1ab9e6327a5dfa43f1e862026c3b168a"
+    },
+    {
+      "source": "screen-city-day.png",
+      "target": "screen-city-day.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 1934524,
+      "bytes": 71174,
+      "original_sha256": "5638a138825b21c79bc1ef4a51fe3853925e5f4e0bdf34c4db5533621ada72e5",
+      "sha256": "18ad550fe1c914a8bf536cf299b4fbb2b36d6d2d8cb31b91a291068ae8ce7cb3",
+      "encoding": "webp_q68",
+      "quality": 68,
+      "psnr": 35.56608314784529,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 31
+    },
+    {
+      "source": "screen-city-night.png",
+      "target": "screen-city-night.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 2059710,
+      "bytes": 90476,
+      "original_sha256": "39e6cf7d682056299e3d98a6936f0ab1f9f1436ca244f7a60de34da6b46269c9",
+      "sha256": "1fc8ca99bab4e3e2c0660acf9a9b37e1ec42d850a2d08509b84115addca6bcf4",
+      "encoding": "webp_q68",
+      "quality": 68,
+      "psnr": 34.38509087409791,
+      "exact": false,
+      "alpha_exact": true,
+      "refinement_minimum_psnr": 31
+    },
+    {
+      "source": "screen-deep-night.png",
+      "target": "screen-deep-night.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 1777820,
+      "bytes": 67724,
+      "original_sha256": "712e099c5a27142df945d18285589359f9b4b740e89273d7927d9fe965fcffff",
+      "sha256": "0e5e11ed0811d5fd17c6f3f7b1242be9d25641d41d12754615404ab378d98348",
+      "encoding": "webp_q85",
+      "quality": 85,
+      "psnr": 39.36126682248603,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "screen-rain.png",
+      "target": "screen-rain.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 1552894,
+      "bytes": 82312,
+      "original_sha256": "abc712fd984ba702213e65258b3b154eb089cc59542ede9820e5e89b624e2e30",
+      "sha256": "f177124041baf0797441b30911ddde86b2b00b56b9dea7464783350b1986033b",
+      "encoding": "webp_q85",
+      "quality": 85,
+      "psnr": 40.4228896712057,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "screen-scenic-day.png",
+      "target": "screen-scenic-day.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 1684752,
+      "bytes": 56078,
+      "original_sha256": "0bf28c8f50e55740540c88b899841632d1b50518f997dbb03f15469ae6c9dcee",
+      "sha256": "2663a39d6810e10cb7c995fce2ee17c518afc78aeadd48b54bef9cdb7ab0c80c",
+      "encoding": "webp_q85",
+      "quality": 85,
+      "psnr": 41.060854387844174,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "screen-scenic-sunset.png",
+      "target": "screen-scenic-sunset.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 1281487,
+      "bytes": 63144,
+      "original_sha256": "788bb7684c7784d7fd052c11f32771fd294d9a6e7e47b901e4cb6768e69ba9d3",
+      "sha256": "0b0b5d0fa14ff4ac3a6b03d10cba571b9722dabdf34406628ee50f52316e32a8",
+      "encoding": "webp_q85",
+      "quality": 85,
+      "psnr": 40.90606855387324,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "screen-snow-day.png",
+      "target": "screen-snow-day.webp",
+      "profile": "background",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 1440,
+      "height": 810,
+      "original_bytes": 1708758,
+      "bytes": 66928,
+      "original_sha256": "a72f0e33354510f2d29629f86d28666b15310bfb990630078fa4e78738267359",
+      "sha256": "17a70f61c855ac012859f475575350e5905234c1f1a1e2b93497668f7d6331c9",
+      "encoding": "webp_q85",
+      "quality": 85,
+      "psnr": 40.608015778465415,
+      "exact": false,
+      "alpha_exact": true
+    },
+    {
+      "source": "stage-beam.png",
+      "target": "stage-beam.webp",
+      "profile": "ui",
+      "status": "optimized",
+      "reason": "smaller_and_validated",
+      "width": 480,
+      "height": 480,
+      "original_bytes": 174582,
+      "bytes": 22808,
+      "original_sha256": "4598e6210362c863ef6ab719d2f6930e8673de3093bbe6c84bd3c6a17e99a75f",
+      "sha256": "63158436b0be85285ffff91cd67df128e0b7dd9e5850dc0db16d22d86b0a96b4",
+      "encoding": "webp_q24",
+      "quality": 24,
+      "psnr": 40.25753823291276,
+      "exact": false,
+      "alpha_exact": false,
+      "refinement_minimum_psnr": 0,
+      "visible_pixels_exact": false,
+      "alpha_quantized": true,
+      "alpha_rmse": 1.7788190038930636,
+      "alpha_max_error": 46,
+      "alpha_resampled": true
+    },
+    {
+      "source": "passenger-female-young2-normal.png",
+      "target": "passenger-female-young2-normal.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "width": 287,
+      "height": 328,
+      "original_bytes": 111883,
+      "bytes": 17820,
+      "original_sha256": "91bf32fb90909f3f0d2bef25d6e12bb86c33205f41d73d07ee9c504e7746ff1f",
+      "sha256": "310bf4df3b0fba9a6d33a9d7bb45a21a7440142994d665dc41c699bb9fb047eb",
+      "alpha_exact": true,
+      "psnr": 38.620661033419736,
+      "transparent_pixels": 41149,
+      "figma_node": "398:225",
+      "export_contents_only": true,
+      "source_backup": "tmp/female-young2-20261023/passenger-female-young2-normal.png"
+    },
+    {
+      "source": "passenger-female-young2-tired.png",
+      "target": "passenger-female-young2-tired.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "width": 287,
+      "height": 328,
+      "original_bytes": 116192,
+      "bytes": 18072,
+      "original_sha256": "8d298b60eae6378b82ad635853755b30a106c20f49a72d7eb05e817f1bd9816a",
+      "sha256": "b687933ecf6085630d819b753550e40b151990c6a4f74ac8b6d433102817fdea",
+      "alpha_exact": true,
+      "psnr": 38.85393897077857,
+      "transparent_pixels": 39463,
+      "figma_node": "398:224",
+      "export_contents_only": true,
+      "source_backup": "tmp/female-young2-20261023/passenger-female-young2-tired.png"
+    },
+    {
+      "source": "passenger-female-young2-sleep.png",
+      "target": "passenger-female-young2-sleep.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "width": 287,
+      "height": 328,
+      "original_bytes": 106289,
+      "bytes": 16536,
+      "original_sha256": "aed2341e4dae3ab2d925bb9927a9fc3584f58b6415f247c0aa24810bbe895ad6",
+      "sha256": "f9efe3f9625466653f108c04b77cedd9968a13a213d897b34786bd4def4afc9a",
+      "alpha_exact": true,
+      "psnr": 38.768279793010144,
+      "transparent_pixels": 43802,
+      "figma_node": "398:226",
+      "export_contents_only": true,
+      "source_backup": "tmp/female-young2-20261023/passenger-female-young2-sleep.png"
+    },
+    {
+      "source": "passenger-female-young2-laugh.png",
+      "target": "passenger-female-young2-laugh.webp",
+      "profile": "portrait",
+      "status": "optimized",
+      "encoding": "webp_q90",
+      "quality": 90,
+      "width": 287,
+      "height": 328,
+      "original_bytes": 110464,
+      "bytes": 17038,
+      "original_sha256": "52c1491bbab4479b88c9feb1b96144df50aa755b7ea1723c7dd42a555e2f3873",
+      "sha256": "ed0bbea00b26547c355e8533160f94279256b3ed350fb4c2e99d030b1d8d9ad3",
+      "alpha_exact": true,
+      "psnr": 39.0601299180392,
+      "transparent_pixels": 41696,
+      "figma_node": "398:227",
+      "export_contents_only": true,
+      "source_backup": "tmp/female-young2-20261023/passenger-female-young2-laugh.png"
+    }
+  ],
+  "totals": {
+    "count": 94,
+    "original_bytes": 60482755,
+    "bytes": 16361589,
+    "optimized": 82
+  },
+  "applied_at": "2026-10-22T15:33:54.856Z",
+  "runtime_only_resource_references_changed": true,
+  "source_edits": [
+    {
+      "file": "index.html",
+      "before_sha256": "9c4258be9d57fdcb2cc54b92427e40cdd3e3a2488c543ddd5180527424d47448",
+      "after_sha256": "44060459b9dd2711039c5b74ea706b8b93c90aa1fa0922f71651124d54099960"
+    },
+    {
+      "file": "styles.css",
+      "before_sha256": "63924ee31f64074dbfc23b68f93de1283fd0b7bd37feae356c6bb6ce9ab55dab",
+      "after_sha256": "7bef27dc9a0f2f7f9f017e40dba326937d26d3f85120365c207e89ae2063e0f0"
+    },
+    {
+      "file": "client-app.js",
+      "before_sha256": "e771f2872a44ad54da0d5c407881ac1ec8f9656a4c977f66ca3ac82a2b2c71c7",
+      "after_sha256": "dbac301820d6bfd50ea1940b8f702942b84295f34445046f3355cd2fd9583b60"
+    },
+    {
+      "file": "docs/ASSET_CONFIG.md",
+      "before_sha256": "7ccf90b13780b53f880edf7747f161d20e297226a63fc28775751f9902a1d4c5",
+      "after_sha256": "ce5a6f7ad18244c0fbcb95700cee873d1bfee80ec0116471bfc4c313b9407906"
+    },
+    {
+      "file": "docs/ASSET_MANIFEST.md",
+      "before_sha256": "a4ba73fecff50b73384dc7bb76b6db68ffd1ee06c1a3672d3d1766cb5d064252",
+      "after_sha256": "7c203ebace8311d21850ab974a827eadfa9c938cd8d343dcdd6475c5442e82c9"
+    }
+  ],
+  "stage_history": [
+    {
+      "version": "20261022-images-v1",
+      "totals": {
+        "count": 90,
+        "original_bytes": 60037927,
+        "bytes": 22299151,
+        "optimized": 78
+      },
+      "sprite_bytes": 18801006
+    },
+    {
+      "version": "20261022-images-v2",
+      "totals": {
+        "count": 90,
+        "original_bytes": 60037927,
+        "bytes": 17920521,
+        "optimized": 78
+      },
+      "sprite_bytes": 14422376
+    },
+    {
+      "version": "20261022-images-v3",
+      "totals": {
+        "count": 90,
+        "original_bytes": 60037927,
+        "bytes": 16609787,
+        "optimized": 78
+      }
+    },
+    {
+      "version": "20261022-images-v4",
+      "totals": {
+        "count": 90,
+        "original_bytes": 60037927,
+        "bytes": 14097771,
+        "optimized": 78
+      }
+    },
+    {
+      "version": "20261022-images-v5",
+      "totals": {
+        "count": 90,
+        "original_bytes": 60037927,
+        "bytes": 14109291,
+        "optimized": 78
+      }
+    }
+  ],
+  "refined_quality": 78,
+  "refined_at": "2026-10-22T15:42:37.295Z",
+  "ui_refinement": {
+    "applied_at": "2026-10-23T01:44:44.164Z",
+    "baseline_version": "20261022-images-v2",
+    "before_bytes": 1727102,
+    "bytes": 416368,
+    "records": [
+      {
+        "target": "figma-ready-button.webp",
+        "previous_bytes": 103784,
+        "bytes": 18458,
+        "quality": 58,
+        "minimum_psnr": 32
+      },
+      {
+        "target": "cabin-correct-light.webp",
+        "previous_bytes": 83792,
+        "bytes": 20524,
+        "quality": 32,
+        "minimum_psnr": 26
+      },
+      {
+        "target": "figma-ready-logo.webp",
+        "previous_bytes": 220356,
+        "bytes": 28858,
+        "quality": 58,
+        "minimum_psnr": 32
+      },
+      {
+        "target": "figma-ready-panel-mosaic.webp",
+        "previous_bytes": 187946,
+        "bytes": 56032,
+        "quality": 32,
+        "minimum_psnr": 26
+      },
+      {
+        "target": "figma-ready-ring-mosaic.webp",
+        "previous_bytes": 230094,
+        "bytes": 77998,
+        "quality": 32,
+        "minimum_psnr": 26
+      },
+      {
+        "target": "figma-summary-bright-light.webp",
+        "previous_bytes": 141252,
+        "bytes": 47484,
+        "quality": 32,
+        "minimum_psnr": 26
+      },
+      {
+        "target": "figma-summary-light-ring.webp",
+        "previous_bytes": 84396,
+        "bytes": 22322,
+        "quality": 32,
+        "minimum_psnr": 26
+      },
+      {
+        "target": "figma-summary-mosaic.webp",
+        "previous_bytes": 391292,
+        "bytes": 79472,
+        "quality": 32,
+        "minimum_psnr": 26
+      },
+      {
+        "target": "figma-summary-mvp.webp",
+        "previous_bytes": 23802,
+        "bytes": 7930,
+        "quality": 58,
+        "minimum_psnr": 32
+      },
+      {
+        "target": "figma-summary-title.webp",
+        "previous_bytes": 156480,
+        "bytes": 24080,
+        "quality": 58,
+        "minimum_psnr": 32
+      },
+      {
+        "target": "stage-beam.webp",
+        "previous_bytes": 103908,
+        "bytes": 33210,
+        "quality": 32,
+        "minimum_psnr": 26
+      }
+    ]
+  },
+  "verification": [
+    "9张主持人图集已按用户指定，从质量78的历史备份逐字节恢复至合计14422376字节（13.75 MiB），未重新编码。",
+    "相对恢复前，仅9张图集内容发生变化；其他图片、图标、MP3、动画JSON、页面布局和业务逻辑保持不变。资源缓存版本已更新。",
+    "362项Node自动测试通过；Chrome检查19个桌面及手机页面状态、375帧动画和81张非图集图片，无空帧、越界、图片解码失败、资源404或页面报错。",
+    "此前3段MP3的解码时长及静音播放检查通过，恢复操作未更改音频；Safari尚未实机验收，真实Dify和TTS未参与本次测试。",
+    "原图和每轮版本均已备份。仅本地恢复，未部署线上；旧标签页需强制刷新。"
+  ],
+  "media_refinement": {
+    "applied_at": "2026-10-23T02:14:30.671Z",
+    "baseline_version": "20261022-images-v3",
+    "before_bytes": 15163797,
+    "bytes": 14846133,
+    "records": [
+      {
+        "target": "game-icon-loading.png",
+        "previous_bytes": 36077,
+        "bytes": 14049,
+        "minimum_psnr": 30,
+        "alpha_quantized": true
+      },
+      {
+        "target": "hi.webp",
+        "previous_bytes": 2924484,
+        "bytes": 2924484,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "screen-default.webp",
+        "previous_bytes": 134070,
+        "bytes": 84108,
+        "minimum_psnr": 31,
+        "alpha_quantized": false
+      },
+      {
+        "target": "figma-summary-ribbon.webp",
+        "previous_bytes": 40920,
+        "bytes": 25464,
+        "minimum_psnr": 33,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-cheer-static.webp",
+        "previous_bytes": 51630,
+        "bytes": 32930,
+        "minimum_psnr": 33,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-cheer.webp",
+        "previous_bytes": 2280264,
+        "bytes": 2280264,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-heart-static.webp",
+        "previous_bytes": 44180,
+        "bytes": 27250,
+        "minimum_psnr": 33,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-heart.webp",
+        "previous_bytes": 856552,
+        "bytes": 856552,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-normal-static.webp",
+        "previous_bytes": 39816,
+        "bytes": 24214,
+        "minimum_psnr": 33,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-normal.webp",
+        "previous_bytes": 1017874,
+        "bytes": 1017874,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-ready-normal.webp",
+        "previous_bytes": 1810636,
+        "bytes": 1810636,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-ready-speak.webp",
+        "previous_bytes": 1444334,
+        "bytes": 1444334,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-speak.webp",
+        "previous_bytes": 1331776,
+        "bytes": 1331776,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-thinking.webp",
+        "previous_bytes": 1313964,
+        "bytes": 1313964,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-yes-static.webp",
+        "previous_bytes": 46992,
+        "bytes": 28784,
+        "minimum_psnr": 33,
+        "alpha_quantized": false
+      },
+      {
+        "target": "host-yes.webp",
+        "previous_bytes": 1442492,
+        "bytes": 1442492,
+        "minimum_psnr": 36.5,
+        "alpha_quantized": false
+      },
+      {
+        "target": "screen-city-day.webp",
+        "previous_bytes": 115104,
+        "bytes": 71174,
+        "minimum_psnr": 31,
+        "alpha_quantized": false
+      },
+      {
+        "target": "screen-city-night.webp",
+        "previous_bytes": 143390,
+        "bytes": 90476,
+        "minimum_psnr": 31,
+        "alpha_quantized": false
+      },
+      {
+        "target": "figma-ready-panel-mosaic.webp",
+        "previous_bytes": 56032,
+        "bytes": 2500,
+        "minimum_psnr": 0,
+        "alpha_quantized": true
+      },
+      {
+        "target": "stage-beam.webp",
+        "previous_bytes": 33210,
+        "bytes": 22808,
+        "minimum_psnr": 0,
+        "alpha_quantized": true
+      }
+    ]
+  },
+  "audio_refinement": {
+    "records": [
+      {
+        "name": "hi-audio.mp3",
+        "sample_rate": 44100,
+        "channels": 1,
+        "bit_rate": 64000,
+        "decoded_samples": 268992,
+        "duration_seconds": 6.099591836734694,
+        "bytes": 49318,
+        "sha256": "7cded1606e6f65b7d6930bf9bcd61c87d2f9898e5fef9ae58356b0176fff8020",
+        "previous_bytes": 109921,
+        "previous_sha256": "42b6de10749217bd139b9d131d48d86251d764d496f6dff76234a0fbb2e58685",
+        "original_sha256": "42b6de10749217bd139b9d131d48d86251d764d496f6dff76234a0fbb2e58685"
+      },
+      {
+        "name": "host-cheer.mp3",
+        "sample_rate": 44100,
+        "channels": 1,
+        "bit_rate": 64000,
+        "decoded_samples": 268864,
+        "duration_seconds": 6.096689342403628,
+        "bytes": 49318,
+        "sha256": "f705c3e64dcafeac22ceaedd74e378b1a856e1e63322600f27ec493c7c5934f1",
+        "previous_bytes": 96432,
+        "previous_sha256": "fafde25bee05b082fac28c2a77da8101adb6db0ae7bda493f872253ffc68c914",
+        "original_sha256": "fafde25bee05b082fac28c2a77da8101adb6db0ae7bda493f872253ffc68c914"
+      },
+      {
+        "name": "host-yes.mp3",
+        "sample_rate": 44100,
+        "channels": 1,
+        "bit_rate": 64000,
+        "decoded_samples": 180288,
+        "duration_seconds": 4.088163265306123,
+        "bytes": 33226,
+        "sha256": "b1e3dfe5d167b6f6c3c87a43dffbf134582c04cd4734e8d4d687441220a2ab83",
+        "previous_bytes": 63636,
+        "previous_sha256": "33c7c1551a4aa6fcec7dc1e6742cfa1fc89aca2293aafaafb624ce87d2ba09ea",
+        "original_sha256": "33c7c1551a4aa6fcec7dc1e6742cfa1fc89aca2293aafaafb624ce87d2ba09ea"
+      }
+    ],
+    "before_bytes": 269989,
+    "bytes": 131862
+  },
+  "sprite_restoration": {
+    "restored_at": "2026-10-23T02:30:17.109Z",
+    "from_version": "20261022-images-v3",
+    "before_bytes": 12239544,
+    "bytes": 14422376,
+    "quality": 78,
+    "targets": [
+      "hi.webp",
+      "host-cheer.webp",
+      "host-heart.webp",
+      "host-normal.webp",
+      "host-ready-normal.webp",
+      "host-ready-speak.webp",
+      "host-speak.webp",
+      "host-thinking.webp",
+      "host-yes.webp"
+    ]
+  },
+  "passenger_addition": {
+    "date": "2026-10-23",
+    "records": [
+      {
+        "source": "passenger-female-young2-normal.png",
+        "target": "passenger-female-young2-normal.webp",
+        "profile": "portrait",
+        "status": "optimized",
+        "encoding": "webp_q90",
+        "quality": 90,
+        "width": 287,
+        "height": 328,
+        "original_bytes": 111883,
+        "bytes": 17820,
+        "original_sha256": "91bf32fb90909f3f0d2bef25d6e12bb86c33205f41d73d07ee9c504e7746ff1f",
+        "sha256": "310bf4df3b0fba9a6d33a9d7bb45a21a7440142994d665dc41c699bb9fb047eb",
+        "alpha_exact": true,
+        "psnr": 38.620661033419736,
+        "transparent_pixels": 41149,
+        "figma_node": "398:225",
+        "export_contents_only": true,
+        "source_backup": "tmp/female-young2-20261023/passenger-female-young2-normal.png"
+      },
+      {
+        "source": "passenger-female-young2-tired.png",
+        "target": "passenger-female-young2-tired.webp",
+        "profile": "portrait",
+        "status": "optimized",
+        "encoding": "webp_q90",
+        "quality": 90,
+        "width": 287,
+        "height": 328,
+        "original_bytes": 116192,
+        "bytes": 18072,
+        "original_sha256": "8d298b60eae6378b82ad635853755b30a106c20f49a72d7eb05e817f1bd9816a",
+        "sha256": "b687933ecf6085630d819b753550e40b151990c6a4f74ac8b6d433102817fdea",
+        "alpha_exact": true,
+        "psnr": 38.85393897077857,
+        "transparent_pixels": 39463,
+        "figma_node": "398:224",
+        "export_contents_only": true,
+        "source_backup": "tmp/female-young2-20261023/passenger-female-young2-tired.png"
+      },
+      {
+        "source": "passenger-female-young2-sleep.png",
+        "target": "passenger-female-young2-sleep.webp",
+        "profile": "portrait",
+        "status": "optimized",
+        "encoding": "webp_q90",
+        "quality": 90,
+        "width": 287,
+        "height": 328,
+        "original_bytes": 106289,
+        "bytes": 16536,
+        "original_sha256": "aed2341e4dae3ab2d925bb9927a9fc3584f58b6415f247c0aa24810bbe895ad6",
+        "sha256": "f9efe3f9625466653f108c04b77cedd9968a13a213d897b34786bd4def4afc9a",
+        "alpha_exact": true,
+        "psnr": 38.768279793010144,
+        "transparent_pixels": 43802,
+        "figma_node": "398:226",
+        "export_contents_only": true,
+        "source_backup": "tmp/female-young2-20261023/passenger-female-young2-sleep.png"
+      },
+      {
+        "source": "passenger-female-young2-laugh.png",
+        "target": "passenger-female-young2-laugh.webp",
+        "profile": "portrait",
+        "status": "optimized",
+        "encoding": "webp_q90",
+        "quality": 90,
+        "width": 287,
+        "height": 328,
+        "original_bytes": 110464,
+        "bytes": 17038,
+        "original_sha256": "52c1491bbab4479b88c9feb1b96144df50aa755b7ea1723c7dd42a555e2f3873",
+        "sha256": "ed0bbea00b26547c355e8533160f94279256b3ed350fb4c2e99d030b1d8d9ad3",
+        "alpha_exact": true,
+        "psnr": 39.0601299180392,
+        "transparent_pixels": 41696,
+        "figma_node": "398:227",
+        "export_contents_only": true,
+        "source_backup": "tmp/female-young2-20261023/passenger-female-young2-laugh.png"
+      }
+    ]
+  }
+}

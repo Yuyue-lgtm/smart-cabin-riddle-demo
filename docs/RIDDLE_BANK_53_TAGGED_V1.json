@@ -1,0 +1,352 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-10-22",
+  "status": "integrated_local",
+  "source": "用户提供的53道谜底及提示，已同步用户确认的闪电、蜜蜂、咖啡、耳机、长城五项修订；作为通用池接入本地91题分配，不合并旧35题草稿。",
+  "difficulty_basis": "按原始提示、日常熟悉程度及是/否问答的缩小范围难度初评，尚未经玩家或Dify实测。难度不等于预演稳定性。",
+  "difficulty_labels": { "easy": "简单", "medium": "中等", "hard": "挑战" },
+  "environment_options": ["车库", "隧道", "雨天", "雪景", "城市白天", "城市夜晚", "风景区", "傍晚", "深夜"],
+  "audience_options": ["通用", "亲子", "朋友", "长辈"],
+  "scenario_labels": {
+    "GOLDEN-A": "城市风景亲子游",
+    "GOLDEN-B": "赛博城市朋友夜游",
+    "GOLDEN-C": "雪景雨天长辈同行",
+    "GOLDEN-D": "傍晚深夜家庭返程",
+    "GOLDEN-E": "风景归城家人同行"
+  },
+  "tag_rules": {
+    "category": "主类别互斥，供统计和避免连续同类；补充主题用content_tags多选。",
+    "environment_tags": "仅标明显关联的现有环境；空数组表示无明显偏好，可作通用题。不是禁止在其他环境出题，也不是检测到真实窗外物体。",
+    "audience_tags": "表示优先匹配的人群，不表示其他人群不能玩；通用表示无人群偏好。",
+    "recommended_scenarios": "现有五条体验线的软推荐，不代表固定分配或已经接入。",
+    "hint": "采用用户最新确认的提示，未修订项保留原文；suggested_hint仅为尚未确认的建议，不自动替换。",
+    "readiness": "已接入本地加权分配并完成部分真实Dify抽验；尚未完成全部题目的事实边界、接受答案范围和玩家体验逐题验收。"
+  },
+  "riddles": [
+    {
+      "id": "R001", "answer": "安全带", "hint": "它平时很安静，关键时刻比主持人还可靠",
+      "category": "出行与交通", "content_tags": ["乘车安全", "车内用品"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "乘车情境贴近，物品熟悉且属性明确。", "review_notes": []
+    },
+    {
+      "id": "R002", "answer": "斧头", "hint": "它常出现在故事里，硬核、直接，和砍东西有关",
+      "category": "工具与文具", "content_tags": ["工具", "童话故事"],
+      "environment_tags": [], "audience_tags": ["亲子", "朋友"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B"],
+      "difficulty": "medium", "difficulty_reason": "需从多种砍切工具中区分，故事关联不唯一。", "review_notes": ["亲子题只讨论故事和工具属性，不引导儿童或驾驶员取用、操作工具。"]
+    },
+    {
+      "id": "R003", "answer": "米老鼠", "hint": "如果目的地是迪士尼，这位老朋友大概率会第一个出来打招呼",
+      "category": "角色与职业", "content_tags": ["动画角色", "迪士尼", "目的地关联"],
+      "environment_tags": [], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A"],
+      "difficulty": "easy", "difficulty_reason": "目的地和角色关联强，适合暖场。", "review_notes": ["题目不代表系统检测到真实角色；其他目的地也可出题，但不宜把迪士尼当当前目的地陈述。"]
+    },
+    {
+      "id": "R004", "answer": "火锅", "hint": "全家人围在一起时，它很容易成为气氛中心",
+      "category": "饮食", "content_tags": ["家庭聚餐", "热食"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "生活熟悉，可用锅具、加热和共食属性快速缩小范围。", "review_notes": []
+    },
+    {
+      "id": "R005", "answer": "书包", "hint": "去学校时，它通常比本人还早进入准备状态",
+      "category": "工具与文具", "content_tags": ["上学", "收纳"],
+      "environment_tags": [], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D"],
+      "difficulty": "easy", "difficulty_reason": "学校情境清晰，儿童日常熟悉。", "review_notes": []
+    },
+    {
+      "id": "R006", "answer": "彩虹", "hint": "它出场时间很短，抬头才能看见",
+      "category": "天气与天空", "content_tags": ["雨后", "颜色", "天空"],
+      "environment_tags": ["雨天", "风景区"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "常见认知对象，可用颜色和雨后属性区分其他天空现象。", "review_notes": ["雨天标签表示天气关联，不保证下雨时或当前窗外有彩虹；原提示范围较宽。"]
+    },
+    {
+      "id": "R007", "answer": "闪电", "hint": "它一闪而过，常把黑暗撕出一道口子",
+      "category": "天气与天空", "content_tags": ["雷雨", "发光现象"],
+      "environment_tags": ["雨天"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-C"],
+      "difficulty": "medium", "difficulty_reason": "需从短暂发光的现象中定位天气现象，并与雷声区分。",
+      "review_notes": ["谜底已由雷电改为闪电，重点是可见的闪光，不把雷声当作同义答案；雷电等相关说法的接受范围仍待判题验收。"]
+    },
+    {
+      "id": "R008", "answer": "雾", "hint": "走在里面像蒙了层纱，几米外认不出人",
+      "category": "天气与天空", "content_tags": ["能见度", "天气"],
+      "environment_tags": ["风景区"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "遮挡视线的描述辨识度高。", "review_notes": ["风景区是主题关联，当前没有独立雾天选项；能见度几米描述的是浓雾，不是所有雾。"]
+    },
+    {
+      "id": "R009", "answer": "霜", "hint": "天最冷的清晨，草地和车窗会披上一层白",
+      "category": "天气与天空", "content_tags": ["低温", "清晨", "冰晶"],
+      "environment_tags": ["雪景"], "audience_tags": ["长辈"], "recommended_scenarios": ["GOLDEN-C"],
+      "difficulty": "medium", "difficulty_reason": "需要区分霜、积雪和结冰。", "review_notes": ["与低温相关，不要求正在下雪，也不一定只有最冷的清晨出现。"]
+    },
+    {
+      "id": "R010", "answer": "露珠", "hint": "清晨趴在草叶和花瓣上，太阳一晒就没了",
+      "category": "天气与天空", "content_tags": ["清晨", "水滴", "植物"],
+      "environment_tags": ["风景区"], "audience_tags": ["亲子", "长辈"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需要区分露珠、雨滴和霜。", "review_notes": []
+    },
+    {
+      "id": "R011", "answer": "河流", "hint": "它从不停下来歇脚，一路往低处赶路",
+      "category": "地理与自然", "content_tags": ["水域", "流动"],
+      "environment_tags": ["风景区"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "拟人描述较宽，需靠水体、流向等问答定位。", "review_notes": ["接入前需界定江、河、溪流等近义或下位说法；不要把所有河流都回答为永不干涸或永不结冰。"]
+    },
+    {
+      "id": "R012", "answer": "大海", "hint": "站在岸边望不到边，风一吹就掀起层层浪",
+      "category": "地理与自然", "content_tags": ["水域", "海边", "旅行"],
+      "environment_tags": ["风景区"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "海岸和波浪特征熟悉。", "review_notes": []
+    },
+    {
+      "id": "R013", "answer": "云", "hint": "抬头看久了，常能从它身上看出各种动物",
+      "category": "天气与天空", "content_tags": ["天空", "形状想象"],
+      "environment_tags": ["城市白天", "风景区", "傍晚"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "天空与形状联想容易理解。", "review_notes": []
+    },
+    {
+      "id": "R014", "answer": "猫", "hint": "它高兴时喉咙里会发出拖拉机的声音",
+      "category": "动物与昆虫", "content_tags": ["宠物", "声音"],
+      "environment_tags": [], "audience_tags": ["亲子", "朋友"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "宠物常识和呼噜声辨识度高。", "review_notes": ["呼噜声不是只在高兴时出现，主持回答不应把它当作情绪的唯一依据。"]
+    },
+    {
+      "id": "R015", "answer": "狗", "hint": "门外有动静，它往往比人先叫起来",
+      "category": "动物与昆虫", "content_tags": ["宠物", "声音", "看家"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "日常经验熟悉，提示直接。", "review_notes": []
+    },
+    {
+      "id": "R016", "answer": "蝴蝶", "hint": "它爱在花丛间打转，从不在一个地方久留",
+      "category": "动物与昆虫", "content_tags": ["花丛", "飞行", "昆虫"],
+      "environment_tags": ["风景区"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "儿童熟悉，可用翅膀和外观区别其他访花昆虫。", "review_notes": ["会停歇，原提示中的“从不”是修辞，不作为事实绝对化回答。"]
+    },
+    {
+      "id": "R017", "answer": "蜜蜂", "hint": "它常在花朵间忙，你不招惹它，它一般也不来招惹你",
+      "category": "动物与昆虫", "content_tags": ["昆虫", "花丛", "蜂蜜"],
+      "environment_tags": ["风景区"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "花朵线索缩小范围，仍需与蝴蝶、其他访花昆虫区分。",
+      "review_notes": ["已补充花朵线索；不招惹也不是绝不会被蜇的安全承诺，主持问答不作绝对保证。"]
+    },
+    {
+      "id": "R018", "answer": "蚂蚁", "hint": "个头很小，却能扛起比自己重很多的东西",
+      "category": "动物与昆虫", "content_tags": ["昆虫", "搬运", "协作"],
+      "environment_tags": ["风景区"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "小体型与搬运特征典型。", "review_notes": []
+    },
+    {
+      "id": "R019", "answer": "萤火虫", "hint": "夏天的郊外，才容易撞见这点点光",
+      "category": "动物与昆虫", "content_tags": ["夜间", "发光", "夏季", "昆虫"],
+      "environment_tags": ["风景区", "傍晚", "深夜"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "郊外微光与生命特征结合后容易定位。", "review_notes": ["不保证此时此地能见到，也不把所有个体一概回答为会飞或发光。"]
+    },
+    {
+      "id": "R020", "answer": "兔子", "hint": "常被拉去和慢家伙赛跑，结果出人意料",
+      "category": "动物与昆虫", "content_tags": ["寓言", "龟兔赛跑"],
+      "environment_tags": [], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D"],
+      "difficulty": "easy", "difficulty_reason": "经典寓言线索很强。", "review_notes": []
+    },
+    {
+      "id": "R021", "answer": "面条", "hint": "北方人餐桌常见，过生日总少不了它",
+      "category": "饮食", "content_tags": ["主食", "生日", "家庭"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "生日与主食的组合容易联想到长寿面。", "review_notes": ["生日吃面是部分地区和家庭的习惯，不是人人必有。"]
+    },
+    {
+      "id": "R022", "answer": "咖啡", "hint": "早起犯困时靠它提神，夜里有人因它睡不着",
+      "category": "饮食", "content_tags": ["饮品", "提神", "都市生活"],
+      "environment_tags": ["城市白天", "城市夜晚"], "audience_tags": ["朋友"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需与茶、能量饮料区分，亲子人群熟悉度不一。",
+      "review_notes": ["已修正代词并用“有人”限定；不把饮用后失眠当所有人的必然结果，也不把饮品当疲劳驾驶的解决方案。"]
+    },
+    {
+      "id": "R023", "answer": "茶", "hint": "热水一冲，就在杯里慢慢舒展",
+      "category": "饮食", "content_tags": ["饮品", "茶文化"],
+      "environment_tags": [], "audience_tags": ["长辈"], "recommended_scenarios": ["GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需从多种冲泡饮品中识别叶片舒展的特征。", "review_notes": ["描述主要指茶叶，需明确“茶叶”和“茶水”的判题边界；不同形态的茶不一定舒展。"]
+    },
+    {
+      "id": "R024", "answer": "饺子", "hint": "有人爱蘸醋，有人爱蘸蒜，吃法因人而异",
+      "category": "饮食", "content_tags": ["主食", "家庭聚餐", "传统饮食"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "熟悉食物，可用面皮和包馅属性缩小范围。", "review_notes": ["蘸料不是饺子独有特征，主持问答需用包馅等事实逐步区分，不把所有饺子都回答为水煮。"]
+    },
+    {
+      "id": "R025", "answer": "自行车", "hint": "不用加油不排尾气，灵活穿行在小巷",
+      "category": "出行与交通", "content_tags": ["骑行", "城市出行", "环保"],
+      "environment_tags": ["城市白天", "风景区"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "常见交通工具，可通过脚踏、轮数进一步确定。", "review_notes": ["本题按普通人力自行车理解，需与电动自行车区分。"]
+    },
+    {
+      "id": "R026", "answer": "电梯", "hint": "人多时得挤进去，门一关就开始升降",
+      "category": "出行与交通", "content_tags": ["楼宇", "垂直交通"],
+      "environment_tags": ["城市白天", "城市夜晚"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "门和升降特征直接。", "review_notes": ["题面是生活描述，不引导拥挤乘梯；按轿厢式电梯理解，不混同自动扶梯。"]
+    },
+    {
+      "id": "R027", "answer": "飞机", "hint": "隔着窗户往下看，马路和房子都缩成了点",
+      "category": "出行与交通", "content_tags": ["航空", "旅行", "高空视角"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "高空旅行经验直观。", "review_notes": []
+    },
+    {
+      "id": "R028", "answer": "火车", "hint": "一串长车厢，老老实实贴着铁轨跑",
+      "category": "出行与交通", "content_tags": ["铁路", "旅行"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "车厢和铁轨的组合辨识度高。", "review_notes": ["需预先明确高铁、动车、地铁等回答是否算本题范围；不要只因包含“车”字判对。"]
+    },
+    {
+      "id": "R029", "answer": "台灯", "hint": "摆在书桌一角，夜里专为那一小块亮",
+      "category": "工具与文具", "content_tags": ["书桌", "照明", "学习"],
+      "environment_tags": ["深夜"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D"],
+      "difficulty": "easy", "difficulty_reason": "位置与局部照明特征明确。", "review_notes": ["深夜是使用情境关联，不表示车内真的有台灯。"]
+    },
+    {
+      "id": "R030", "answer": "橡皮", "hint": "专门负责\"后悔\"，让错误消失不见",
+      "category": "工具与文具", "content_tags": ["文具", "学习", "修改"],
+      "environment_tags": [], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D"],
+      "difficulty": "easy", "difficulty_reason": "儿童熟悉，可用擦除铅笔痕迹定位。", "review_notes": ["主要指橡皮擦，不回答为能擦除所有笔迹和错误。"]
+    },
+    {
+      "id": "R031", "answer": "烟花", "hint": "节日夜空的常客，炸开瞬间最灿烂",
+      "category": "节庆", "content_tags": ["节日", "夜空", "光与声音"],
+      "environment_tags": ["城市夜晚", "深夜"], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-D"],
+      "difficulty": "easy", "difficulty_reason": "节日、夜空和绽放组合直接。", "review_notes": ["深夜标签只表示题材关联，不建议在安静返程场景制造爆炸音效，也不引导燃放。"]
+    },
+    {
+      "id": "R032", "answer": "耳机", "hint": "它很轻巧，靠它可以把各种声音送到耳边",
+      "category": "科技与数码", "content_tags": ["音频", "数码用品"],
+      "environment_tags": [], "audience_tags": ["朋友"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "声音用途明确，仍需区别耳机、助听器和扬声器等设备。",
+      "review_notes": ["当前提示不再限定有线款；有线和无线耳机均属题目范围，不能把有线连接作为必要属性。"]
+    },
+    {
+      "id": "R033", "answer": "路由器", "hint": "信号满格靠它，角落没网先怪它",
+      "category": "科技与数码", "content_tags": ["家庭网络", "Wi-Fi"],
+      "environment_tags": [], "audience_tags": ["朋友"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需区别路由器、光猫、基站和中继器，依赖数码经验。", "review_notes": ["信号强不等于互联网正常；普通路由器也不一定具备无线功能，本题语境偏家用无线路由器。"]
+    },
+    {
+      "id": "R034", "answer": "充电宝", "hint": "揣在包里沉甸甸，关键时刻比谁都可靠",
+      "category": "科技与数码", "content_tags": ["便携供电", "旅行用品"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "常见出行用品，可通过给手机补电定位。", "review_notes": []
+    },
+    {
+      "id": "R035", "answer": "指纹", "hint": "破案时它留在现场，是最诚实的记号",
+      "category": "侦探与痕迹", "content_tags": ["侦探", "身份识别", "人体特征"],
+      "environment_tags": [], "audience_tags": ["亲子", "朋友"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需从多种现场痕迹中识别手指纹路。", "review_notes": ["存在指纹不等于能单独证明某人犯罪；仅按线索概念讨论。"]
+    },
+    {
+      "id": "R036", "answer": "脚印", "hint": "一串连成线，能看出来人往哪个方向去",
+      "category": "侦探与痕迹", "content_tags": ["侦探", "行走痕迹", "方向"],
+      "environment_tags": ["雪景", "风景区"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "成串的行走痕迹直观。", "review_notes": []
+    },
+    {
+      "id": "R037", "answer": "侦探", "hint": "真相水落石出，往往是他先把线头理顺",
+      "category": "角色与职业", "content_tags": ["推理", "职业", "故事角色"],
+      "environment_tags": [], "audience_tags": ["亲子", "朋友"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "谜底是职业而非物品，需区分警察等相近角色。", "review_notes": []
+    },
+    {
+      "id": "R038", "answer": "密码", "hint": "一串数字或字母，对上才能开门解锁",
+      "category": "科技与数码", "content_tags": ["解锁", "信息安全", "推理"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "解锁用途和字符组合提示较直接。", "review_notes": ["密码也可能含符号，不把字母数字当作唯一组成。"]
+    },
+    {
+      "id": "R039", "answer": "放大镜", "hint": "侦探手里的老牌武器，凑近才能看清细处",
+      "category": "工具与文具", "content_tags": ["侦探", "观察工具", "光学"],
+      "environment_tags": [], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "经典侦探道具与放大用途明确。", "review_notes": []
+    },
+    {
+      "id": "R040", "answer": "世界杯", "hint": "每四年一次，全球熬夜为它欢呼",
+      "category": "运动与游戏", "content_tags": ["足球", "体育赛事", "朋友聚会"],
+      "environment_tags": [], "audience_tags": ["朋友"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需从四年周期的大型赛事中区分，依赖体育常识。", "review_notes": ["需明确本题指足球世界杯，不包含所有项目的世界杯；不以当年赛程或当前比赛状态作为判题事实。"]
+    },
+    {
+      "id": "R041", "answer": "羽毛球", "hint": "两人对打，球在空中划出高高的弧线",
+      "category": "运动与游戏", "content_tags": ["球类", "球拍", "运动"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "常见运动，可用球的形状和球拍进一步区分。", "review_notes": ["原提示也可能指网球；羽毛球还可双打，不把两人对打当必要条件。"]
+    },
+    {
+      "id": "R042", "answer": "围棋", "hint": "黑白两色棋子，轮流落在交叉点上",
+      "category": "运动与游戏", "content_tags": ["棋类", "传统文化", "策略"],
+      "environment_tags": [], "audience_tags": ["亲子", "长辈"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "熟悉棋类者易定位，可用围地和棋盘区分。", "review_notes": ["黑白棋子和交叉点也适用于五子棋，预演中需补充围地等区别，不能把五子棋直接判为同义答案。"]
+    },
+    {
+      "id": "R043", "answer": "扑克牌", "hint": "背面都一样，谁也不知道对方手里是什么",
+      "category": "运动与游戏", "content_tags": ["纸牌", "聚会", "桌面游戏"],
+      "environment_tags": [], "audience_tags": ["朋友", "长辈"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "日常熟悉，可由花色和数字区分其他卡牌。", "review_notes": ["背面相同不是扑克牌独有；只讨论娱乐和牌面属性，不引导赌博。"]
+    },
+    {
+      "id": "R044", "answer": "沙漏", "hint": "两头大中间细，沙子从上头慢慢漏到底",
+      "category": "时间与光影", "content_tags": ["计时工具", "流动"],
+      "environment_tags": [], "audience_tags": ["通用"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "外形与填充物线索很强。", "review_notes": []
+    },
+    {
+      "id": "R045", "answer": "时间", "hint": "谁也留不住它，只会被它悄悄推着往前走",
+      "category": "时间与光影", "content_tags": ["抽象概念", "流逝"],
+      "environment_tags": [], "audience_tags": ["朋友", "长辈"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-C", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "提示熟悉，但谜底抽象，不能完全沿用物品属性问答。", "review_notes": ["预演需从计量、过去与未来等角度提问；材质、形状、是否能拿起等问题不宜机械回答为普通物品。"]
+    },
+    {
+      "id": "R046", "answer": "海市蜃楼", "hint": "沙漠或海面尽头浮现楼阁城郭，走过去却什么都没有。",
+      "category": "地理与自然", "content_tags": ["光学现象", "地理知识", "视觉"],
+      "environment_tags": ["风景区"], "audience_tags": ["朋友", "长辈"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "hard", "difficulty_reason": "依赖专有名词和光学常识，对低龄参与者不够熟悉。", "review_notes": ["对熟悉该词的成人提示已很直接；不一定只呈现楼阁，也不只限沙漠和海面。"]
+    },
+    {
+      "id": "R047", "answer": "影子", "hint": "光在哪，它就跟到哪，光一灭它就消失",
+      "category": "时间与光影", "content_tags": ["光与影", "随身现象"],
+      "environment_tags": ["城市白天", "风景区", "傍晚"], "audience_tags": ["亲子"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-D", "GOLDEN-E"],
+      "difficulty": "easy", "difficulty_reason": "日常光影经验熟悉，容易用实体与非实体属性区分。",
+      "review_notes": ["“光在哪，它就跟到哪”容易混淆光源和影子位置；有其他光源时，关掉一个光源也未必使所有影子消失。"],
+      "suggested_hint": "有光照着时，它常跟在身边；换个方向，长短和位置也会跟着变。"
+    },
+    {
+      "id": "R048", "answer": "化石", "hint": "今天的人凭着它，摸到早已灭绝的那个世界",
+      "category": "历史与文化", "content_tags": ["古生物", "博物馆", "科学"],
+      "environment_tags": [], "audience_tags": ["亲子", "朋友"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-B", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "依赖古生物知识，需区分化石、遗址和普通石头。", "review_notes": ["化石包括遗体和活动痕迹等；对应生物不一定全部灭绝，不把每块化石都回答为恐龙骨头。"]
+    },
+    {
+      "id": "R049", "answer": "算盘", "hint": "老一辈的钱柜，全靠它一颗珠子一颗珠子结清",
+      "category": "历史与文化", "content_tags": ["传统工具", "计算", "怀旧"],
+      "environment_tags": [], "audience_tags": ["长辈"], "recommended_scenarios": ["GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "对长辈较容易，儿童可能不熟悉；珠子与计算可逐步定位。", "review_notes": []
+    },
+    {
+      "id": "R050", "answer": "毛笔", "hint": "握法有讲究，用力轻重直接决定笔画粗细",
+      "category": "历史与文化", "content_tags": ["书法", "传统文具", "绘画"],
+      "environment_tags": [], "audience_tags": ["亲子", "长辈"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需区别毛笔、软笔和普通画笔。", "review_notes": []
+    },
+    {
+      "id": "R051", "answer": "长城", "hint": "它在山脊上蜿蜒万里，当年曾是一道守护边防的屏障",
+      "category": "历史与文化", "content_tags": ["历史建筑", "旅行", "中国文化"],
+      "environment_tags": ["风景区"], "audience_tags": ["亲子", "长辈"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需结合山势延伸和边防用途，从历史建筑中定位。",
+      "review_notes": ["已修订为守护边防，不再把挡风当作历史用途；并非所有长城段落都在山脊上，不把山脊当作全部地段的必要属性。"]
+    },
+    {
+      "id": "R052", "answer": "兵马俑", "hint": "守着一位帝王的长眠，从地底被重新唤醒",
+      "category": "历史与文化", "content_tags": ["历史文物", "博物馆", "西安", "旅行"],
+      "environment_tags": [], "audience_tags": ["亲子", "长辈"], "recommended_scenarios": ["GOLDEN-A", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "medium", "difficulty_reason": "需了解具体文物，与其他墓葬随葬品区分。", "review_notes": ["“唤醒”是修辞，不作为真的有生命；当前目的地未设西安，不把它强制标为风景区窗外关联。"]
+    },
+    {
+      "id": "R053", "answer": "胶片", "hint": "一卷能拍的张数有限，按一下就少一张",
+      "category": "历史与文化", "content_tags": ["摄影", "怀旧", "传统媒介"],
+      "environment_tags": [], "audience_tags": ["朋友", "长辈"], "recommended_scenarios": ["GOLDEN-B", "GOLDEN-C", "GOLDEN-E"],
+      "difficulty": "hard", "difficulty_reason": "数码时代的儿童可能缺少实物经验，需区别胶片、胶卷和相机。", "review_notes": ["提示更直接指向摄影胶卷；接入前应明确是否接受“胶卷”，不要把相机本体当作同义答案。"]
+    }
+  ]
+}

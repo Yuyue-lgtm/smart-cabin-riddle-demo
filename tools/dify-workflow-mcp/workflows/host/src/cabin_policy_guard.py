@@ -24,6 +24,42 @@ def help_request(line):
     return bool(re.search(r"给.{0,8}(?:提示|线索|暗示)|(?:提示|线索|暗示).{0,5}(?:一下|一点|吧|呢|吗)|提示下|太难|好难|帮帮我|没头绪|重述.{0,4}线索|复述.{0,4}线索", line))
 
 
+def clean_public_clue(value):
+    clue = text(value, 160).strip()
+    while True:
+        cleaned = re.sub(r"^(?:题面|已公开(?:回答|线索)?|公开线索|线索|提示)\s*[:：]\s*", "", clue)
+        if cleaned == clue:
+            return re.sub(r"[。！？!?]+$", "", clue)
+        clue = cleaned
+
+
+def public_clue_recap(clue, question_count, utterance="", expression="", answer=""):
+    variants = (
+        "线索小抄来啦：{clue}。接下来轮到你推理了！",
+        "再多就要剧透啦，先给你这一条：{clue}。换个角度问问？",
+        "侦探进度更新：{clue}。看看下一问能不能缩小范围？",
+        "这题确实绕，我陪你捋捋：{clue}。不急，慢慢想。",
+        "脑筋先拐个小弯：{clue}。我陪你接着排除！",
+        "咱们先抓住这一条：{clue}。一步一步来，不着急。",
+        "我把线索小抄摊开：{clue}。下一问听你的！",
+        "没关系，绕路也算探路：{clue}。咱们接着想。",
+    )
+    try:
+        index = int(question_count or 0) % len(variants)
+    except (TypeError, ValueError):
+        index = 0
+    if utterance or expression:
+        # The model may vary the delivery, but no model-generated fact is copied.
+        index = (index + sum(ord(char) for char in utterance + expression)) % len(variants)
+    if not clue:
+        return "别急，我陪你慢慢想。现在还没有公开线索，咱们先问一个是非问题吧。"
+    clue = re.sub(r"[。！？!?]+$", "", clue)
+    choices = [variants[(index + offset) % len(variants)].format(clue=clue) for offset in range(len(variants))]
+    choices.append("再看：" + clue + "。")
+    return next((line for line in choices if len(line) <= 60 and (not answer or answer not in line)),
+                "再看：" + clue + "。")
+
+
 def game_pause_authorization(utterance):
     line = text(utterance, 800).strip()
     if re.search(r"它|谜底|答案|假如|如果|假设|[“”\"‘’]|怎么|如何|为什么|是否|是不是|要不要|该不该|音乐|歌曲|视频|导航|(?:不要|别|先别|不用|不想|不愿).{0,6}(?:暂停|停|继续|恢复|接着)", line):
@@ -64,10 +100,11 @@ def main(director_text: str, payload: str, director_context: str, model_result: 
     game = obj(current.get("game"))
     if help_request(line) and game.get("status") == "playing":
         answer = text(game.get("current_answer"), 100)
-        clues = [text(clue, 160) for clue in items(game.get("public_clues"))
-                 if isinstance(clue, str) and text(clue, 160) and (not answer or answer not in clue)]
+        clues = [clean_public_clue(clue) for clue in items(game.get("public_clues"))
+                 if isinstance(clue, str) and clean_public_clue(clue) and (not answer or answer not in clean_public_clue(clue))]
         clue = next((clue for clue in reversed(clues) if len(clue) <= 54), "")
-        result.update(ai_reply_text="已公开：" + clue if clue else "目前没有可重述的公开线索，可以继续问是或否问题。",
+        expression = text(model_json(parse(model_result).get("canonical_text", director_text)).get("ai_reply_text"), 500)
+        result.update(ai_reply_text=public_clue_recap(clue, game.get("question_count"), line, expression, answer),
                       intent="game_related_chat", reply_mode="chat_only", covered_fact_keys=[],
                       strategy="soft_response", target_seat=None, applied_knowhow_ids=[], reason_codes=["public_clue_recap"])
         result["execution"]["actions"] = []
@@ -83,15 +120,15 @@ def main(director_text: str, payload: str, director_context: str, model_result: 
     refusal = None
     if request_like:
         if re.search(r"我.{0,3}(?:冷|热)|(?:调|开|关|升|降).{0,8}(?:空调|温度)", line):
-            refusal = "我目前不能调节空调，你可以手动调整；游戏进度会保留。"
+            refusal = ("冷着可不舒服。" if "冷" in line else "热着可不舒服。" if "热" in line else "空调这事得麻烦你啦。") + "我暂时调不了空调，麻烦你手动调一下。"
         elif re.search(r"还有多久到|多久能到|什么时候到|几分钟到", line):
-            refusal = "我目前无法查询到达时间，你可以查看行程信息；这题的进度还在。"
+            refusal = "想快点到啦？我这边查不到到达时间，得看看导航。"
         elif re.search(r"换.{0,4}主题|切换.{0,4}主题", line):
-            refusal = "我目前不能切换游戏主题，我们先保留当前这题。"
+            refusal = "想换换口味啦！我暂时切不了主题，先陪你把这题拿下？"
         elif re.search(r"(?:分区|我这边).{0,8}(?:音量|声音).{0,5}(?:调|大|小|关)|(?:调|关闭).{0,8}分区音量", line):
-            refusal = "我目前不能单独调节分区音量，可以帮你开关游戏背景音乐。"
+            refusal = "分区音量我还调不了，抱歉啦；游戏背景音乐倒是可以帮你开关。"
         elif re.search(r"(?:关掉|关闭|关一下|关了|关上|打开|开启|开一下|开了).{0,12}灯|灯.{0,8}(?:关掉|关闭|关一下|关了|关上|打开|开启|开一下|开了)", line) and not authorization:
-            refusal = "你想调整哪个分区的灯光？可以说副驾、主驾或后排左、后排右。"
+            refusal = "我来配合你。想调哪一边的灯？副驾、主驾，还是后排哪一侧？"
     if refusal:
         result.update(ai_reply_text=refusal, intent="game_related_chat", reply_mode="chat_only", covered_fact_keys=[],
                       strategy="soft_response", target_seat=None, applied_knowhow_ids=[], reason_codes=["capability_boundary"])

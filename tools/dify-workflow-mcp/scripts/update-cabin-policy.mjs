@@ -110,7 +110,10 @@ async function verify() {
     ['cold', '我好冷'], ['eta', '还有多久到'], ['theme', '换个主题'], ['music', '关闭背景音乐'],
     ['ordinary', '它是人造的吗？']]) {
     const result = await draftRun('dialogue', name, base(), {}, query);
-    if (name === 'hint' || name === 'difficult') assert.equal(result.host.ai_reply_text, '已公开：它生活在水里。');
+    if (name === 'hint' || name === 'difficult') {
+      assert.match(result.host.ai_reply_text, /它生活在水里/);
+      assert.doesNotMatch(result.host.ai_reply_text, /已公开回答|已公开：/);
+    }
     if (name.startsWith('light-') && name !== 'light-ambiguous') assert.equal(result.host.execution.actions[0]?.type, 'cabin.set_zone_light');
     if (['light-ambiguous', 'cold', 'eta', 'theme', 'ordinary'].includes(name)) assert.deepEqual(result.host.execution.actions, []);
     if (name === 'ordinary') assert.match(result.host.ai_reply_text, /不/);

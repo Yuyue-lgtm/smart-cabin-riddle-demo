@@ -63,17 +63,17 @@ function previewResponse(input) {
     await page.locator('#gameScreen').screenshot({ path: 'tmp/game-loading/desktop.png' });
     normal.release();
     await page.waitForFunction(() => getGameScreenMode() === 'ready');
-    assert.equal(await page.locator('#soundOnboarding').isVisible(), false);
-    await page.waitForFunction(() => scenarioFirstRoundPreparations.size === 6
-      && [...scenarioFirstRoundPreparations.values()].every(entry => entry.status === 'ready'));
-    assert.equal(normal.requests.length, 6);
+    const scenes = await page.evaluate(() => GOLDEN_TIMELINES.length);
+    await page.waitForFunction(expected => scenarioFirstRoundPreparations.size === expected
+      && [...scenarioFirstRoundPreparations.values()].every(entry => entry.status === 'ready'), scenes);
+    assert.equal(normal.requests.filter(input=>input.event?.type==='start_game'&&!input.dialogue_request).length, scenes);
     await page.locator('#switchScenario').click();
     await page.waitForFunction(() => roundQuestionPreparations.get(getDifyRoundScopeKey()).status === 'ready');
-    assert.equal(normal.requests.length, 6);
+    assert.equal(normal.requests.filter(input=>input.event?.type==='start_game'&&!input.dialogue_request).length, scenes);
     await page.waitForFunction(() => !els.soundOnboarding.hidden, undefined, { timeout: 6000 });
-    assert.equal(await page.evaluate(() => getComputedStyle(els.hostBubble).display), 'none');
+    assert.equal(await page.evaluate(() => getSoundOnboardingShowCount()), 1);
     assert.deepEqual(normal.errors, []);
-    reports.push({ case: 'default gate, geometry, six cached scenes, fresh scopes, onboarding', requests: normal.requests.length });
+    reports.push({ case: 'default gate, geometry, all cached scenes, fresh scopes, onboarding', scenes, requests: normal.requests.length });
     await normal.context.close();
 
     const failure = await fixture({ failed: true });

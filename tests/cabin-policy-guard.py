@@ -16,7 +16,7 @@ for kind in ('dialogue', 'situation'):
 
 base = {'game_id': 'policy-test', 'round_id': 'policy-test-r1', 'scene_version': 'sv-policy',
         'game': {'status': 'playing', 'current_answer': '海豚', 'round_index': 1, 'question_count': 3,
-                 'public_clues': ['它不是人造的。', '它生活在水里。']},
+                 'public_clues': ['题面：它不是人造的。', '已公开回答：它生活在水里。']},
         'car': {'speed': 50, 'environment': '城区晴天白天'},
         'passengers': {'selected_seat': 'front', 'states': {'driver': 'normal', 'front': 'normal', 'rearLeft': 'normal', 'rearRight': 'normal'}}}
 model = {'intent': 'game_related_chat', 'reply_mode': 'chat_only', 'ai_reply_text': '我来调整这边的灯光。',
@@ -36,12 +36,30 @@ def run(query, value=None, snapshot=None, preflight=False):
 
 for phrase in ('给我一点提示', '太难了', '帮帮我', '给点线索', '重述一下线索'):
     result = run(phrase, {**model, 'ai_reply_text': '答案是海豚。', 'covered_fact_keys': ['secret']}, preflight=True)
-    assert result['ai_reply_text'] == '已公开：它生活在水里。', result
+    assert '它生活在水里' in result['ai_reply_text'] and len(result['ai_reply_text']) <= 60, result
+    assert '已公开回答' not in result['ai_reply_text'] and '已公开：' not in result['ai_reply_text']
     assert not result['covered_fact_keys'] and not result['execution']['actions']
     assert result['decision_trace']['guard_status'] == 'passed'
     checks += 1
+recaps = set()
+for count in range(3):
+    snapshot = copy.deepcopy(base); snapshot['game']['question_count'] = count
+    recaps.add(run('多给点提示', snapshot=snapshot)['ai_reply_text'])
+    checks += 1
+assert len(recaps) == 3
 empty = copy.deepcopy(base); empty['game']['public_clues'] = []
 assert '没有' in run('给我提示', snapshot=empty)['ai_reply_text']; checks += 1
+first_recap = run('多给点提示', {**model, 'ai_reply_text': '陪你想。'})['ai_reply_text']
+assert run('多给点提示', {**model, 'ai_reply_text': '陪你想！'})['ai_reply_text'] != first_recap; checks += 1
+long_clue = copy.deepcopy(base); long_clue['game']['public_clues'] = ['它' + '很' * 50 + '普通。']
+assert len(run('多给点提示', snapshot=long_clue)['ai_reply_text']) <= 60; checks += 1
+for query, reply in [('它是人造的吗？', '不是，这条路先划掉，咱换个方向！'),
+                     ('你太冷漠了', '刚才像报站了，怪我！这回认真接你的话。')]:
+    result = run(query, {**model, 'intent': 'answer_question' if query.startswith('它') else 'smalltalk',
+                        'reply_mode': 'answer_only' if query.startswith('它') else 'chat_only',
+                        'ai_reply_text': reply, 'strategy': 'direct_answer' if query.startswith('它') else 'soft_response'}, preflight=True)
+    assert result['ai_reply_text'] == reply and result['decision_trace']['guard_status'] == 'passed', result
+    checks += 1
 for seat, label in (('driver', '主驾'), ('front', '副驾'), ('rearLeft', '后排左'), ('rearRight', '后排右')):
     for enabled, command in ((True, '打开'), (False, '关闭')):
         action = {'type': 'cabin.set_zone_light', 'seat': seat, 'enabled': enabled}

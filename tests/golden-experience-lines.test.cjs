@@ -61,6 +61,27 @@ test("the five current golden lines use the specified start and preparation-prev
   assert.equal(app.run("QUESTION_DURATION_MS"), 90000);
 });
 
+test("ready cabin picks each trip's first outdoor environment without changing its actual start", () => {
+  const app = client();
+  const before = app.value("GOLDEN_TIMELINES");
+  assert.deepEqual(app.value("GOLDEN_TIMELINES.map(line => getReadyCabinEnvironment(line))"), [
+    "城区晴天白天", "城区夜晚", "风景区雪景白天", "风景区傍晚", "风景区晴天白天",
+  ]);
+  assert.deepEqual(app.value("GOLDEN_TIMELINES"), before);
+  assert.equal(app.run("GOLDEN_TIMELINES[0].environment"), "车库");
+});
+
+test("ready cabin skips indoor and invalid entries, follows event time, and has an outdoor fallback", () => {
+  const app = client();
+  assert.equal(app.run(`getReadyCabinEnvironment({environment:"车库", previewEnvironment:"城区夜晚", steps:[
+    {type:"environment_change",delay:300,value:"风景区傍晚"},
+    {type:"environment_change",delay:10,value:"隧道"},
+    {type:"environment_change",delay:20,value:"不存在"},
+    {type:"environment_change",delay:100,value:"雨天"}]})`), "雨天");
+  assert.equal(app.run('getReadyCabinEnvironment({environment:"隧道",previewEnvironment:"城区夜晚"})'), "城区夜晚");
+  assert.equal(app.run('getReadyCabinEnvironment({environment:"车库",previewEnvironment:"隧道"})'), "风景区晴天白天");
+});
+
 test("scenario persona configuration keeps the front seat real and the baby non-speaking", () => {
   const app = client();
   const d = app.value('getPassengerPersonas("父母+小孩", GOLDEN_TIMELINES[3])');
@@ -69,7 +90,78 @@ test("scenario persona configuration keeps the front seat real and the baby non-
   assert.equal(d.rear_right.role, "婴儿");
   assert.equal(d.rear_right.can_guess, false);
   assert.match(d.rear_right.persona, /不生成完整发言/);
-  assert.equal(d.rear_left.role, "妈妈");
+  assert.match(d.front.role, /妈妈/);
+  assert.equal(d.rear_left.role, "空座");
+  assert.equal(d.rear_left.occupied, false);
+  assert.equal(d.rear_left.can_guess, false);
+});
+
+test("updated golden lines keep the requested occupants and explicit empty seats", () => {
+  const app = client();
+  assert.deepEqual(app.value("GOLDEN_TIMELINES.map(line => line.personas)"), [
+    { driver: "dad", front: "mom", rear_left: "boy", rear_right: "girl" },
+    { driver: "maleYoung", front: "femaleYoung2", rear_left: "empty", rear_right: "femaleYoung" },
+    { driver: "dad", front: "femaleYoung", rear_left: "grandpa", rear_right: "grandma" },
+    { driver: "dad", front: "mom", rear_left: "empty", rear_right: "baby" },
+    { driver: "dad", front: "mom", rear_left: "maleYoung", rear_right: "femaleYoung" },
+  ]);
+  assert.equal(app.run("getScenarioPersonaKeys(GOLDEN_TIMELINES[1]).includes('empty')"), false);
+  app.run('state.scenarioIndex = 1; state.passengers.relationship = GOLDEN_TIMELINES[1].relationship');
+  for (const [mood, filename] of [["普通", "normal"], ["大笑", "laugh"], ["疲惫", "tired"], ["睡着", "sleep"]]) {
+    assert.match(app.run(`resolvePassengerAsset('front', {mood:${JSON.stringify(mood)}}, 'idle')`),
+      new RegExp(`passenger-female-young2-${filename}\\.webp`));
+  }
+  assert.match(app.run("resolvePassengerAsset('rearRight', {mood:'普通'}, 'idle')"), /passenger-female-young-normal/);
+  assert.match(app.run("getPassengerPersona('front').role"), /女青年2/);
+  assert.equal(app.run("getPassengerPersona('front').is_real_user"), true);
+});
+
+test("baby and empty seats cannot speak through direct, queued, scripted or AI actions", async () => {
+  const app = client();
+  app.run(`state.scenarioIndex = 3; state.passengers.relationship = GOLDEN_TIMELINES[3].relationship;
+    state.game.status = 'playing'; state.game.questionCount = 4;
+    var dispatched = 0; dispatchWorkflow = async () => { dispatched++; };
+    render = () => {};`);
+  for (const seat of ["rearLeft", "rearRight"]) {
+    assert.equal(app.run(`canPassengerSpeak('${seat}')`), false);
+    assert.equal(app.run(`showPassengerBubble('${seat}', '它有把手吗？')`), false);
+    assert.equal(app.run(`applyPassengerAction({seat:'${seat}', text:'是雨伞吗？'})`), false);
+    await app.run(`runScriptedQuestion('${seat}', '它有把手吗？')`);
+    await app.run(`dispatchPendingChat({seat:'${seat}', text:'它有把手吗？'})`);
+  }
+  assert.equal(app.run('dispatched'), 0);
+  assert.equal(app.run("state.passengers.seats.rearRight.bubble"), '');
+  assert.equal(app.run("getInactiveSeat('front', {type:'passenger_inactive',seat:'rearRight'})"), null);
+  app.run("state.perception.driverState = 'fatigued'");
+  assert.equal(app.run('selectRandomSimulatedSeat()'), '');
+  assert.equal(app.run('selectRandomSimulatedSeat({rearOnly:true, includeNonSpeakers:true})'), 'rearRight');
+  assert.equal(app.run('getManualPassengerEventSeat()'), 'rearRight');
+  app.run("state.passengers.seats.rearLeft.mood = '睡着'");
+  assert.deepEqual(app.value('getSleepingSeats()'), []);
+  assert.equal(app.run('getManualWakeSeat()'), null);
+});
+
+test("friends choose only occupied rear seats and workflow snapshots identify empty seats", () => {
+  const app = client();
+  app.run('state.scenarioIndex = 1; state.passengers.relationship = GOLDEN_TIMELINES[1].relationship');
+  const selected = new Set();
+  for (let i=0; i<20; i++) selected.add(app.run('selectRandomSimulatedSeat()'));
+  assert.deepEqual(selected, new Set(['rearRight']));
+  assert.equal(app.run('getManualPassengerEventSeat()'), 'rearRight');
+  assert.equal(app.run("showPassengerBubble('rearLeft', '它有把手吗？')"), false);
+  assert.equal(app.run("resolvePassengerAsset('rearLeft', {mood:'普通'}, 'idle')"), '');
+  assert.equal(app.run("getInactiveSeat('front', {type:'passenger_inactive',seat:'rearLeft'})"), null);
+  app.run('state.scenarioIndex = 3; state.passengers.relationship = GOLDEN_TIMELINES[3].relationship');
+  const input = app.value("buildFullWorkflowInput('event', {type:'start_game'}, '')");
+  assert.equal(input.passengers.states.rear_left, '空座');
+  assert.equal(input.passengers.personas.rear_right.can_guess, false);
+  assert.equal(input.passengers.personas.rear_left.occupied, false);
+  const realtime = app.value("buildRealtimeChatInput(buildFullWorkflowInput('chat', null, '多给点提示'))");
+  assert.equal(realtime.passengers.personas.rear_left.occupied, false);
+  app.run('state.scenarioIndex = 3; state.passengers.relationship = GOLDEN_TIMELINES[3].relationship');
+  const baby = app.value("buildRealtimeChatInput(buildFullWorkflowInput('chat', null, '多给点提示'))");
+  assert.equal(baby.passengers.personas.rear_right.age_group, 'infant');
+  assert.equal(baby.passengers.personas.rear_right.can_guess, false);
 });
 
 test("experience schedules trigger only real events and environment changes, never reference dialogue", () => {

@@ -22,7 +22,7 @@ export function sshArguments({ viaClient = false, keyFile = path.join(os.homedir
   return ['-N', '-T', '-i', keyFile, '-p', viaClient ? '2222' : '22',
     '-L', '127.0.0.1:8081:127.0.0.1:8080',
     '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=yes',
-    '-o', 'HostKeyAlias=cabinplay-ecs', '-o', `UserKnownHostsFile="${hostFile.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+    '-o', 'HostKeyAlias=cabinplay-ecs', '-o', `UserKnownHostsFile=${hostFile.replace(/\\/g, '\\\\').replace(/ /g, '\\ ')}`,
     '-o', 'ExitOnForwardFailure=yes', '-o', 'ConnectTimeout=10',
     '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3', '-o', 'TCPKeepAlive=yes',
     viaClient ? 'root@127.0.0.1' : 'root@47.83.188.59'];

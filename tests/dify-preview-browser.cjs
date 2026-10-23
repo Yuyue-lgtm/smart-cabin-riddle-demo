@@ -62,7 +62,7 @@ const demoUrl = process.env.TEST_DEMO_URL || "http://127.0.0.1:4186/";
     await page.waitForFunction(() => state.workflow.hostThinkingActive && hostSprite.playing);
     assert.equal(chats.length, 1);
     assert.equal(chats[0].body.conversation_id, "browser-global-session");
-    assert.equal(await page.evaluate(() => hostSprite.source), "./assets/host-thinking.webp");
+    assert.equal(await page.evaluate(() => hostSprite.source.split('?')[0]), "./assets/host-thinking.webp");
     const thinkingCycle = await page.evaluate(() => state.workflow.hostThinkingCycleId);
     await page.screenshot({ path: "tmp/preview-chat-thinking.png" });
     const chat = chats[0];

@@ -89,8 +89,12 @@ test('ordinary light requests wait for their bubble and do not consume a game qu
 });
 test('help recap contains only published clues and preserves confirmed facts', () => {
   const app = client();
-  app.run('state.game.publicClues=["它不是人造的。"]; state.game.coveredFactKeys=["manufactured"];');
-  assert.equal(app.run('publicClueRecap(buildWorkflowInput("chat",null,"给我提示"))'), '已公开：它不是人造的。');
+  app.run('state.game.publicClues=["已公开回答：它不是人造的。"]; state.game.coveredFactKeys=["manufactured"];');
+  const first = app.run('publicClueRecap({game:{public_clues:["已公开回答：它不是人造的。"],question_count:0}})');
+  assert.equal(first, '线索小抄来啦：它不是人造的。接下来轮到你推理了！');
+  assert.doesNotMatch(first, /已公开|已公开回答/);
+  assert.match(app.run('publicClueRecap({game:{public_clues:["已公开回答：它不是人造的。"],question_count:1}})'), /再多就要剧透啦/);
+  assert.match(app.run('publicClueRecap({game:{public_clues:["已公开回答：它不是人造的。"],question_count:2}})'), /侦探进度更新/);
   assert.deepEqual(app.value('state.game.coveredFactKeys'), ['manufactured']);
   assert.equal(app.run('publicClueRecap({game:{current_answer:"海豚",public_clues:["海豚"]}})').includes('海豚'), false);
 });

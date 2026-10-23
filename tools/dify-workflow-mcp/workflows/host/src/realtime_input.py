@@ -1,3 +1,20 @@
+def answer_candidate_kind(utterance, answer):
+    normalize = lambda value: re.sub(r"[\s，。！？、,.!?:：\"'“”‘’（）()【】\[\]-]", "", value.lower())
+    guess, expected = normalize(utterance), normalize(answer)
+    if not expected or expected not in guess:
+        return "none"
+    prefixes = ("", "是", "就是", "是不是", "是否是", "会是", "会不会是", "难道是", "莫非是", "应该是", "可能是",
+                "我猜", "我猜是", "我觉得是", "我认为是", "我选", "我确定是", "答案是", "答案就是", "答案应该是",
+                "谜底是", "谜底就是", "我猜答案是", "我猜谜底是", "我觉得可能是", "我觉得应该是", "我的答案是",
+                "那是", "那是不是", "那我猜是")
+    suffixes = ("", "吗", "嘛", "么", "吧", "呢", "啦", "对吗", "对不对", "是不是", "没错吧")
+    if any(guess == prefix + expected + suffix for prefix in prefixes for suffix in suffixes):
+        return "confirmed"
+    if re.search(r"不是|不可能|不会是|不能是|不选|别选|排除|不像", guess):
+        return "negated"
+    return "uncertain"
+
+
 def main(input_payload: str, cabin_snapshot: str) -> dict:
     payload = parse(input_payload)
     game, event = obj(payload.get("game")), obj(payload.get("event"))
@@ -12,13 +29,13 @@ def main(input_payload: str, cabin_snapshot: str) -> dict:
         r"(?:打开|开启|播放|放|启动|关掉|关闭|停止|暂停|静音).{0,8}(?:背景音乐|音乐)|(?:背景音乐|音乐).{0,8}(?:打开|开启|播放|关掉|关闭|停止|暂停|静音)",
         utterance,
     ))
-    normalize = lambda s: re.sub(r"[\s，。！？,.!?]", "", s.lower())
-    guess, expected = normalize(utterance), normalize(answer)
-    exact = bool(expected and trigger == "chat" and game.get("status") == "playing" and guess in
-                 (expected, "答案是" + expected, "我猜" + expected, "我猜是" + expected, "是" + expected))
+    candidate = answer_candidate_kind(utterance, answer) if trigger == "chat" and game.get("status") == "playing" else "none"
+    # Recompute from the current answer; caller-supplied confirmation is not trusted.
+    payload["answer_candidate"] = {"matched": candidate != "none", "confirmation": candidate}
+    exact = candidate == "confirmed"
     p0_event = event_type in ("hard_brake", "safety_pause", "timeout", "round_timeout", "game_end")
     ended_game = trigger != "chat" and game.get("status") in ("victory", "failed", "finished") and not music_request
-    p0 = p0_event or exact or ended_game
+    p0 = p0_event or candidate != "none" or ended_game
     interaction = obj(payload.get("interaction"))
     recent = [{k: text(message.get(k), 180) for k in ("role", "speaker", "seat", "text", "content") if text(message.get(k), 180)}
               for message in items(interaction.get("recent_messages"))[-8:] if isinstance(message, dict)]

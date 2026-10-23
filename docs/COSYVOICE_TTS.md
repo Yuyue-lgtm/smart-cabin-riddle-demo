@@ -6,7 +6,7 @@
 - 地域：新加坡（`ap-southeast-1`）
 - 模型：`cosyvoice-v3-flash`
 - 音色：龙华（`longhua_v3`）
-- 当前语速 / 音高：`rate: 1` / `pitch: 1`（2026-10-21 恢复自然参数，替换先前试听的 `2 / 0.5`，避免明显低沉变声）
+- 当前本地语速 / 音高：`rate: 1.2` / `pitch: 0.99`（2026-10-22 按用户指定调整；音色、音量及其他参数不变，未同步线上）
 - 服务端接口：`wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference`
 
 新加坡区域使用 CosyVoice WebSocket API。当前账号对 HTTP 合成返回 `current user api does not support http call`，因此不要把 HTTP `SpeechSynthesizer` 或 HTTP SSE 当作该区域的可用入口。服务端通过 WebSocket 接收 MP3 二进制帧，再以 `audio/mpeg` 分块流式代理给浏览器；支持 `MediaSource` 的浏览器边收边播，其他浏览器缓冲完整音频后播放。气泡在语音播放期间保持显示。

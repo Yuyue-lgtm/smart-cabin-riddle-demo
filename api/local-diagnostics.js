@@ -127,8 +127,8 @@ function sanitizeRecord(record) {
     if (["host_voice", "workflow_failure", "page_state", "player_submission"].includes(diagnostic.type)) {
       const sanitized = { type: diagnostic.type };
       const enums = {
-        stage: ["toggle", "skipped", "requested", "response", "playing", "waiting", "waiting_resume", "stalled", "ended", "failed", "cancelled", "fetch", "parse", "validate", "normalize", "local_fallback", "boot", "ready", "pageshow", "focus", "layout_invalid", "layout_recovered", "submitted", "queued", "dispatched", "resolved"],
-        reason: ["none", "muted", "not_configured", "empty_text", "text_too_long", "http_error", "network_error", "invalid_json", "route_mismatch", "operation_mismatch", "event_mismatch", "round_mismatch", "normalize_error", "browser_blocked", "media_error", "media_timeout", "timeout_or_cancel", "first_audio_timeout", "stream_idle_timeout", "audio_missing", "playback_error", "workflow_error", "reply_missing"],
+        stage: ["toggle", "skipped", "requested", "response", "playing", "waiting", "waiting_resume", "stalled", "ended", "failed", "cancelled", "fetch", "parse", "validate", "normalize", "local_fallback", "boot", "ready", "pageshow", "focus", "layout_invalid", "layout_recovered", "submitted", "queued", "dispatched", "resolved", "game_opening"],
+        reason: ["none", "muted", "not_configured", "empty_text", "text_too_long", "http_error", "network_error", "invalid_json", "route_mismatch", "operation_mismatch", "event_mismatch", "round_mismatch", "normalize_error", "browser_blocked", "media_error", "media_timeout", "timeout_or_cancel", "first_audio_timeout", "stream_idle_timeout", "audio_missing", "playback_error", "workflow_error", "reply_missing", "prefetch_timeout", "prefetch_failed"],
         screen_mode: ["loading", "ready", "playing", "reveal", "summary"],
         browser_engine: ["chromium", "webkit", "firefox", "unknown"],
         transport: ["mse", "blob", "none"],

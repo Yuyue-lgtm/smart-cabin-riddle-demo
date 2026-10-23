@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智能座舱 AI 猜谜 Demo</title>
-    <link rel="icon" type="image/png" href="./assets/game-icon-loading.png?v=5de080117ce7" />
-    <link rel="preload" as="image" href="./assets/screen-default.png?v=20260927-screen-default-v2" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/cabin-env-garage.png?v=figma-ce-garage-20261022" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/game-icon-loading.png?v=5de080117ce7" fetchpriority="high" />
-    <link rel="preload" as="image" href="./assets/cabin-interior.png" fetchpriority="high" />
-  <link rel="stylesheet" href="./styles.css?v=20261022-control-type-v4" />
+    <link rel="icon" type="image/png" href="./assets/game-icon-loading.png?v=20261022-images-v6" />
+    <link rel="preload" as="image" href="./assets/screen-default.webp?v=20261022-images-v6" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-env-city-day.webp?v=20261022-images-v6" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/game-icon-loading.png?v=20261022-images-v6" fetchpriority="high" />
+    <link rel="preload" as="image" href="./assets/cabin-interior.webp?v=20261022-images-v6" fetchpriority="high" />
+  <link rel="stylesheet" href="./styles.css?v=20261022-images-v6&ui=golden-passengers-v4" />
   </head>
   <body>
     <div class="stage-viewport" id="stageViewport">
@@ -19,7 +19,7 @@
         <div class="environment-backdrop" id="environmentBackdrop">
           <img
             class="environment-backdrop-image"
-            src="./assets/cabin-env-garage.png?v=figma-ce-garage-20261022"
+            src="./assets/cabin-env-city-day.webp?v=20261022-images-v6"
             alt=""
             aria-hidden="true"
             decoding="sync"
@@ -29,15 +29,17 @@
         <div class="cabin-glass" aria-hidden="true"></div>
         <div class="cabin-overlay">
           <div class="scene-badges">
-            <span class="environment-badge" id="environmentLabel">车外环境：车库</span>
-            <span class="destination-badge">
-              <img src="./assets/cabin-location-icon.svg" alt="" aria-hidden="true" />
-              <b id="destinationLabel">目的地：公司</b>
-            </span>
-            <span class="speed-badge">
-              <img src="./assets/cabin-speed-icon.svg" alt="" aria-hidden="true" />
-              <b id="speedLabel">50 km/h</b>
-            </span>
+            <span class="environment-badge" id="environmentLabel">车外环境：城市白天</span>
+            <div class="trip-badges">
+              <span class="speed-badge" hidden>
+                <img src="./assets/cabin-speed-icon.svg?v=20261022-images-v6" alt="" aria-hidden="true" />
+                <b id="speedLabel">50 km/h</b>
+              </span>
+              <span class="destination-badge">
+                <img src="./assets/cabin-location-icon.svg?v=20261022-images-v6" alt="" aria-hidden="true" />
+                <b id="destinationLabel">目的地：公司</b>
+              </span>
+            </div>
           </div>
           <div class="decision-card cabin-decision-card is-prestart">
             <span class="panel-kicker">融合决策</span>
@@ -60,65 +62,65 @@
             </dl>
           </div>
           <div class="important-event" id="importantEvent" aria-hidden="true">
-            <img src="./assets/important-event-icon.svg" alt="" aria-hidden="true" />
+            <img src="./assets/important-event-icon.svg?v=20261022-images-v6" alt="" aria-hidden="true" />
             <span id="importantEventText"></span>
           </div>
           <div class="car-cabin">
             <button class="seat seat-rear-left" data-seat="rearLeft" type="button">
-              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="rearLeft"></span>
-              <img class="passenger-figure" data-avatar="rearLeft" src="./assets/passenger-boy-normal.png" alt="" />
+              <img class="passenger-figure" data-avatar="rearLeft" src="./assets/passenger-boy-normal.webp?v=20261022-images-v6" alt="" />
               <span class="seat-info">
                 <strong>后排左</strong>
                 <small data-seat-status="rearLeft">普通</small>
               </span>
             </button>
             <button class="seat seat-rear-right" data-seat="rearRight" type="button">
-              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="rearRight"></span>
-              <img class="passenger-figure" data-avatar="rearRight" src="./assets/passenger-girl-normal.png" alt="" />
+              <img class="passenger-figure" data-avatar="rearRight" src="./assets/passenger-girl-normal.webp?v=20261022-images-v6" alt="" />
               <span class="seat-info">
                 <strong>后排右</strong>
                 <small data-seat-status="rearRight">普通</small>
               </span>
             </button>
             <button class="seat seat-front" data-seat="front" type="button">
-              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="front"></span>
-              <img class="passenger-figure" data-avatar="front" src="./assets/passenger-mom-normal.png" alt="" />
+              <img class="passenger-figure" data-avatar="front" src="./assets/passenger-mom-normal.webp?v=20261022-images-v6" alt="" />
               <span class="seat-info">
                 <strong>副驾</strong>
                 <small data-seat-status="front">普通</small>
               </span>
             </button>
             <button class="seat seat-driver" data-seat="driver" type="button">
-              <img class="seat-correct-light" src="./assets/cabin-correct-light.png" alt="" aria-hidden="true" />
+              <img class="seat-correct-light" src="./assets/cabin-correct-light.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
               <span class="speech-bubble" data-bubble="driver"></span>
-              <img class="passenger-figure" data-avatar="driver" src="./assets/passenger-dad-normal.png" alt="" />
+              <img class="passenger-figure" data-avatar="driver" src="./assets/passenger-dad-normal.webp?v=20261022-images-v6" alt="" />
               <span class="seat-info">
                 <strong>主驾</strong>
                 <small data-seat-status="driver">普通</small>
               </span>
             </button>
-            <img class="cabin-sleep-shade cabin-sleep-shade-rear-left" data-sleep-shade="rearLeft" src="./assets/cabin-sleep-dim-rear.svg" width="511" height="472" alt="" aria-hidden="true" hidden />
-            <img class="cabin-sleep-shade cabin-sleep-shade-rear-right" data-sleep-shade="rearRight" src="./assets/cabin-sleep-dim-rear.svg" width="511" height="472" alt="" aria-hidden="true" hidden />
-            <img class="cabin-sleep-shade cabin-sleep-shade-front" data-sleep-shade="front" src="./assets/cabin-sleep-dim-front.svg" width="566" height="614" alt="" aria-hidden="true" hidden />
-            <img class="cabin-sleep-shade cabin-sleep-shade-driver" data-sleep-shade="driver" src="./assets/cabin-sleep-dim-front.svg" width="566" height="614" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-rear-left" data-sleep-shade="rearLeft" src="./assets/cabin-sleep-dim-rear.svg?v=20261022-images-v6" width="511" height="472" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-rear-right" data-sleep-shade="rearRight" src="./assets/cabin-sleep-dim-rear.svg?v=20261022-images-v6" width="511" height="472" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-front" data-sleep-shade="front" src="./assets/cabin-sleep-dim-front.svg?v=20261022-images-v6" width="566" height="614" alt="" aria-hidden="true" hidden />
+            <img class="cabin-sleep-shade cabin-sleep-shade-driver" data-sleep-shade="driver" src="./assets/cabin-sleep-dim-front.svg?v=20261022-images-v6" width="566" height="614" alt="" aria-hidden="true" hidden />
             <div class="cabin-zone-comfort cabin-zone-comfort-rear-left" data-comfort-zone="rearLeft" role="status" aria-label="后排左睡眠关怀设置" hidden>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
             </div>
             <div class="cabin-zone-comfort cabin-zone-comfort-rear-right" data-comfort-zone="rearRight" role="status" aria-label="后排右睡眠关怀设置" hidden>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
             </div>
             <div class="cabin-zone-comfort cabin-zone-comfort-front" data-comfort-zone="front" role="status" aria-label="副驾睡眠关怀设置" hidden>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
             </div>
             <div class="cabin-zone-comfort cabin-zone-comfort-driver" data-comfort-zone="driver" role="status" aria-label="主驾睡眠关怀设置" hidden>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
-              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-volume-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区音量：</span><b>0</b></span>
+              <span class="cabin-zone-setting"><img src="./assets/cabin-zone-climate-icon.svg?v=20261022-images-v6" width="14" height="14" alt="" /><span>分区空调：</span><b>用户记忆值</b></span>
             </div>
           </div>
         </div>
@@ -127,12 +129,12 @@
         <section class="right-stack">
           <section class="game-region" id="gameRegion" aria-label="游戏界面">
           <div class="region-title">中控屏/吸顶屏</div>
-          <audio id="backgroundMusic" src="./assets/background-music.m4a?v=20261001" loop preload="metadata" hidden aria-hidden="true"></audio>
+          <audio id="backgroundMusic" src="./assets/background-music.mp3?v=b19f690f18e5" loop preload="metadata" hidden aria-hidden="true"></audio>
           <div class="game-screen screen-loading" id="gameScreen">
             <div class="loading-stage" aria-label="游戏加载">
               <div class="loading-content">
                 <div class="loading-brand">
-                  <img class="loading-icon" src="./assets/game-icon-loading.png?v=5de080117ce7" width="130" height="130" alt="" fetchpriority="high" />
+                  <img class="loading-icon" src="./assets/game-icon-loading.png?v=20261022-images-v6" width="130" height="130" alt="" fetchpriority="high" />
                   <div class="loading-title">旅途猜谜</div>
                 </div>
                 <div class="loading-details">
@@ -152,7 +154,7 @@
             </div>
             <img
               class="game-screen-background"
-              src="./assets/screen-default.png?v=20260927-screen-default-v2"
+              src="./assets/screen-default.webp?v=20261022-images-v6"
               alt=""
               aria-hidden="true"
               decoding="sync"
@@ -160,14 +162,14 @@
             />
             <img
               class="summary-background-layer"
-              src="./assets/screen-scenic-sunset.png"
+              src="./assets/screen-scenic-sunset.webp?v=20261022-images-v6"
               alt=""
               aria-hidden="true"
             />
             <canvas class="game-confetti-canvas" id="confettiCanvas" aria-hidden="true" hidden></canvas>
             <canvas class="summary-confetti-canvas" id="summaryConfettiCanvas" aria-hidden="true" hidden></canvas>
             <div class="pencil-game-icon" aria-hidden="true">
-              <img src="./assets/game-icon-loading.png?v=5de080117ce7" alt="" />
+              <img src="./assets/game-icon-loading.png?v=20261022-images-v6" alt="" />
             </div>
             <div class="pencil-title" aria-hidden="true">旅途猜谜</div>
             <div class="pencil-progress-rail" id="pencilProgressRail" aria-hidden="true">
@@ -177,7 +179,7 @@
             </div>
             <div class="question-counter">
               <span class="ticket-mark" aria-hidden="true">
-                <img src="./assets/question-icon.svg?v=e6142d434f61" alt="" />
+                <img src="./assets/question-icon.svg?v=20261022-images-v6" alt="" />
               </span>
               <span class="question-copy"><strong id="questionProgress">1 / 6</strong> 题</span>
             </div>
@@ -196,7 +198,7 @@
 
               <div class="riddle-panel">
                 <div class="riddle-ribbon" aria-hidden="true">
-                <img src="./assets/figma-playing-ribbon.svg" alt="" />
+                <img src="./assets/figma-playing-ribbon.svg?v=20261022-images-v6" alt="" />
                 <span id="stageLabel">准备开局</span>
               </div>
               <div class="question-timer" id="questionTimer" role="timer" aria-label="本题剩余90秒" hidden>
@@ -207,8 +209,7 @@
               <div class="answer-length-hint" id="answerLengthHint" aria-live="polite" hidden></div>
               <div class="answer-reveal" id="answerReveal">谜底：雨伞</div>
               <div class="reveal-stage" aria-live="polite">
-                <img class="reveal-ring" src="./assets/figma-reveal-light-ring.png" alt="" aria-hidden="true" />
-                <img class="reveal-stars" src="./assets/figma-reveal-stars.png" alt="" aria-hidden="true" />
+                <img class="reveal-stars" src="./assets/figma-reveal-stars.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
                 <div class="reveal-kicker">答案是</div>
                 <div class="reveal-answer-text" id="revealAnswerText">雨伞</div>
                 <div class="reveal-seat-line">
@@ -219,21 +220,21 @@
             </div>
 
             <div class="summary-stage" aria-live="polite">
-              <span class="summary-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
-              <span class="summary-beam-left" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
-              <img class="summary-mosaic" src="./assets/figma-summary-mosaic.png" alt="" aria-hidden="true" />
-              <img class="summary-confetti" src="./assets/figma-summary-ribbon.png" alt="" aria-hidden="true" />
-              <img class="summary-title-asset" src="./assets/figma-summary-title.png" alt="旅途战报" />
+              <span class="summary-beam-right" aria-hidden="true"><img src="./assets/stage-beam.webp?v=20261022-images-v6" alt="" /></span>
+              <span class="summary-beam-left" aria-hidden="true"><img src="./assets/stage-beam.webp?v=20261022-images-v6" alt="" /></span>
+              <img class="summary-mosaic" src="./assets/figma-summary-mosaic.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
+              <img class="summary-confetti" src="./assets/figma-summary-ribbon.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
+              <img class="summary-title-asset" src="./assets/figma-summary-title.webp?v=20261022-images-v6" alt="旅途战报" />
               <div class="summary-stats" id="summaryStats"><span>完成</span><strong id="summaryTotal">6</strong><span>题</span><span class="summary-gap"></span><span>破解</span><strong id="summarySolved">0</strong><span>题</span></div>
-              <img class="summary-light-ring" src="./assets/figma-summary-light-ring.png" alt="" aria-hidden="true" />
-              <img class="summary-light-base" src="./assets/figma-summary-light-base.png" alt="" aria-hidden="true" />
-              <img class="summary-bright-light" src="./assets/figma-summary-bright-light.png" alt="" aria-hidden="true" />
+              <img class="summary-light-ring" src="./assets/figma-summary-light-ring.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
+              <img class="summary-light-base" src="./assets/figma-summary-light-base.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
+              <img class="summary-bright-light" src="./assets/figma-summary-bright-light.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
               <div class="summary-mvp-group">
-                <img class="summary-mvp-asset" src="./assets/figma-summary-mvp.png" alt="MVP" />
+                <img class="summary-mvp-asset" src="./assets/figma-summary-mvp.webp?v=20261022-images-v6" alt="MVP" />
                 <div class="summary-mvp-name" id="summaryMvp">副驾</div>
               </div>
               <button class="summary-continue" id="summaryContinue" type="button" aria-label="继续挑战">
-                <img src="./assets/figma-ready-button.png" alt="" aria-hidden="true" />
+                <img src="./assets/figma-ready-button.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
                 <span>继续挑战</span>
               </button>
             </div>
@@ -249,18 +250,18 @@
                 <span class="ready-sound-icon" aria-hidden="true">🔇</span>
               </button>
               <div class="sound-onboarding" id="soundOnboarding" role="status" hidden>打开可以听到主持人说话哦</div>
-              <span class="ready-beam-right" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
-              <img class="ready-ring-mosaic" src="./assets/figma-ready-ring-mosaic.png" alt="" aria-hidden="true" />
-              <img class="ready-panel-mosaic" src="./assets/figma-ready-panel-mosaic.png" alt="" aria-hidden="true" />
-              <span class="ready-beam-left" aria-hidden="true"><img src="./assets/stage-beam.png" alt="" /></span>
-              <img class="ready-logo" src="./assets/figma-ready-logo.png" alt="旅途猜谜" />
+              <span class="ready-beam-right" aria-hidden="true"><img src="./assets/stage-beam.webp?v=20261022-images-v6" alt="" /></span>
+              <img class="ready-ring-mosaic" src="./assets/figma-ready-ring-mosaic.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
+              <img class="ready-panel-mosaic" src="./assets/figma-ready-panel-mosaic.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
+              <span class="ready-beam-left" aria-hidden="true"><img src="./assets/stage-beam.webp?v=20261022-images-v6" alt="" /></span>
+              <img class="ready-logo" src="./assets/figma-ready-logo.webp?v=20261022-images-v6" alt="旅途猜谜" />
               <div class="ready-rules">
                 <p>主持人藏一个谜底，</p>
                 <p>大家提问<span>“是/否”</span>的问题，</p>
                 <p>并在<span>15</span>个提问内猜出答案。</p>
               </div>
               <button class="ready-start-button" id="readyStartButton" type="button">
-                <img src="./assets/figma-ready-button.png" alt="" aria-hidden="true" />
+                <img src="./assets/figma-ready-button.webp?v=20261022-images-v6" alt="" aria-hidden="true" />
                 <span>开始游戏</span>
               </button>
             </div>
@@ -268,12 +269,12 @@
             <div class="host-avatar" id="hostAvatar">
               <div class="host-media" id="hostMedia">
                 <canvas id="hostCanvas" aria-hidden="true"></canvas>
-                <img id="hostImage" src="./assets/host-normal.png" alt="AI 主持人" decoding="async" fetchpriority="high" />
+                <img id="hostImage" src="./assets/host-normal-static.webp?v=20261022-images-v6" alt="AI 主持人" decoding="async" fetchpriority="high" />
               </div>
             </div>
             <div class="host-bubble" id="hostBubble">
               <span class="host-bubble-text">我已经准备好第一道题了，等你发令。</span>
-              <img class="host-bubble-tail" src="./assets/bubble-tail.svg" alt="" aria-hidden="true" />
+              <img class="host-bubble-tail" src="./assets/bubble-tail.svg?v=20261022-images-v6" alt="" aria-hidden="true" />
             </div>
           </div>
           <button class="fullscreen-button" id="gameFullscreenButton" type="button" aria-label="全屏显示中控屏" title="全屏显示中控屏">
@@ -353,9 +354,9 @@
     </div>
 
     <div class="inactive-pause-overlay" id="inactivePauseOverlay" hidden>
-      <button class="inactive-pause-resume" id="resumeInactiveSimulation" type="button">继续模式</button>
+      <button class="inactive-pause-resume" id="resumeInactiveSimulation" type="button">继续模拟</button>
     </div>
 
-<script src="./client-app.js?v=20261022-golden-trip-clock-v2"></script>
+    <script src="./client-app.js?v=20261022-images-v6&ui=golden-passengers-v6"></script>
   </body>
 </html>

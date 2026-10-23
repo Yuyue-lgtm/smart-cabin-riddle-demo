@@ -24,7 +24,10 @@ for (const query of ['给我一点提示', '关闭副驾灯光', '我好冷', '�
   assert.equal(output.decision_trace.guard_status, 'passed');
   assert.ok(!output.ai_reply_text.includes('海豚'));
   assert.deepEqual(output.covered_fact_keys, []);
-  if (query === '给我一点提示') assert.equal(output.ai_reply_text, '已公开：它生活在水里。');
+  if (query === '给我一点提示') {
+    assert.match(output.ai_reply_text, /它生活在水里/);
+    assert.doesNotMatch(output.ai_reply_text, /已公开回答|已公开：/);
+  }
   if (query === '关闭副驾灯光') assert.deepEqual(output.execution.actions, [{ type: 'cabin.set_zone_light', seat: 'front', enabled: false }]);
   else assert.deepEqual(output.execution.actions, []);
   reports.push({ query, run_id: response.workflow_run_id, speech: output.ai_reply_text, actions: output.execution.actions });

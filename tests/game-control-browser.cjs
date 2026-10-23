@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const {previewFixture}=require('./helpers/preview-fixture.cjs');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
@@ -15,7 +16,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       const body = route.request().postDataJSON(), input = JSON.parse(body.input_payload);
       const scope = { game_id: input.game_id, round_id: input.round_id, scene_version: input.scene_version,
         event_id: input.event?.id, event_type: input.event?.type };
-      if (body.route === 'preview') return route.fulfill({ json: { route: 'preview', ...scope, workflow_output: JSON.stringify({ ai_reply_text: '' }) } });
+      if (body.route === 'preview') return route.fulfill({json:previewFixture(input)});
+      if (body.operation === 'game_opening') return route.fulfill({status:503,json:{error:'fixture_no_opening'}});
       if (body.route === 'situation') {
         const sleep = input.event.type === 'passenger_sleep';
         const scene = { ...scope, generated_at_ms: Date.now(), expires_at_ms: Date.now() + 60000, analysis_status: 'ready',
@@ -37,6 +39,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         workflow_output: JSON.stringify(output) } });
     });
     await page.goto(process.env.TEST_DEMO_URL || 'http://127.0.0.1:4186/', { waitUntil: 'networkidle' });
+    await page.waitForFunction(()=>!startupLoading.active&&getGameScreenMode()==='ready');
     await page.evaluate(() => {
       for (const timeline of ROUND_GOLDEN_TIMELINES) timeline.steps = [{ delay: 8000, type: 'passenger_question', label: '测试自动提问' }];
       globalThis.stepTimes = [];

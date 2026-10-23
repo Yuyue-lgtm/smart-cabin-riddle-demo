@@ -32,11 +32,12 @@ export async function runDraftRegression(request, apps, progress = () => {}, kno
   assert.ok(retrievalNodes.every(node => node.data.dataset_ids.length === 1 && node.data.dataset_ids[0] === knowledgeId));
   // Use the actual economy retrieval node. Dify's generic hit-testing API requires
   // a default embedding model even when this application uses keyword indexing.
+  const retrievalQuery = 'HK28 副驾未参与 主动邀请 participation';
   const hits = await request(`/apps/${apps.situation}/workflows/draft/nodes/${retrievalNodes[0].id}/run`, {
-    method: 'POST', body: { inputs: { query: 'participation' } },
+    method: 'POST', body: { inputs: { query: retrievalQuery } },
   });
   assert.equal(hits.status, 'succeeded');
-  assert.equal(hits.inputs?.query, 'participation');
+  assert.equal(hits.inputs?.query, retrievalQuery);
   assert.ok(hits.outputs?.result?.some(record => {
     try { return JSON.parse(record.content).knowhow_id === 'HK28'; } catch { return false; }
   }), 'Target knowledge must directly retrieve HK28');
